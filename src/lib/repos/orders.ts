@@ -253,7 +253,14 @@ export async function assignCourierByAdmin(orderId: number, courierId: number | 
 
 export async function updateOrderPayment(
   id: number,
-  data: { payment_status?: "pending" | "paid" | "failed"; stripe_session_id?: string }
+  data: {
+    payment_status?: "pending" | "paid" | "failed";
+    stripe_session_id?: string;
+    pizza_transfer_id?: string;
+    pizza_transfer_amount?: number;
+    pizza_transfer_status?: string;
+    pizza_transfer_error?: string;
+  }
 ) {
   const db = await getDb();
   const payload: Record<string, unknown> = { ...data, id };

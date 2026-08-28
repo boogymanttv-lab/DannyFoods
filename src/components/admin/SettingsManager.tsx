@@ -421,6 +421,24 @@ export function SettingsManager({
         </Field>
       </Section>
 
+      <Section title="Автоматично разпределяне на плащанията (пица → друга сметка)">
+        <p className="text-xs text-muted -mt-2">
+          Ако попълните това поле, при всяко картово плащане делът за продуктите от типа
+          &quot;пица&quot; автоматично се превежда към посочената Stripe Connect сметка — останалата
+          част от плащането (другите продукти + пълната такса доставка) остава в основната Ви
+          Stripe сметка. Оставете празно, за да изключите функцията (всичко остава в основната
+          сметка, както досега).
+        </p>
+        <Field label="Stripe Connect account ID (за пицарията)">
+          <input
+            className="input"
+            placeholder="acct_xxxxxxxxxxxxxxxx"
+            value={settings.pizza_stripe_account_id}
+            onChange={(e) => set("pizza_stripe_account_id", e.target.value)}
+          />
+        </Field>
+      </Section>
+
       <button
         onClick={save}
         className="bg-brand text-white rounded-xl px-6 py-3 font-bold"

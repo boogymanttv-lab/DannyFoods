@@ -57,6 +57,18 @@ export const DEFAULT_SETTINGS = {
   // /admin/login form with its own admin_users table still works as a
   // fallback either way). Compared case-insensitively. ---
   admin_email: "",
+
+  // --- Automatic payout split: when a customer pays by card and the order
+  // contains pizza items, that portion of the payment is automatically
+  // transferred (via Stripe Connect) to this connected account's Stripe ID
+  // (e.g. "acct_1AbCdEfGhIjKlMnO"), leaving everything else (other items +
+  // the full delivery fee) in the main Stripe account. Empty = feature off.
+  // The connected account is created/onboarded separately in the Stripe
+  // Dashboard (Connect) — this setting just tells the app which one to pay
+  // out to. Stripe's own transfer fee is absorbed by the main account (the
+  // pizza account receives the full pizza-item amount, net of any
+  // proportional discount, before Stripe's cut). ---
+  pizza_stripe_account_id: "",
 };
 
 export type SettingsKey = keyof typeof DEFAULT_SETTINGS;

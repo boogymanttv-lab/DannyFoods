@@ -383,6 +383,18 @@ async function runMigrations() {
 
   await seedCompanyLegalInfo();
   await seedDrinksCategory();
+
+  // Added for the Stripe Connect pizza payout split — safe no-op on a fresh
+  // database (already in schema.ts's CREATE TABLE), needed here so an
+  // already-deployed database picks up the new columns too.
+  await rawQuery(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS pizza_transfer_id TEXT,
+       ADD COLUMN IF NOT EXISTS pizza_transfer_amount REAL,
+       ADD COLUMN IF NOT EXISTS pizza_transfer_status TEXT,
+       ADD COLUMN IF NOT EXISTS pizza_transfer_error TEXT`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

@@ -134,6 +134,13 @@ CREATE TABLE IF NOT EXISTS orders (
   estimated_delivery_set_at TEXT,
   requested_time TEXT,
   notes TEXT DEFAULT '',
+  -- Automatic split-payout tracking (pizza items' share of a card payment,
+  -- transferred via Stripe Connect to a second connected account — see
+  -- src/lib/pizza-split.ts). NULL/'' means "not applicable or not yet run".
+  pizza_transfer_id TEXT,
+  pizza_transfer_amount REAL,
+  pizza_transfer_status TEXT,
+  pizza_transfer_error TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
   updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );

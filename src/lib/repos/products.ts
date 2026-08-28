@@ -172,3 +172,15 @@ export async function deleteExtra(id: number) {
   const db = await getDb();
   await db.prepare("DELETE FROM extras WHERE id = ?").run(id);
 }
+
+// Used by the Stripe Connect pizza payout split (src/lib/pizza-split.ts) to
+// figure out, from a placed order's line items, which product ids are
+// pizzas — returns just the subset of `ids` that are pizza products.
+export async function getPizzaProductIds(ids: number[]): Promise<Set<number>> {
+  if (ids.length === 0) return new Set();
+  const db = await getDb();
+  const rows = (await db
+    .prepare("SELECT id FROM products WHERE id = ANY(?) AND is_pizza = 1")
+    .all(ids)) as { id: number }[];
+  return new Set(rows.map((r) => r.id));
+}

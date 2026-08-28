@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getSettings } from "@/lib/repos/settings";
 import { getOrderByNumber, updateOrderPayment } from "@/lib/repos/orders";
+import { transferPizzaShareIfNeeded } from "@/lib/pizza-split";
 
 export async function POST(req: NextRequest) {
   const settings = await getSettings();
@@ -35,6 +36,12 @@ export async function POST(req: NextRequest) {
       const order = await getOrderByNumber(orderNumber);
       if (order) {
         await updateOrderPayment(order.id, { payment_status: "paid" });
+        // Re-fetch so the pizza-split check below sees the just-updated
+        // payment_status/stripe_session_id, not the stale pre-payment row.
+        const paidOrder = await getOrderByNumber(orderNumber);
+        if (paidOrder) {
+          await transferPizzaShareIfNeeded(paidOrder, settings);
+        }
       }
     }
   }

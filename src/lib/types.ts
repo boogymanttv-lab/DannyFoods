@@ -119,6 +119,10 @@ export type Order = {
   estimated_delivery_set_at: string | null;
   requested_time: string | null;
   notes: string;
+  pizza_transfer_id: string | null;
+  pizza_transfer_amount: number | null;
+  pizza_transfer_status: string | null;
+  pizza_transfer_error: string | null;
   created_at: string;
   updated_at: string;
 };
