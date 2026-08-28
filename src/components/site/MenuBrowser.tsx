@@ -1,0 +1,142 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { formatPrice } from "@/lib/format";
+import { ProductModal } from "@/components/site/ProductModal";
+import type { Category, ProductWithOptions } from "@/lib/types";
+
+export function MenuBrowser({
+  categories,
+  products,
+  suggestedCategoryId,
+}: {
+  categories: Category[];
+  products: ProductWithOptions[];
+  // Category id (as a string, matching the site_settings store) whose
+  // products should show as "Често купувано с" suggestions in the product
+  // modal — empty string/undefined disables the section entirely.
+  suggestedCategoryId?: string;
+}) {
+  const [activeSlug, setActiveSlug] = useState(categories[0]?.slug ?? "");
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithOptions | null>(
+    null
+  );
+
+  const suggestions = useMemo(() => {
+    if (!suggestedCategoryId) return [];
+    return products.filter((p) => String(p.category_id) === suggestedCategoryId);
+  }, [products, suggestedCategoryId]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<number, ProductWithOptions[]>();
+    for (const p of products) {
+      if (!map.has(p.category_id)) map.set(p.category_id, []);
+      map.get(p.category_id)!.push(p);
+    }
+    return map;
+  }, [products]);
+
+  const activeCategory = categories.find((c) => c.slug === activeSlug) ?? categories[0];
+  const items = activeCategory ? grouped.get(activeCategory.id) ?? [] : [];
+
+  function selectCategory(slug: string) {
+    setActiveSlug(slug);
+    // A category switch always starts a fresh grid — jump back to the top
+    // of the menu so the new selection is never confused with leftover
+    // scroll position from a longer previous list.
+    document.getElementById("menu")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  return (
+    <div id="menu">
+      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
+        <div className="mx-auto max-w-6xl px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+          {categories.map((c) => (
+            <button
+              key={c.slug}
+              onClick={() => selectCategory(c.slug)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold border transition-colors ${
+                activeSlug === c.slug
+                  ? "bg-brand text-white border-brand"
+                  : "bg-surface border-border text-foreground/70"
+              }`}
+            >
+              <span className="mr-1">{c.icon}</span>
+              {c.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {activeCategory && (
+          <div key={activeCategory.slug} className="animate-pop-in">
+            <h2 className="font-display font-extrabold text-2xl mb-5 flex items-center gap-2">
+              <span>{activeCategory.icon}</span> {activeCategory.name}
+            </h2>
+
+            {items.length === 0 ? (
+              <p className="text-muted text-center py-16">
+                Няма продукти в тази категория все още.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+                {items.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedProduct(p)}
+                    className="text-left bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col"
+                  >
+                    <div className="h-24 sm:h-40 bg-gradient-to-br from-brand/10 to-gold/10 grid place-items-center overflow-hidden">
+                      {p.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-3xl sm:text-5xl">{activeCategory.icon}</span>
+                      )}
+                    </div>
+                    <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <h3 className="font-semibold leading-tight text-xs sm:text-base">
+                          {p.name}
+                        </h3>
+                        {p.featured === 1 && (
+                          <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-gold/20 text-gold px-1.5 sm:px-2 py-0.5 rounded-full">
+                            ХИТ
+                          </span>
+                        )}
+                      </div>
+                      {p.description && (
+                        <p className="hidden sm:block text-xs text-muted mt-1 line-clamp-2 flex-1">
+                          {p.description}
+                        </p>
+                      )}
+                      <span className="mt-1.5 sm:mt-3 font-bold text-brand text-xs sm:text-base">
+                        {formatPrice(p.base_price)}
+                      </span>
+                    </div>
+                    <span className="block text-center text-xs sm:text-sm font-bold text-white bg-brand py-1.5 sm:py-2.5 hover:bg-brand-dark transition-colors">
+                      Избери
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          suggestions={suggestions.filter((p) => p.id !== selectedProduct.id)}
+        />
+      )}
+    </div>
+  );
+}

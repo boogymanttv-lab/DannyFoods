@@ -1,0 +1,176 @@
+export type Category = {
+  id: number;
+  slug: string;
+  name: string;
+  icon: string;
+  sort_order: number;
+  active: number;
+};
+
+export type ProductSize = {
+  id: number;
+  product_id: number;
+  label: string;
+  price_delta: number;
+  is_default: number;
+  sort_order: number;
+};
+
+export type Extra = {
+  id: number;
+  name: string;
+  price: number;
+  category_id: number | null;
+  active: number;
+};
+
+export type Product = {
+  id: number;
+  category_id: number;
+  name: string;
+  description: string;
+  image: string;
+  base_price: number;
+  is_pizza: number;
+  active: number;
+  featured: number;
+  sort_order: number;
+  created_at: string;
+};
+
+export type ProductWithOptions = Product & {
+  sizes: ProductSize[];
+  extras: Extra[];
+  category?: Category;
+};
+
+export type DeliveryZone = {
+  id: number;
+  name: string;
+  delivery_fee: number;
+  min_order: number;
+  active: number;
+  sort_order: number;
+};
+
+export type Promotion = {
+  id: number;
+  code: string;
+  description: string;
+  discount_type: "percent" | "fixed";
+  discount_value: number;
+  min_order: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  usage_limit: number | null;
+  used_count: number;
+  active: number;
+  created_at: string;
+};
+
+export type OrderStatus =
+  | "new"
+  | "confirmed"
+  | "preparing"
+  | "delivering"
+  | "delivered"
+  | "cancelled";
+
+export type PaymentMethod = "cash" | "card_on_delivery" | "stripe";
+
+export type OrderItem = {
+  productId: number;
+  name: string;
+  sizeLabel?: string;
+  unitPrice: number;
+  quantity: number;
+  extras: { name: string; price: number }[];
+  lineTotal: number;
+};
+
+export type Order = {
+  id: number;
+  order_number: string;
+  customer_name: string;
+  phone: string;
+  zone_id: number | null;
+  address: string;
+  street: string;
+  house_number: string;
+  intercom: string;
+  address_notes: string;
+  items_json: string;
+  subtotal: number;
+  delivery_fee: number;
+  discount: number;
+  total: number;
+  promo_code: string | null;
+  payment_method: PaymentMethod;
+  payment_status: "pending" | "paid" | "failed";
+  stripe_session_id: string | null;
+  status: OrderStatus;
+  courier_id: number | null;
+  claimed_at: string | null;
+  delivered_at: string | null;
+  dest_lat: number | null;
+  dest_lng: number | null;
+  customer_id: number | null;
+  estimated_delivery: string | null;
+  estimated_delivery_set_at: string | null;
+  requested_time: string | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Courier = {
+  id: number;
+  name: string;
+  phone: string;
+  password_hash: string;
+  active: number;
+  last_lat: number | null;
+  last_lng: number | null;
+  last_location_at: string | null;
+  created_at: string;
+};
+
+export type CourierPublic = Omit<Courier, "password_hash">;
+
+export type Customer = {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  password_hash: string | null;
+  google_id: string | null;
+  avatar_url: string;
+  created_at: string;
+};
+
+export type CustomerPublic = Omit<Customer, "password_hash">;
+
+export type CustomerAddress = {
+  id: number;
+  customer_id: number;
+  label: string;
+  zone_id: number | null;
+  address: string;
+  street: string;
+  house_number: string;
+  intercom: string;
+  address_notes: string;
+  is_default: number;
+  created_at: string;
+};
+
+export type CartLine = {
+  productId: number;
+  name: string;
+  image: string;
+  sizeLabel?: string;
+  sizeId?: number;
+  unitPrice: number;
+  quantity: number;
+  extras: { id: number; name: string; price: number }[];
+};

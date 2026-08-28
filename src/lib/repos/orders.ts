@@ -1,0 +1,312 @@
+import { getDb } from "@/lib/db";
+import type { Order, OrderItem, OrderStatus, PaymentMethod } from "@/lib/types";
+
+// Reusable SQL fragment for "now, as UTC text" — matches the format
+// created_at/updated_at columns are stored in (see schema.ts), so plain
+// text comparisons/ordering keep working the same way they did with
+// SQLite's datetime('now').
+const NOW_UTC = `to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')`;
+
+function generateOrderNumber(): string {
+  const now = new Date();
+  const y = now.getFullYear().toString().slice(2);
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `DD-${y}${m}${d}-${rand}`;
+}
+
+export async function createOrder(data: {
+  customer_name: string;
+  phone: string;
+  zone_id: number | null;
+  address: string;
+  street?: string;
+  house_number?: string;
+  intercom?: string;
+  address_notes?: string;
+  items: OrderItem[];
+  subtotal: number;
+  delivery_fee: number;
+  discount: number;
+  total: number;
+  promo_code?: string | null;
+  payment_method: PaymentMethod;
+  notes?: string;
+  customer_id?: number | null;
+  requested_time?: string | null;
+}): Promise<Order> {
+  const db = await getDb();
+  const order_number = generateOrderNumber();
+  const info = await db
+    .prepare(
+      `INSERT INTO orders
+        (order_number, customer_name, phone, zone_id, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time)
+       VALUES
+        (@order_number, @customer_name, @phone, @zone_id, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time)`
+    )
+    .run({
+      order_number,
+      customer_name: data.customer_name,
+      phone: data.phone,
+      zone_id: data.zone_id,
+      address: data.address,
+      street: data.street ?? "",
+      house_number: data.house_number ?? "",
+      intercom: data.intercom ?? "",
+      address_notes: data.address_notes ?? "",
+      items_json: JSON.stringify(data.items),
+      subtotal: data.subtotal,
+      delivery_fee: data.delivery_fee,
+      discount: data.discount,
+      total: data.total,
+      promo_code: data.promo_code ?? null,
+      payment_method: data.payment_method,
+      notes: data.notes ?? "",
+      customer_id: data.customer_id ?? null,
+      requested_time: data.requested_time ?? null,
+    });
+  return (await getOrder(info.lastInsertRowid as number))!;
+}
+
+export async function listOrdersForCustomer(customerId: number, limit = 50): Promise<Order[]> {
+  const db = await getDb();
+  return db
+    .prepare(
+      "SELECT * FROM orders WHERE customer_id = @customerId ORDER BY id DESC LIMIT @limit"
+    )
+    .all({ customerId, limit }) as Promise<Order[]>;
+}
+
+// Filled in shortly after order creation, once the delivery address has
+// been geocoded (see src/lib/geocode.ts) — used to draw a destination pin
+// and route line on the customer's live tracking map.
+export async function updateOrderDestination(id: number, lat: number, lng: number) {
+  const db = await getDb();
+  await db.prepare("UPDATE orders SET dest_lat = @lat, dest_lng = @lng WHERE id = @id").run({
+    id,
+    lat,
+    lng,
+  });
+}
+
+// Set by the admin when confirming an order — a short human-readable range
+// like "15-20" (minutes). Null clears it back to "not set yet". The
+// timestamp is (re)stamped whenever a non-null estimate is set, since the
+// customer's countdown ring counts down from "when this estimate was given",
+// not from when the order was first placed.
+export async function updateOrderEstimate(id: number, estimate: string | null) {
+  const db = await getDb();
+  await db
+    .prepare(
+      `UPDATE orders SET estimated_delivery = @estimate,
+         estimated_delivery_set_at = CASE WHEN @estimate::text IS NULL THEN NULL ELSE ${NOW_UTC} END
+       WHERE id = @id`
+    )
+    .run({ id, estimate });
+}
+
+export async function getOrder(id: number): Promise<Order | undefined> {
+  const db = await getDb();
+  return db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as Promise<Order | undefined>;
+}
+
+export async function getOrderByNumber(orderNumber: string): Promise<Order | undefined> {
+  const db = await getDb();
+  return db.prepare("SELECT * FROM orders WHERE order_number = ?").get(orderNumber) as Promise<
+    Order | undefined
+  >;
+}
+
+export async function listOrders(opts?: {
+  status?: OrderStatus;
+  limit?: number;
+  // Inclusive "YYYY-MM-DD" bounds, compared against the date portion of
+  // created_at (stored as UTC text "YYYY-MM-DD HH:MM:SS") — used for the
+  // admin report export's date-range picker.
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<Order[]> {
+  const db = await getDb();
+  const clauses: string[] = [];
+  const params: Record<string, unknown> = {};
+  if (opts?.status) {
+    clauses.push("status = @status");
+    params.status = opts.status;
+  }
+  if (opts?.dateFrom) {
+    clauses.push("left(created_at, 10) >= @dateFrom");
+    params.dateFrom = opts.dateFrom;
+  }
+  if (opts?.dateTo) {
+    clauses.push("left(created_at, 10) <= @dateTo");
+    params.dateTo = opts.dateTo;
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const limit = opts?.limit ? `LIMIT ${opts.limit}` : "";
+  return db
+    .prepare(`SELECT * FROM orders ${where} ORDER BY id DESC ${limit}`)
+    .all(params) as Promise<Order[]>;
+}
+
+// Orders currently "in the pipeline" — placed but not yet delivered or
+// cancelled. Used to auto-suggest a longer delivery-time estimate when the
+// kitchen/couriers are busy, regardless of time of day.
+export async function countActiveOrders(): Promise<number> {
+  const db = await getDb();
+  const row = (await db
+    .prepare(
+      "SELECT COUNT(*) as c FROM orders WHERE status IN ('new','confirmed','preparing','delivering')"
+    )
+    .get()) as { c: number };
+  return Number(row.c);
+}
+
+export async function updateOrderStatus(id: number, status: OrderStatus) {
+  const db = await getDb();
+  await db
+    .prepare(`UPDATE orders SET status = @status, updated_at = ${NOW_UTC} WHERE id = @id`)
+    .run({ id, status });
+}
+
+// Orders ready to be picked up: prepared but not yet claimed by any courier.
+export async function listAvailableOrdersForCourier(): Promise<Order[]> {
+  const db = await getDb();
+  return db
+    .prepare(
+      `SELECT * FROM orders WHERE courier_id IS NULL AND status IN ('confirmed','preparing') ORDER BY id ASC`
+    )
+    .all() as Promise<Order[]>;
+}
+
+export async function listOrdersForCourier(courierId: number): Promise<Order[]> {
+  const db = await getDb();
+  return db
+    .prepare(
+      `SELECT * FROM orders WHERE courier_id = @courierId AND status NOT IN ('delivered','cancelled') ORDER BY id ASC`
+    )
+    .all({ courierId }) as Promise<Order[]>;
+}
+
+export async function listDeliveredOrdersForCourier(
+  courierId: number,
+  limit = 20
+): Promise<Order[]> {
+  const db = await getDb();
+  return db
+    .prepare(
+      `SELECT * FROM orders WHERE courier_id = @courierId AND status = 'delivered' ORDER BY id DESC LIMIT @limit`
+    )
+    .all({ courierId, limit }) as Promise<Order[]>;
+}
+
+// Atomic claim: only succeeds if the order is still unclaimed, so two
+// couriers tapping "claim" on the same order at the same moment can't both win.
+export async function claimOrder(orderId: number, courierId: number): Promise<boolean> {
+  const db = await getDb();
+  const info = await db
+    .prepare(
+      `UPDATE orders SET courier_id = @courierId, claimed_at = ${NOW_UTC}, updated_at = ${NOW_UTC}
+       WHERE id = @orderId AND courier_id IS NULL`
+    )
+    .run({ orderId, courierId });
+  return Number(info.changes) > 0;
+}
+
+export async function releaseOrder(orderId: number, courierId: number): Promise<boolean> {
+  const db = await getDb();
+  const info = await db
+    .prepare(
+      `UPDATE orders SET courier_id = NULL, claimed_at = NULL, updated_at = ${NOW_UTC}
+       WHERE id = @orderId AND courier_id = @courierId`
+    )
+    .run({ orderId, courierId });
+  return Number(info.changes) > 0;
+}
+
+// Couriers can only move their own orders through delivering -> delivered.
+export async function updateOrderStatusByCourier(
+  orderId: number,
+  courierId: number,
+  status: "delivering" | "delivered"
+): Promise<boolean> {
+  const db = await getDb();
+  const deliveredAt = status === "delivered" ? `, delivered_at = ${NOW_UTC}` : "";
+  const info = await db
+    .prepare(
+      `UPDATE orders SET status = @status, updated_at = ${NOW_UTC}${deliveredAt}
+       WHERE id = @orderId AND courier_id = @courierId`
+    )
+    .run({ orderId, courierId, status });
+  return Number(info.changes) > 0;
+}
+
+export async function assignCourierByAdmin(orderId: number, courierId: number | null) {
+  const db = await getDb();
+  await db
+    .prepare(
+      `UPDATE orders SET courier_id = @courierId, claimed_at = CASE WHEN @courierId::int IS NULL THEN NULL ELSE ${NOW_UTC} END, updated_at = ${NOW_UTC}
+       WHERE id = @orderId`
+    )
+    .run({ orderId, courierId });
+}
+
+export async function updateOrderPayment(
+  id: number,
+  data: { payment_status?: "pending" | "paid" | "failed"; stripe_session_id?: string }
+) {
+  const db = await getDb();
+  const payload: Record<string, unknown> = { ...data, id };
+  const fields = Object.keys(data);
+  if (fields.length === 0) return;
+  const setClause = fields.map((f) => `${f} = @${f}`).join(", ");
+  await db
+    .prepare(`UPDATE orders SET ${setClause}, updated_at = ${NOW_UTC} WHERE id = @id`)
+    .run(payload);
+}
+
+export async function getOrderStats() {
+  const db = await getDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const todayOrders = (await db
+    .prepare(
+      "SELECT COUNT(*) as cnt, COALESCE(SUM(total),0) as revenue FROM orders WHERE left(created_at, 10) = ? AND status != 'cancelled'"
+    )
+    .get(today)) as { cnt: number; revenue: number };
+  const totalOrders = (await db.prepare("SELECT COUNT(*) as cnt FROM orders").get()) as {
+    cnt: number;
+  };
+  const activeOrders = (await db
+    .prepare(
+      "SELECT COUNT(*) as cnt FROM orders WHERE status IN ('new','confirmed','preparing','delivering')"
+    )
+    .get()) as { cnt: number };
+  const topProducts = (await db
+    .prepare(
+      `SELECT items_json FROM orders WHERE status != 'cancelled' ORDER BY id DESC LIMIT 200`
+    )
+    .all()) as { items_json: string }[];
+  const productCounts = new Map<string, number>();
+  for (const row of topProducts) {
+    try {
+      const items: OrderItem[] = JSON.parse(row.items_json);
+      for (const item of items) {
+        productCounts.set(item.name, (productCounts.get(item.name) ?? 0) + item.quantity);
+      }
+    } catch {
+      // ignore malformed rows
+    }
+  }
+  const top = Array.from(productCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, qty]) => ({ name, qty }));
+
+  return {
+    todayOrders: Number(todayOrders.cnt),
+    todayRevenue: Number(todayOrders.revenue),
+    totalOrders: Number(totalOrders.cnt),
+    activeOrders: Number(activeOrders.cnt),
+    topProducts: top,
+  };
+}
