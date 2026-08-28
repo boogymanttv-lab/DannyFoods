@@ -57,12 +57,13 @@ export async function createProduct(data: {
   is_pizza?: boolean;
   featured?: boolean;
   sort_order?: number;
+  weight_label?: string;
 }) {
   const db = await getDb();
   const info = await db
     .prepare(
-      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, sort_order)
-       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @sort_order)`
+      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, sort_order, weight_label)
+       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @sort_order, @weight_label)`
     )
     .run({
       category_id: data.category_id,
@@ -73,6 +74,7 @@ export async function createProduct(data: {
       is_pizza: data.is_pizza ? 1 : 0,
       featured: data.featured ? 1 : 0,
       sort_order: data.sort_order ?? 0,
+      weight_label: data.weight_label ?? "",
     });
   return info.lastInsertRowid as number;
 }
@@ -89,6 +91,7 @@ export async function updateProduct(
     active: boolean;
     featured: boolean;
     sort_order: number;
+    weight_label: string;
   }>
 ) {
   const db = await getDb();

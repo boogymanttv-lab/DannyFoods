@@ -15,6 +15,7 @@ const emptyProductForm = {
   description: "",
   image: "",
   base_price: "" as string | number,
+  weight_label: "",
   is_pizza: false,
   featured: false,
   active: true,
@@ -138,6 +139,7 @@ export function ProductsManager({
       description: p.description,
       image: p.image,
       base_price: p.base_price,
+      weight_label: p.weight_label ?? "",
       is_pizza: p.is_pizza === 1,
       featured: p.featured === 1,
       active: p.active === 1,
@@ -172,6 +174,7 @@ export function ProductsManager({
       description: productForm.description,
       image: productForm.image,
       base_price: Number(productForm.base_price),
+      weight_label: productForm.weight_label,
       is_pizza: productForm.is_pizza,
       featured: productForm.featured,
       active: productForm.active,
@@ -293,7 +296,10 @@ export function ProductsManager({
                         {cat?.icon} {cat?.name}
                       </span>
                     </p>
-                    <p className="text-sm text-muted">{formatPrice(p.base_price)}</p>
+                    <p className="text-sm text-muted">
+                      {formatPrice(p.base_price)}
+                      {p.weight_label ? ` · ${p.weight_label}` : ""}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -470,6 +476,12 @@ export function ProductsManager({
               placeholder="Базова цена (€)"
               value={productForm.base_price}
               onChange={(e) => setProductForm((f) => ({ ...f, base_price: e.target.value }))}
+            />
+            <input
+              className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
+              placeholder="Грамаж (напр. 300г, 1.2кг, 2 броя)"
+              value={productForm.weight_label}
+              onChange={(e) => setProductForm((f) => ({ ...f, weight_label: e.target.value }))}
             />
 
             <div className="flex gap-4 text-sm">

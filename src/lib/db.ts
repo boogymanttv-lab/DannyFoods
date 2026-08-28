@@ -395,6 +395,13 @@ async function runMigrations() {
        ADD COLUMN IF NOT EXISTS pizza_transfer_error TEXT`,
     []
   );
+
+  // Free-text serving size / weight per product (e.g. "300г") — same
+  // already-deployed-database story as the pizza transfer columns above.
+  await rawQuery(
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS weight_label TEXT DEFAULT ''`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

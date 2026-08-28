@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { ProductModal } from "@/components/site/ProductModal";
 import type { Category, ProductWithOptions } from "@/lib/types";
 
@@ -87,7 +87,7 @@ export function MenuBrowser({
                     onClick={() => setSelectedProduct(p)}
                     className="text-left bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col"
                   >
-                    <div className="h-24 sm:h-40 bg-gradient-to-br from-brand/10 to-gold/10 grid place-items-center overflow-hidden">
+                    <div className="aspect-square bg-gradient-to-br from-brand/10 to-gold/10 grid place-items-center overflow-hidden">
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -103,6 +103,11 @@ export function MenuBrowser({
                       <div className="flex items-start justify-between gap-1.5">
                         <h3 className="font-semibold leading-tight text-xs sm:text-base">
                           {p.name}
+                          {p.weight_label && (
+                            <span className="ml-1 font-normal text-muted text-[10px] sm:text-xs">
+                              ({p.weight_label})
+                            </span>
+                          )}
                         </h3>
                         {p.featured === 1 && (
                           <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-gold/20 text-gold px-1.5 sm:px-2 py-0.5 rounded-full">
@@ -111,12 +116,15 @@ export function MenuBrowser({
                         )}
                       </div>
                       {p.description && (
-                        <p className="hidden sm:block text-xs text-muted mt-1 line-clamp-2 flex-1">
+                        <p className="text-[11px] sm:text-xs text-muted mt-1 line-clamp-2 flex-1">
                           {p.description}
                         </p>
                       )}
                       <span className="mt-1.5 sm:mt-3 font-bold text-brand text-xs sm:text-base">
-                        {formatPrice(p.base_price)}
+                        {(() => {
+                          const { price, fromMultiple } = getDisplayPrice(p);
+                          return fromMultiple ? `от ${formatPrice(price)}` : formatPrice(price);
+                        })()}
                       </span>
                     </div>
                     <span className="block text-center text-xs sm:text-sm font-bold text-white bg-brand py-1.5 sm:py-2.5 hover:bg-brand-dark transition-colors">

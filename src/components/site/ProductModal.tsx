@@ -77,7 +77,7 @@ export function ProductModal({
         onClick={onClose}
       />
       <div className="relative bg-surface w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-pop-in">
-        <div className="h-48 bg-gradient-to-br from-brand/20 to-gold/20 relative grid place-items-center">
+        <div className="aspect-[4/3] bg-gradient-to-br from-brand/20 to-gold/20 relative grid place-items-center">
           {product.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -99,7 +99,14 @@ export function ProductModal({
 
         <div className="p-5 space-y-5">
           <div>
-            <h3 className="font-display font-extrabold text-xl">{product.name}</h3>
+            <h3 className="font-display font-extrabold text-xl">
+              {product.name}
+              {product.weight_label && (
+                <span className="ml-2 font-normal text-muted text-sm align-middle">
+                  ({product.weight_label})
+                </span>
+              )}
+            </h3>
             {product.description && (
               <p className="text-sm text-muted mt-1">{product.description}</p>
             )}
