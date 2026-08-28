@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DEFAULT_SETTINGS } from "@/lib/repos/settings";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import type { Category } from "@/lib/types";
 import {
   DAY_LABELS,
@@ -154,12 +155,8 @@ export function SettingsManager({
             />
           </Field>
         </div>
-        <Field label="URL на лого (по желание)">
-          <input
-            className="input"
-            value={settings.logo_url}
-            onChange={(e) => set("logo_url", e.target.value)}
-          />
+        <Field label="Лого (по желание)">
+          <ImageUploadField value={settings.logo_url} onChange={(url) => set("logo_url", url)} />
         </Field>
       </Section>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/format";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import type { Category, Extra, ProductWithOptions } from "@/lib/types";
 
 type SizeRow = { label: string; price_delta: number };
@@ -458,11 +459,9 @@ export function ProductsManager({
               value={productForm.description}
               onChange={(e) => setProductForm((f) => ({ ...f, description: e.target.value }))}
             />
-            <input
-              className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="URL на снимка (по желание)"
+            <ImageUploadField
               value={productForm.image}
-              onChange={(e) => setProductForm((f) => ({ ...f, image: e.target.value }))}
+              onChange={(url) => setProductForm((f) => ({ ...f, image: url }))}
             />
             <input
               type="number"
