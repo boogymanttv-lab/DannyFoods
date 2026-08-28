@@ -17,12 +17,25 @@ export type ProductSize = {
   weight_label: string;
 };
 
+export type ExtraOption = {
+  id: number;
+  extra_id: number;
+  label: string;
+  price: number;
+  is_default: number;
+  sort_order: number;
+};
+
 export type Extra = {
   id: number;
   name: string;
   price: number;
   category_id: number | null;
   active: number;
+  // Weight/quantity variants (e.g. "50г", "100г" — each its own price) for
+  // extras that aren't just a single flat add-on price. Empty for a plain
+  // extra — see extra_options in schema.ts.
+  options: ExtraOption[];
 };
 
 export type Product = {
@@ -177,5 +190,8 @@ export type CartLine = {
   sizeId?: number;
   unitPrice: number;
   quantity: number;
-  extras: { id: number; name: string; price: number }[];
+  // `id` is the extra's id; `optionId` is set when the customer picked one
+  // of that extra's weight/quantity variants (see ExtraOption) rather than
+  // its plain flat price.
+  extras: { id: number; name: string; price: number; optionId?: number }[];
 };

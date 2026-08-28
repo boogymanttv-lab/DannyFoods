@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listExtras, createExtra } from "@/lib/repos/products";
+import { listExtras, createExtra, setExtraOptions } from "@/lib/repos/products";
 
 export async function GET() {
   const extras = await listExtras();
@@ -16,5 +16,8 @@ export async function POST(req: NextRequest) {
     price: Number(body.price),
     category_id: body.category_id ?? null,
   });
+  if (Array.isArray(body.options) && body.options.length > 0) {
+    await setExtraOptions(id, body.options);
+  }
   return NextResponse.json({ id });
 }

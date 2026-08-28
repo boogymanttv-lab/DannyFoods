@@ -60,6 +60,18 @@ CREATE TABLE IF NOT EXISTS extras (
   active INTEGER NOT NULL DEFAULT 1
 );
 
+-- Variants of one extra (e.g. "Шунка" offered as 50г/100г/150г/200г, each
+-- with its own price) — an extra with no rows here is just a single flat
+-- price/click, exactly as before; one with rows here shows a picker instead.
+CREATE TABLE IF NOT EXISTS extra_options (
+  id SERIAL PRIMARY KEY,
+  extra_id INTEGER NOT NULL REFERENCES extras(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  price REAL NOT NULL DEFAULT 0,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS delivery_zones (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -176,6 +188,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
   value TEXT NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);

@@ -52,7 +52,17 @@ const checkoutSchema = z.object({
       z.object({
         productId: z.number().int().positive(),
         sizeId: z.number().int().positive().optional(),
-        extraIds: z.array(z.number().int().positive()).default([]),
+        extras: z
+          .array(
+            z.object({
+              id: z.number().int().positive(),
+              // Set when the customer picked one of that extra's weight/
+              // quantity variants (see ExtraOption) instead of its plain
+              // flat price.
+              optionId: z.number().int().positive().optional(),
+            })
+          )
+          .default([]),
         quantity: z.number().int().min(1).max(30),
       })
     )
@@ -96,7 +106,23 @@ export async function POST(req: NextRequest) {
       unitPrice += size.price_delta;
       sizeLabel = size.label;
     }
-    const extras = product.extras.filter((e) => item.extraIds.includes(e.id));
+    // Recompute each selected extra's price server-side too — for one with
+    // weight/quantity variants (options), the picked option's own price is
+    // what counts, never the extra's plain base price or anything sent by
+    // the client. Anything that doesn't resolve (unknown extra/option id)
+    // is silently dropped, same permissive behavior as before this feature.
+    const extras: { name: string; price: number }[] = [];
+    for (const sel of item.extras) {
+      const extra = product.extras.find((e) => e.id === sel.id);
+      if (!extra) continue;
+      if (sel.optionId != null) {
+        const option = extra.options.find((o) => o.id === sel.optionId);
+        if (!option) continue;
+        extras.push({ name: `${extra.name} (${option.label})`, price: option.price });
+      } else {
+        extras.push({ name: extra.name, price: extra.price });
+      }
+    }
     const extrasTotal = extras.reduce((s, e) => s + e.price, 0);
     const lineTotal = (unitPrice + extrasTotal) * item.quantity;
     subtotal += lineTotal;
@@ -106,7 +132,7 @@ export async function POST(req: NextRequest) {
       sizeLabel,
       unitPrice,
       quantity: item.quantity,
-      extras: extras.map((e) => ({ name: e.name, price: e.price })),
+      extras,
       lineTotal: Math.round(lineTotal * 100) / 100,
     });
   }

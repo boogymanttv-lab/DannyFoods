@@ -20,23 +20,52 @@ export function ProductModal({
   const defaultSize =
     product.sizes.find((s) => s.is_default) ?? product.sizes[0] ?? null;
   const [sizeId, setSizeId] = useState<number | null>(defaultSize?.id ?? null);
-  const [extraIds, setExtraIds] = useState<number[]>([]);
+  // Keyed by extra id. Presence of a key means that extra is checked/on;
+  // the value is the chosen ExtraOption id when that extra has variants
+  // (e.g. Шунка 50г/100г/150г/200г), or null for a plain flat-price extra.
+  const [selectedExtras, setSelectedExtras] = useState<Record<number, number | null>>({});
   const [quantity, setQuantity] = useState(1);
 
   const selectedSize = product.sizes.find((s) => s.id === sizeId) ?? null;
-  const selectedExtras = product.extras.filter((e) => extraIds.includes(e.id));
 
   const unitPrice = useMemo(
     () => product.base_price + (selectedSize?.price_delta ?? 0),
     [product.base_price, selectedSize]
   );
-  const extrasTotal = selectedExtras.reduce((s, e) => s + e.price, 0);
+
+  // Resolves each checked extra to its actual name/price right now — used
+  // both for the running total and for what actually gets added to cart.
+  const resolvedExtras = product.extras
+    .filter((e) => e.id in selectedExtras)
+    .map((e) => {
+      const optionId = selectedExtras[e.id];
+      const option = optionId != null ? e.options.find((o) => o.id === optionId) : null;
+      return {
+        id: e.id,
+        name: option ? `${e.name} (${option.label})` : e.name,
+        price: option ? option.price : e.price,
+        optionId: option?.id,
+      };
+    });
+  const extrasTotal = resolvedExtras.reduce((s, e) => s + e.price, 0);
   const totalPrice = (unitPrice + extrasTotal) * quantity;
 
-  function toggleExtra(id: number) {
-    setExtraIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  function toggleExtra(extraId: number) {
+    setSelectedExtras((prev) => {
+      if (extraId in prev) {
+        const next = { ...prev };
+        delete next[extraId];
+        return next;
+      }
+      const extra = product.extras.find((e) => e.id === extraId);
+      const defaultOption =
+        extra?.options.find((o) => o.is_default) ?? extra?.options[0] ?? null;
+      return { ...prev, [extraId]: defaultOption?.id ?? null };
+    });
+  }
+
+  function chooseExtraOption(extraId: number, optionId: number) {
+    setSelectedExtras((prev) => ({ ...prev, [extraId]: optionId }));
   }
 
   function handleAdd() {
@@ -48,7 +77,7 @@ export function ProductModal({
       sizeId: selectedSize?.id,
       unitPrice,
       quantity,
-      extras: selectedExtras.map((e) => ({ id: e.id, name: e.name, price: e.price })),
+      extras: resolvedExtras,
     });
     onClose();
     openDrawer();
@@ -147,23 +176,56 @@ export function ProductModal({
             <div>
               <p className="font-semibold text-sm mb-2">Добавки</p>
               <div className="space-y-2">
-                {product.extras.map((e) => (
-                  <label
-                    key={e.id}
-                    className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-sm cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={extraIds.includes(e.id)}
-                        onChange={() => toggleExtra(e.id)}
-                        className="accent-[var(--brand)] h-4 w-4"
-                      />
-                      {e.name}
-                    </span>
-                    <span className="text-muted">+{formatPrice(e.price)}</span>
-                  </label>
-                ))}
+                {product.extras.map((e) => {
+                  const isChecked = e.id in selectedExtras;
+                  const selectedOptionId = selectedExtras[e.id] ?? null;
+                  const displayPrice =
+                    e.options.length > 0
+                      ? (e.options.find((o) => o.id === selectedOptionId) ?? e.options[0])
+                          ?.price ?? 0
+                      : e.price;
+                  return (
+                    <div
+                      key={e.id}
+                      className="rounded-xl border border-border overflow-hidden"
+                    >
+                      <label className="flex items-center justify-between px-3 py-2.5 text-sm cursor-pointer">
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleExtra(e.id)}
+                            className="accent-[var(--brand)] h-4 w-4"
+                          />
+                          {e.name}
+                        </span>
+                        <span className="text-muted">+{formatPrice(displayPrice)}</span>
+                      </label>
+                      {isChecked && e.options.length > 0 && (
+                        <div className="border-t border-border px-2 py-2 space-y-1 bg-black/[0.03]">
+                          {e.options.map((o) => (
+                            <button
+                              key={o.id}
+                              type="button"
+                              onClick={() => chooseExtraOption(e.id, o.id)}
+                              className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-xs text-left transition-colors ${
+                                selectedOptionId === o.id
+                                  ? "bg-brand/10 text-brand font-semibold"
+                                  : "text-foreground/70"
+                              }`}
+                            >
+                              <span>
+                                {selectedOptionId === o.id ? "✓ " : ""}
+                                {o.label}
+                              </span>
+                              <span>{formatPrice(o.price)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

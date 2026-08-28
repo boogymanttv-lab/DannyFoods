@@ -7,6 +7,7 @@ import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import type { Category, Extra, ProductWithOptions } from "@/lib/types";
 
 type SizeRow = { label: string; price_delta: number; weight_label: string };
+type ExtraOptionRow = { label: string; price: number };
 
 const emptyProductForm = {
   id: null as number | null,
@@ -52,6 +53,7 @@ export function ProductsManager({
     name: "",
     price: "" as string | number,
     category_id: "" as string | number,
+    options: [] as ExtraOptionRow[],
   });
   const [showExtraForm, setShowExtraForm] = useState(false);
 
@@ -223,12 +225,28 @@ export function ProductsManager({
   }
 
   // ---------- Extras ----------
+  function addExtraOptionRow() {
+    setExtraForm((f) => ({ ...f, options: [...f.options, { label: "", price: 0 }] }));
+  }
+
+  function updateExtraOptionRow(idx: number, patch: Partial<ExtraOptionRow>) {
+    setExtraForm((f) => ({
+      ...f,
+      options: f.options.map((o, i) => (i === idx ? { ...o, ...patch } : o)),
+    }));
+  }
+
+  function removeExtraOptionRow(idx: number) {
+    setExtraForm((f) => ({ ...f, options: f.options.filter((_, i) => i !== idx) }));
+  }
+
   async function saveExtra() {
     if (!extraForm.name || extraForm.price === "") return;
     const payload = {
       name: extraForm.name,
       price: Number(extraForm.price),
       category_id: extraForm.category_id ? Number(extraForm.category_id) : null,
+      options: extraForm.options.filter((o) => o.label),
     };
     if (extraForm.id) {
       await fetch(`/api/admin/extras/${extraForm.id}`, {
@@ -244,7 +262,7 @@ export function ProductsManager({
       });
     }
     setShowExtraForm(false);
-    setExtraForm({ id: null, name: "", price: "", category_id: "" });
+    setExtraForm({ id: null, name: "", price: "", category_id: "", options: [] });
     const res = await fetch("/api/admin/extras");
     const data = await res.json();
     setExtras(data.extras ?? []);
@@ -386,7 +404,7 @@ export function ProductsManager({
         <div className="space-y-4">
           <button
             onClick={() => {
-              setExtraForm({ id: null, name: "", price: "", category_id: "" });
+              setExtraForm({ id: null, name: "", price: "", category_id: "", options: [] });
               setShowExtraForm(true);
             }}
             className="bg-brand text-white rounded-xl px-4 py-2.5 font-semibold text-sm"
@@ -408,7 +426,11 @@ export function ProductsManager({
                   </span>
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{formatPrice(e.price)}</span>
+                  <span className="text-sm font-semibold">
+                    {e.options.length > 0
+                      ? `${e.options.length} опции`
+                      : formatPrice(e.price)}
+                  </span>
                   <button
                     onClick={() => {
                       setExtraForm({
@@ -416,6 +438,7 @@ export function ProductsManager({
                         name: e.name,
                         price: e.price,
                         category_id: e.category_id ?? "",
+                        options: e.options.map((o) => ({ label: o.label, price: o.price })),
                       });
                       setShowExtraForm(true);
                     }}
@@ -600,10 +623,15 @@ export function ProductsManager({
               type="number"
               step="0.01"
               className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Цена (лв.)"
+              placeholder="Цена (€)"
               value={extraForm.price}
               onChange={(e) => setExtraForm((f) => ({ ...f, price: e.target.value }))}
             />
+            {extraForm.options.length > 0 && (
+              <p className="text-xs text-muted -mt-1">
+                Цената по-горе не се ползва, докато има опции по-долу — клиентът избира от тях.
+              </p>
+            )}
             <select
               className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
               value={extraForm.category_id}
@@ -616,6 +644,44 @@ export function ProductsManager({
                 </option>
               ))}
             </select>
+
+            <div>
+              <p className="font-semibold text-sm mb-2">
+                Опции (напр. няколко теглà на една и съща добавка)
+              </p>
+              <div className="space-y-2">
+                {extraForm.options.map((o, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input
+                      className="flex-1 rounded-lg border border-border px-3 py-2 text-sm"
+                      placeholder="Етикет (напр. 100 гр.)"
+                      value={o.label}
+                      onChange={(e) => updateExtraOptionRow(idx, { label: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
+                      placeholder="Цена"
+                      value={o.price}
+                      onChange={(e) =>
+                        updateExtraOptionRow(idx, { price: Number(e.target.value) })
+                      }
+                    />
+                    <button
+                      onClick={() => removeExtraOptionRow(idx)}
+                      className="text-brand text-sm font-semibold px-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button onClick={addExtraOptionRow} className="text-sm font-semibold text-brand">
+                  + Добави опция
+                </button>
+              </div>
+            </div>
+
             <button
               onClick={saveExtra}
               className="w-full bg-brand text-white rounded-xl py-3 font-bold mt-2"

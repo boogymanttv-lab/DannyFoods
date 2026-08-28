@@ -14,8 +14,8 @@ const STORAGE_KEY = "danidunner_cart_v1";
 
 function lineKey(line: Pick<CartLine, "productId" | "sizeId" | "extras">) {
   const extrasKey = line.extras
-    .map((e) => e.id)
-    .sort((a, b) => a - b)
+    .map((e) => `${e.id}:${e.optionId ?? ""}`)
+    .sort()
     .join(",");
   return `${line.productId}-${line.sizeId ?? "default"}-${extrasKey}`;
 }

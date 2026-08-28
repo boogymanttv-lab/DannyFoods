@@ -1,5 +1,15 @@
 import { getDb } from "@/lib/db";
-import type { Product, ProductSize, Extra, ProductWithOptions } from "@/lib/types";
+import type { Product, ProductSize, Extra, ExtraOption, ProductWithOptions } from "@/lib/types";
+
+async function attachExtraOptions(extra: Omit<Extra, "options">): Promise<Extra> {
+  const db = await getDb();
+  const options = (await db
+    .prepare(
+      "SELECT * FROM extra_options WHERE extra_id = ? ORDER BY sort_order ASC, id ASC"
+    )
+    .all(extra.id)) as ExtraOption[];
+  return { ...extra, options };
+}
 
 async function attachOptions(product: Product): Promise<ProductWithOptions> {
   const db = await getDb();
@@ -8,13 +18,14 @@ async function attachOptions(product: Product): Promise<ProductWithOptions> {
       "SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order ASC, id ASC"
     )
     .all(product.id)) as ProductSize[];
-  const extras = (await db
+  const extrasRaw = (await db
     .prepare(
       `SELECT e.* FROM extras e
        WHERE e.active = 1 AND (e.category_id = ? OR e.category_id IS NULL)
        ORDER BY e.id ASC`
     )
-    .all(product.category_id)) as Extra[];
+    .all(product.category_id)) as Omit<Extra, "options">[];
+  const extras = await Promise.all(extrasRaw.map(attachExtraOptions));
   return { ...product, sizes, extras };
 }
 
@@ -140,14 +151,17 @@ export async function setProductSizes(
 
 export async function listExtras(categoryId?: number): Promise<Extra[]> {
   const db = await getDb();
-  if (categoryId) {
-    return db
-      .prepare(
-        "SELECT * FROM extras WHERE active = 1 AND (category_id = ? OR category_id IS NULL) ORDER BY id ASC"
-      )
-      .all(categoryId) as Promise<Extra[]>;
-  }
-  return db.prepare("SELECT * FROM extras ORDER BY id ASC").all() as Promise<Extra[]>;
+  const rows = (categoryId
+    ? await db
+        .prepare(
+          "SELECT * FROM extras WHERE active = 1 AND (category_id = ? OR category_id IS NULL) ORDER BY id ASC"
+        )
+        .all(categoryId)
+    : await db.prepare("SELECT * FROM extras ORDER BY id ASC").all()) as Omit<
+    Extra,
+    "options"
+  >[];
+  return Promise.all(rows.map(attachExtraOptions));
 }
 
 export async function createExtra(data: {
@@ -178,6 +192,35 @@ export async function updateExtra(
 export async function deleteExtra(id: number) {
   const db = await getDb();
   await db.prepare("DELETE FROM extras WHERE id = ?").run(id);
+}
+
+export async function setExtraOptions(
+  extraId: number,
+  options: {
+    label: string;
+    price: number;
+    is_default?: boolean;
+    sort_order?: number;
+  }[]
+) {
+  const db = await getDb();
+  const tx = db.transaction(async () => {
+    await db.prepare("DELETE FROM extra_options WHERE extra_id = ?").run(extraId);
+    const stmt = db.prepare(
+      `INSERT INTO extra_options (extra_id, label, price, is_default, sort_order)
+       VALUES (@extra_id, @label, @price, @is_default, @sort_order)`
+    );
+    for (const [idx, o] of options.entries()) {
+      await stmt.run({
+        extra_id: extraId,
+        label: o.label,
+        price: o.price,
+        is_default: o.is_default ? 1 : 0,
+        sort_order: o.sort_order ?? idx,
+      });
+    }
+  });
+  await tx();
 }
 
 // Used by the Stripe Connect pizza payout split (src/lib/pizza-split.ts) to

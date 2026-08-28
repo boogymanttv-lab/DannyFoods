@@ -202,7 +202,7 @@ export default function CheckoutPage() {
           items: lines.map((l) => ({
             productId: l.productId,
             sizeId: l.sizeId,
-            extraIds: l.extras.map((e) => e.id),
+            extras: l.extras.map((e) => ({ id: e.id, optionId: e.optionId })),
             quantity: l.quantity,
           })),
         }),

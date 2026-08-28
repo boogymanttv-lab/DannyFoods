@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateExtra, deleteExtra } from "@/lib/repos/products";
+import { updateExtra, deleteExtra, setExtraOptions } from "@/lib/repos/products";
 
 export async function PATCH(
   req: NextRequest,
@@ -7,7 +7,13 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  await updateExtra(Number(id), body);
+  const { options, ...rest } = body;
+  if (Object.keys(rest).length > 0) {
+    await updateExtra(Number(id), rest);
+  }
+  if (Array.isArray(options)) {
+    await setExtraOptions(Number(id), options);
+  }
   return NextResponse.json({ ok: true });
 }
 
