@@ -115,8 +115,8 @@ export function MenuBrowser({
                           })()}
                         </h3>
                         {p.featured === 1 && (
-                          <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-gold/20 text-gold px-1.5 sm:px-2 py-0.5 rounded-full">
-                            ХИТ
+                          <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold bg-gold/20 text-gold px-1.5 sm:px-2 py-0.5 rounded-full">
+                            🔥 HOT
                           </span>
                         )}
                       </div>

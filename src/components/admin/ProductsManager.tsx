@@ -122,6 +122,28 @@ export function ProductsManager({
     setProducts((prev) => prev.filter((p) => p.category_id !== id));
   }
 
+  // Re-numbers every category 0..n-1 in its new order and saves all of
+  // them — simplest way to keep sort_order clean even when everything
+  // started out at the same default value.
+  async function moveCategory(id: number, direction: -1 | 1) {
+    const idx = categories.findIndex((c) => c.id === id);
+    const swapIdx = idx + direction;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= categories.length) return;
+    const reordered = [...categories];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    const withOrder = reordered.map((c, i) => ({ ...c, sort_order: i }));
+    setCategories(withOrder);
+    await Promise.all(
+      withOrder.map((c) =>
+        fetch(`/api/admin/categories/${c.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sort_order: c.sort_order }),
+        })
+      )
+    );
+  }
+
   // ---------- Products ----------
   function openNewProduct() {
     setProductForm({
@@ -224,6 +246,32 @@ export function ProductsManager({
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
+  // Reorders a product only among the others in the SAME category (that's
+  // the visual group it moves within on the menu) — re-numbers just that
+  // group 0..n-1, leaving every other category's ordering untouched.
+  async function moveProduct(id: number, direction: -1 | 1) {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+    const siblings = products.filter((p) => p.category_id === product.category_id);
+    const idx = siblings.findIndex((p) => p.id === id);
+    const swapIdx = idx + direction;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= siblings.length) return;
+    const reordered = [...siblings];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    const withOrder = reordered.map((p, i) => ({ ...p, sort_order: i }));
+    const byId = new Map(withOrder.map((p) => [p.id, p]));
+    setProducts((prev) => prev.map((p) => byId.get(p.id) ?? p));
+    await Promise.all(
+      withOrder.map((p) =>
+        fetch(`/api/admin/products/${p.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sort_order: p.sort_order }),
+        })
+      )
+    );
+  }
+
   // ---------- Extras ----------
   function addExtraOptionRow() {
     setExtraForm((f) => ({ ...f, options: [...f.options, { label: "", price: 0 }] }));
@@ -303,44 +351,69 @@ export function ProductsManager({
           >
             + Нов продукт
           </button>
-          <div className="grid gap-3">
-            {products.map((p) => {
-              const cat = categories.find((c) => c.id === p.category_id);
+          <div className="space-y-6">
+            {categories.map((cat) => {
+              const inCategory = products.filter((p) => p.category_id === cat.id);
+              if (inCategory.length === 0) return null;
               return (
-                <div
-                  key={p.id}
-                  className="bg-surface rounded-2xl border border-border p-4 flex items-center justify-between gap-3 flex-wrap"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      {p.name}{" "}
-                      <span className="text-xs text-muted font-normal">
-                        {cat?.icon} {cat?.name}
-                      </span>
-                    </p>
-                    <p className="text-sm text-muted">{formatPrice(p.base_price)}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleProductActive(p)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-                        p.active ? "bg-success/10 text-success" : "bg-black/5 text-muted"
-                      }`}
-                    >
-                      {p.active ? "Активен" : "Скрит"}
-                    </button>
-                    <button
-                      onClick={() => openEditProduct(p)}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-full border border-border"
-                    >
-                      Редакция
-                    </button>
-                    <button
-                      onClick={() => deleteProduct(p.id)}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-full border border-border text-brand"
-                    >
-                      Изтрий
-                    </button>
+                <div key={cat.id}>
+                  <p className="font-semibold text-sm text-muted mb-2">
+                    {cat.icon} {cat.name}
+                  </p>
+                  <div className="grid gap-3">
+                    {inCategory.map((p, idx) => (
+                      <div
+                        key={p.id}
+                        className="bg-surface rounded-2xl border border-border p-4 flex items-center justify-between gap-3 flex-wrap"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => moveProduct(p.id, -1)}
+                              disabled={idx === 0}
+                              className="h-6 w-6 grid place-items-center text-muted disabled:opacity-25"
+                              aria-label="Премести нагоре"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => moveProduct(p.id, 1)}
+                              disabled={idx === inCategory.length - 1}
+                              className="h-6 w-6 grid place-items-center text-muted disabled:opacity-25"
+                              aria-label="Премести надолу"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                          <div>
+                            <p className="font-semibold">{p.name}</p>
+                            <p className="text-sm text-muted">{formatPrice(p.base_price)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleProductActive(p)}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                              p.active ? "bg-success/10 text-success" : "bg-black/5 text-muted"
+                            }`}
+                          >
+                            {p.active ? "Активен" : "Скрит"}
+                          </button>
+                          <button
+                            onClick={() => openEditProduct(p)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-full border border-border"
+                          >
+                            Редакция
+                          </button>
+                          <button
+                            onClick={() => deleteProduct(p.id)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-full border border-border text-brand"
+                          >
+                            Изтрий
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
@@ -361,14 +434,34 @@ export function ProductsManager({
             + Нова категория
           </button>
           <div className="grid gap-3">
-            {categories.map((c) => (
+            {categories.map((c, idx) => (
               <div
                 key={c.id}
                 className="bg-surface rounded-2xl border border-border p-4 flex items-center justify-between gap-3 flex-wrap"
               >
-                <p className="font-semibold">
-                  {c.icon} {c.name} <span className="text-xs text-muted">/{c.slug}</span>
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => moveCategory(c.id, -1)}
+                      disabled={idx === 0}
+                      className="h-6 w-6 grid place-items-center text-muted disabled:opacity-25"
+                      aria-label="Премести нагоре"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => moveCategory(c.id, 1)}
+                      disabled={idx === categories.length - 1}
+                      className="h-6 w-6 grid place-items-center text-muted disabled:opacity-25"
+                      aria-label="Премести надолу"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  <p className="font-semibold">
+                    {c.icon} {c.name} <span className="text-xs text-muted">/{c.slug}</span>
+                  </p>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => toggleCategoryActive(c)}
