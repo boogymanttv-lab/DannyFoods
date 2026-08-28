@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
             D
           </span>
           <h1 className="font-display font-extrabold text-xl">Админ панел</h1>
-          <p className="text-sm text-muted">DaniDunner</p>
+          <p className="text-sm text-muted">DannyFoods</p>
         </div>
         <input
           type="email"

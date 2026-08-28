@@ -57,7 +57,7 @@ export function AdminShell({
           <span className="h-9 w-9 rounded-full bg-brand grid place-items-center font-display font-extrabold">
             D
           </span>
-          <span className="font-display font-extrabold">DaniDunner</span>
+          <span className="font-display font-extrabold">DannyFoods</span>
         </div>
         {navItems}
         <div className="mt-auto pt-4 border-t border-white/10">
@@ -72,7 +72,7 @@ export function AdminShell({
       </aside>
 
       <div className="lg:hidden sticky top-0 z-40 bg-accent-dark text-white flex items-center justify-between px-4 py-3">
-        <span className="font-display font-extrabold">DaniDunner Админ</span>
+        <span className="font-display font-extrabold">DannyFoods Админ</span>
         <button onClick={() => setMobileOpen((v) => !v)} className="text-2xl leading-none">
           {mobileOpen ? "✕" : "☰"}
         </button>

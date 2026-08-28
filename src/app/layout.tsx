@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: {
       default: title,
       // Individual pages set their own <title> without repeating the brand
-      // name — this appends " — DaniDunner" automatically so every page's
+      // name — this appends " — <site_name>" automatically so every page's
       // tab title still reads as a full, distinct, SEO-friendly title.
       template: `%s — ${settings.site_name}`,
     },

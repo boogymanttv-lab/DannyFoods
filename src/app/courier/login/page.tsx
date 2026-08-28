@@ -40,7 +40,7 @@ export default function CourierLoginPage() {
             🛵
           </span>
           <h1 className="font-display font-extrabold text-xl">Вход за куриери</h1>
-          <p className="text-sm text-muted">DaniDunner</p>
+          <p className="text-sm text-muted">DannyFoods</p>
         </div>
         <input
           type="tel"

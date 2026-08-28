@@ -56,7 +56,7 @@ async function runQuery(query: string, viewbox: string): Promise<NominatimResult
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "DaniDunner-DeliverySite/1.0 (order address geocoding)",
+        "User-Agent": "DannyFoods-DeliverySite/1.0 (order address geocoding)",
         "Accept-Language": "bg",
       },
     });

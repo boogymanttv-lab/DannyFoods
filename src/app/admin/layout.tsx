@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Админ панел — DaniDunner",
+  title: "Админ панел — DannyFoods",
 };
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
