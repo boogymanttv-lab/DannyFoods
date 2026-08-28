@@ -6,7 +6,7 @@ import { formatPrice } from "@/lib/format";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import type { Category, Extra, ProductWithOptions } from "@/lib/types";
 
-type SizeRow = { label: string; price_delta: number };
+type SizeRow = { label: string; price_delta: number; weight_label: string };
 
 const emptyProductForm = {
   id: null as number | null,
@@ -15,7 +15,6 @@ const emptyProductForm = {
   description: "",
   image: "",
   base_price: "" as string | number,
-  weight_label: "",
   is_pizza: false,
   featured: false,
   active: true,
@@ -126,7 +125,7 @@ export function ProductsManager({
     setProductForm({
       ...emptyProductForm,
       category_id: categories[0]?.id ?? 0,
-      sizes: [{ label: "Стандартна", price_delta: 0 }],
+      sizes: [{ label: "Стандартна", price_delta: 0, weight_label: "" }],
     });
     setShowProductForm(true);
   }
@@ -139,11 +138,14 @@ export function ProductsManager({
       description: p.description,
       image: p.image,
       base_price: p.base_price,
-      weight_label: p.weight_label ?? "",
       is_pizza: p.is_pizza === 1,
       featured: p.featured === 1,
       active: p.active === 1,
-      sizes: p.sizes.map((s) => ({ label: s.label, price_delta: s.price_delta })),
+      sizes: p.sizes.map((s) => ({
+        label: s.label,
+        price_delta: s.price_delta,
+        weight_label: s.weight_label ?? "",
+      })),
     });
     setShowProductForm(true);
   }
@@ -156,7 +158,10 @@ export function ProductsManager({
   }
 
   function addSizeRow() {
-    setProductForm((f) => ({ ...f, sizes: [...f.sizes, { label: "", price_delta: 0 }] }));
+    setProductForm((f) => ({
+      ...f,
+      sizes: [...f.sizes, { label: "", price_delta: 0, weight_label: "" }],
+    }));
   }
 
   function removeSizeRow(idx: number) {
@@ -174,7 +179,6 @@ export function ProductsManager({
       description: productForm.description,
       image: productForm.image,
       base_price: Number(productForm.base_price),
-      weight_label: productForm.weight_label,
       is_pizza: productForm.is_pizza,
       featured: productForm.featured,
       active: productForm.active,
@@ -296,10 +300,7 @@ export function ProductsManager({
                         {cat?.icon} {cat?.name}
                       </span>
                     </p>
-                    <p className="text-sm text-muted">
-                      {formatPrice(p.base_price)}
-                      {p.weight_label ? ` · ${p.weight_label}` : ""}
-                    </p>
+                    <p className="text-sm text-muted">{formatPrice(p.base_price)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -477,12 +478,6 @@ export function ProductsManager({
               value={productForm.base_price}
               onChange={(e) => setProductForm((f) => ({ ...f, base_price: e.target.value }))}
             />
-            <input
-              className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Грамаж (напр. 300г, 1.2кг, 2 броя)"
-              value={productForm.weight_label}
-              onChange={(e) => setProductForm((f) => ({ ...f, weight_label: e.target.value }))}
-            />
 
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
@@ -507,29 +502,37 @@ export function ProductsManager({
               <p className="font-semibold text-sm mb-2">Размери / варианти</p>
               <div className="space-y-2">
                 {productForm.sizes.map((s, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
+                  <div key={idx} className="rounded-lg border border-border p-2 space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        className="flex-1 rounded-lg border border-border px-3 py-2 text-sm"
+                        placeholder="Етикет (напр. 32см)"
+                        value={s.label}
+                        onChange={(e) => updateSizeRow(idx, { label: e.target.value })}
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
+                        placeholder="+ цена"
+                        value={s.price_delta}
+                        onChange={(e) =>
+                          updateSizeRow(idx, { price_delta: Number(e.target.value) })
+                        }
+                      />
+                      <button
+                        onClick={() => removeSizeRow(idx)}
+                        className="text-brand text-sm font-semibold px-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
                     <input
-                      className="flex-1 rounded-lg border border-border px-3 py-2 text-sm"
-                      placeholder="Етикет (напр. 32см)"
-                      value={s.label}
-                      onChange={(e) => updateSizeRow(idx, { label: e.target.value })}
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                      placeholder="Грамаж за този размер (напр. 300г, 1.2кг)"
+                      value={s.weight_label}
+                      onChange={(e) => updateSizeRow(idx, { weight_label: e.target.value })}
                     />
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-28 rounded-lg border border-border px-3 py-2 text-sm"
-                      placeholder="+ цена"
-                      value={s.price_delta}
-                      onChange={(e) =>
-                        updateSizeRow(idx, { price_delta: Number(e.target.value) })
-                      }
-                    />
-                    <button
-                      onClick={() => removeSizeRow(idx)}
-                      className="text-brand text-sm font-semibold px-2"
-                    >
-                      ✕
-                    </button>
                   </div>
                 ))}
                 <button

@@ -103,11 +103,16 @@ export function MenuBrowser({
                       <div className="flex items-start justify-between gap-1.5">
                         <h3 className="font-semibold leading-tight text-xs sm:text-base">
                           {p.name}
-                          {p.weight_label && (
-                            <span className="ml-1 font-normal text-muted text-[10px] sm:text-xs">
-                              ({p.weight_label})
-                            </span>
-                          )}
+                          {(() => {
+                            const defaultSize =
+                              p.sizes.find((s) => s.is_default) ??
+                              [...p.sizes].sort((a, b) => a.price_delta - b.price_delta)[0];
+                            return defaultSize?.weight_label ? (
+                              <span className="ml-1 font-normal text-muted text-[10px] sm:text-xs">
+                                ({defaultSize.weight_label})
+                              </span>
+                            ) : null;
+                          })()}
                         </h3>
                         {p.featured === 1 && (
                           <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-gold/20 text-gold px-1.5 sm:px-2 py-0.5 rounded-full">

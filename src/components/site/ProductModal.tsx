@@ -101,9 +101,9 @@ export function ProductModal({
           <div>
             <h3 className="font-display font-extrabold text-xl">
               {product.name}
-              {product.weight_label && (
+              {selectedSize?.weight_label && (
                 <span className="ml-2 font-normal text-muted text-sm align-middle">
-                  ({product.weight_label})
+                  ({selectedSize.weight_label})
                 </span>
               )}
             </h3>
@@ -126,7 +126,14 @@ export function ProductModal({
                         : "border-border"
                     }`}
                   >
-                    <div>{s.label}</div>
+                    <div>
+                      {s.label}
+                      {s.weight_label && (
+                        <span className="ml-1 font-normal text-muted text-xs">
+                          ({s.weight_label})
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted font-normal">
                       {formatPrice(product.base_price + s.price_delta)}
                     </div>

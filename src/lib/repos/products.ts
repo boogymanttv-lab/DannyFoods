@@ -57,13 +57,12 @@ export async function createProduct(data: {
   is_pizza?: boolean;
   featured?: boolean;
   sort_order?: number;
-  weight_label?: string;
 }) {
   const db = await getDb();
   const info = await db
     .prepare(
-      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, sort_order, weight_label)
-       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @sort_order, @weight_label)`
+      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, sort_order)
+       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @sort_order)`
     )
     .run({
       category_id: data.category_id,
@@ -74,7 +73,6 @@ export async function createProduct(data: {
       is_pizza: data.is_pizza ? 1 : 0,
       featured: data.featured ? 1 : 0,
       sort_order: data.sort_order ?? 0,
-      weight_label: data.weight_label ?? "",
     });
   return info.lastInsertRowid as number;
 }
@@ -91,7 +89,6 @@ export async function updateProduct(
     active: boolean;
     featured: boolean;
     sort_order: number;
-    weight_label: string;
   }>
 ) {
   const db = await getDb();
@@ -112,14 +109,20 @@ export async function deleteProduct(id: number) {
 
 export async function setProductSizes(
   productId: number,
-  sizes: { label: string; price_delta: number; is_default?: boolean; sort_order?: number }[]
+  sizes: {
+    label: string;
+    price_delta: number;
+    is_default?: boolean;
+    sort_order?: number;
+    weight_label?: string;
+  }[]
 ) {
   const db = await getDb();
   const tx = db.transaction(async () => {
     await db.prepare("DELETE FROM product_sizes WHERE product_id = ?").run(productId);
     const stmt = db.prepare(
-      `INSERT INTO product_sizes (product_id, label, price_delta, is_default, sort_order)
-       VALUES (@product_id, @label, @price_delta, @is_default, @sort_order)`
+      `INSERT INTO product_sizes (product_id, label, price_delta, is_default, sort_order, weight_label)
+       VALUES (@product_id, @label, @price_delta, @is_default, @sort_order, @weight_label)`
     );
     for (const [idx, s] of sizes.entries()) {
       await stmt.run({
@@ -128,6 +131,7 @@ export async function setProductSizes(
         price_delta: s.price_delta,
         is_default: s.is_default ? 1 : 0,
         sort_order: s.sort_order ?? idx,
+        weight_label: s.weight_label ?? "",
       });
     }
   });

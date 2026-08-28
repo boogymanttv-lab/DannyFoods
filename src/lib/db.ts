@@ -396,10 +396,10 @@ async function runMigrations() {
     []
   );
 
-  // Free-text serving size / weight per product (e.g. "300г") — same
-  // already-deployed-database story as the pizza transfer columns above.
+  // Free-text serving size / weight, per SIZE row (e.g. "300г") — a product
+  // with Малка/Голяма/Фамилна sizes can label each one's weight separately.
   await rawQuery(
-    `ALTER TABLE products ADD COLUMN IF NOT EXISTS weight_label TEXT DEFAULT ''`,
+    `ALTER TABLE product_sizes ADD COLUMN IF NOT EXISTS weight_label TEXT DEFAULT ''`,
     []
   );
 }

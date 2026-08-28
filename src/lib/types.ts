@@ -14,6 +14,7 @@ export type ProductSize = {
   price_delta: number;
   is_default: number;
   sort_order: number;
+  weight_label: string;
 };
 
 export type Extra = {
@@ -35,7 +36,6 @@ export type Product = {
   active: number;
   featured: number;
   sort_order: number;
-  weight_label: string;
   created_at: string;
 };
 

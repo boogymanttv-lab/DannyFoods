@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
     description: body.description ?? "",
     image: body.image ?? "",
     base_price: Number(body.base_price),
-    weight_label: body.weight_label ?? "",
     is_pizza: Boolean(body.is_pizza),
     featured: Boolean(body.featured),
     sort_order: body.sort_order ?? 0,
