@@ -17,7 +17,7 @@ export function Header({
   const { itemCount, openDrawer } = useCart();
 
   return (
-    <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur border-b border-border">
+    <header className="sticky top-0 z-40 bg-accent-dark text-white border-b border-white/10">
       <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           {logoUrl ? (
@@ -33,28 +33,35 @@ export function Header({
           </span>
         </Link>
 
-        <div className="flex items-center gap-4 sm:gap-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <a
             href={`tel:${phone.replace(/\s/g, "")}`}
-            className="hidden md:flex items-center gap-2 text-sm font-semibold text-foreground/80 hover:text-brand"
+            className="hidden md:flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-gold"
           >
             📞 {phone}
           </a>
 
           <Link
             href={loggedIn ? "/account" : "/account/login"}
-            className="flex items-center gap-1.5 text-sm font-semibold text-foreground/80 hover:text-brand"
+            className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-white/80 hover:text-gold"
           >
             <span aria-hidden>👤</span>
-            <span className="hidden sm:inline">{loggedIn ? "Профил" : "Вход"}</span>
+            <span>{loggedIn ? "Профил" : "Вход"}</span>
+          </Link>
+          <Link
+            href={loggedIn ? "/account" : "/account/login"}
+            aria-label={loggedIn ? "Профил" : "Вход"}
+            className="sm:hidden h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 transition-colors"
+          >
+            <span aria-hidden>👤</span>
           </Link>
 
           <button
             onClick={openDrawer}
-            className="relative flex items-center gap-2 rounded-full bg-accent-dark text-white px-4 py-2.5 font-semibold text-sm hover:bg-brand transition-colors"
+            aria-label="Количка"
+            className="relative h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 transition-colors"
           >
             <span aria-hidden>🛒</span>
-            <span className="hidden sm:inline">Количка</span>
             {itemCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-brand text-white text-xs font-bold rounded-full h-5 w-5 grid place-items-center">
                 {itemCount}

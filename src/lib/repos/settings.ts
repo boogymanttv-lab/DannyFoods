@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS = {
   accent_color: "#1a1a1a",
   facebook_url: "",
   instagram_url: "",
-  banner_text: "Безплатна доставка над 25 € в цяла Варна!",
+  banner_text: "🚚 Безплатна доставка при поръчка над 25 € · 🔥 Пресни продукти всеки ден",
   stripe_publishable_key: "",
   stripe_secret_key: "",
   logo_url: "",

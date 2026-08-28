@@ -6,6 +6,7 @@ import { CartDrawer } from "@/components/site/CartDrawer";
 import { MobileCartBar } from "@/components/site/MobileCartBar";
 import { SplashScreen } from "@/components/site/SplashScreen";
 import { CookieConsent } from "@/components/site/CookieConsent";
+import { PromoBanner } from "@/components/site/PromoBanner";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettings();
@@ -13,6 +14,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
 
   return (
     <SplashScreen siteName={settings.site_name} logoUrl={settings.logo_url}>
+      <PromoBanner text={settings.banner_text} />
       <Header
         siteName={settings.site_name}
         phone={settings.phone}

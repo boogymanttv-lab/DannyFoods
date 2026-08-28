@@ -2,6 +2,8 @@ import { listCategories } from "@/lib/repos/categories";
 import { listProducts } from "@/lib/repos/products";
 import { getSettings } from "@/lib/repos/settings";
 import { MenuBrowser } from "@/components/site/MenuBrowser";
+import { isShopOpenNow } from "@/lib/delivery-slots";
+import { estimateLabel, parseBusyHours, suggestEstimate } from "@/lib/delivery-estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +11,11 @@ export default async function HomePage() {
   const categories = await listCategories();
   const products = await listProducts();
   const settings = await getSettings();
+
+  const openNow = isShopOpenNow(new Date(), settings.opening_time, settings.closing_time);
+  const currentEstimate = estimateLabel(
+    suggestEstimate(parseBusyHours(settings.busy_hours_json))
+  );
 
   // Structured data (schema.org Restaurant) — lets Google show rich local-
   // search results (opening hours, phone, price range) instead of just a
@@ -58,6 +65,23 @@ export default async function HomePage() {
           <span className="inline-block bg-gold text-accent-dark text-xs font-bold px-3 py-1.5 rounded-full mb-4">
             Доставка само в град Варна 🚴
           </span>
+          <div className="mb-4">
+            <span
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-bold ${
+                openNow
+                  ? "border-gold/40 bg-gold/10 text-gold"
+                  : "border-white/20 bg-white/5 text-white/60"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${openNow ? "bg-gold" : "bg-white/40"}`}
+                aria-hidden
+              />
+              {openNow
+                ? `ОТВОРЕНО · ДОСТАВЯМЕ ДО ${currentEstimate.toUpperCase()}`
+                : "В МОМЕНТА СМЕ ЗАТВОРЕНИ"}
+            </span>
+          </div>
           <h1 className="font-display font-extrabold text-3xl sm:text-5xl leading-tight max-w-xl">
             {settings.tagline}
           </h1>
@@ -69,7 +93,7 @@ export default async function HomePage() {
             href="#menu"
             className="inline-block mt-6 bg-brand hover:bg-brand-light transition-colors font-bold px-6 py-3.5 rounded-xl"
           >
-            Разгледай менюто
+            🔥 Разгледай менюто
           </a>
         </div>
       </section>

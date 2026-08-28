@@ -103,6 +103,15 @@ export function SettingsManager({
             onChange={(e) => set("tagline", e.target.value)}
           />
         </Field>
+        <Field label="Промо лента (движещ се текст най-отгоре на сайта)">
+          <input
+            className="input"
+            placeholder="Безплатна доставка при поръчка над 25 лв. · Доставка до 28 мин."
+            value={settings.banner_text}
+            onChange={(e) => set("banner_text", e.target.value)}
+          />
+        </Field>
+        <p className="text-xs text-muted -mt-2">Оставете празно, за да скриете лентата.</p>
         <Field label="Телефон">
           <input
             className="input"
