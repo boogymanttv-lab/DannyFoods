@@ -178,6 +178,11 @@ export default function AdminOrdersPage() {
                               + {item.extras.map((e) => e.name).join(", ")}
                             </span>
                           )}
+                          {item.removed && item.removed.length > 0 && (
+                            <span className="block text-xs text-brand font-semibold">
+                              Без: {item.removed.join(", ")}
+                            </span>
+                          )}
                         </span>
                         <span className="font-semibold">{formatPrice(item.lineTotal)}</span>
                       </li>

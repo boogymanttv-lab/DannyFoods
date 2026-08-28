@@ -203,6 +203,7 @@ export default function CheckoutPage() {
             productId: l.productId,
             sizeId: l.sizeId,
             extras: l.extras.map((e) => ({ id: e.id, optionId: e.optionId })),
+            removed: l.removedIngredients,
             quantity: l.quantity,
           })),
         }),
@@ -451,6 +452,11 @@ export default function CheckoutPage() {
               <span className="text-muted">
                 {l.quantity}× {l.name}
                 {l.sizeLabel ? ` (${l.sizeLabel})` : ""}
+                {l.removedIngredients && l.removedIngredients.length > 0 && (
+                  <span className="block text-brand text-xs">
+                    Без: {l.removedIngredients.join(", ")}
+                  </span>
+                )}
               </span>
               <span className="font-semibold shrink-0">
                 {formatPrice(

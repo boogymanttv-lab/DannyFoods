@@ -5,6 +5,17 @@ import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
 import type { ProductWithOptions } from "@/lib/types";
 
+// The description is written as a comma-separated ingredient list (e.g.
+// "Барбекю сос, Телешка кайма, Дюнер месо, Кис.краставички, Чедър, Пушено
+// сирене, Моцарела") — reused here as the source for "Без —" checkboxes so
+// there's nothing extra for the admin to maintain per product.
+function parseIngredients(description: string): string[] {
+  return description
+    .split(",")
+    .map((s) => s.trim().replace(/\.$/, ""))
+    .filter(Boolean);
+}
+
 export function ProductModal({
   product,
   onClose,
@@ -25,6 +36,13 @@ export function ProductModal({
   // (e.g. Шунка 50г/100г/150г/200г), or null for a plain flat-price extra.
   const [selectedExtras, setSelectedExtras] = useState<Record<number, number | null>>({});
   const [quantity, setQuantity] = useState(1);
+  const ingredients = useMemo(
+    () => parseIngredients(product.description),
+    [product.description]
+  );
+  // Holds ingredients the customer wants LEFT OUT — unchecked by default
+  // (nothing removed) since most orders want everything as described.
+  const [removedIngredients, setRemovedIngredients] = useState<Set<string>>(new Set());
 
   const selectedSize = product.sizes.find((s) => s.id === sizeId) ?? null;
 
@@ -68,6 +86,15 @@ export function ProductModal({
     setSelectedExtras((prev) => ({ ...prev, [extraId]: optionId }));
   }
 
+  function toggleIngredient(ingredient: string) {
+    setRemovedIngredients((prev) => {
+      const next = new Set(prev);
+      if (next.has(ingredient)) next.delete(ingredient);
+      else next.add(ingredient);
+      return next;
+    });
+  }
+
   function handleAdd() {
     addLine({
       productId: product.id,
@@ -78,6 +105,8 @@ export function ProductModal({
       unitPrice,
       quantity,
       extras: resolvedExtras,
+      removedIngredients:
+        removedIngredients.size > 0 ? Array.from(removedIngredients) : undefined,
     });
     onClose();
     openDrawer();
@@ -168,6 +197,31 @@ export function ProductModal({
                     </div>
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {ingredients.length > 0 && (
+            <div>
+              <p className="font-semibold text-sm mb-2">Без —</p>
+              <div className="flex flex-wrap gap-2">
+                {ingredients.map((ing) => {
+                  const isRemoved = removedIngredients.has(ing);
+                  return (
+                    <button
+                      key={ing}
+                      type="button"
+                      onClick={() => toggleIngredient(ing)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        isRemoved
+                          ? "border-brand bg-brand/5 text-brand line-through"
+                          : "border-border text-foreground/70"
+                      }`}
+                    >
+                      {ing}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -99,6 +99,10 @@ export type OrderItem = {
   unitPrice: number;
   quantity: number;
   extras: { name: string; price: number }[];
+  // Ingredients (parsed from the product's description) the customer asked
+  // to leave out — e.g. "Без сирене". No price effect, purely a note to the
+  // kitchen/courier.
+  removed?: string[];
   lineTotal: number;
 };
 
@@ -194,4 +198,7 @@ export type CartLine = {
   // of that extra's weight/quantity variants (see ExtraOption) rather than
   // its plain flat price.
   extras: { id: number; name: string; price: number; optionId?: number }[];
+  // Ingredients (parsed from the product's description) the customer
+  // unchecked in "Без —" — e.g. ["Сирене"]. No price effect.
+  removedIngredients?: string[];
 };

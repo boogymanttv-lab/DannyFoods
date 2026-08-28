@@ -63,6 +63,10 @@ const checkoutSchema = z.object({
             })
           )
           .default([]),
+        // Ingredients (parsed client-side from the product's description)
+        // the customer unchecked in "Без —" — purely a kitchen/courier
+        // note, no effect on price.
+        removed: z.array(z.string().max(80)).max(30).optional(),
         quantity: z.number().int().min(1).max(30),
       })
     )
@@ -133,6 +137,7 @@ export async function POST(req: NextRequest) {
       unitPrice,
       quantity: item.quantity,
       extras,
+      removed: item.removed && item.removed.length > 0 ? item.removed : undefined,
       lineTotal: Math.round(lineTotal * 100) / 100,
     });
   }

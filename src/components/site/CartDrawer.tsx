@@ -65,6 +65,11 @@ export function CartDrawer() {
                           + {line.extras.map((e) => e.name).join(", ")}
                         </p>
                       )}
+                      {line.removedIngredients && line.removedIngredients.length > 0 && (
+                        <p className="text-xs text-brand mt-0.5 truncate">
+                          Без: {line.removedIngredients.join(", ")}
+                        </p>
+                      )}
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center gap-2 bg-black/5 rounded-full px-1">
                           <button

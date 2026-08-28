@@ -12,12 +12,15 @@ import type { CartLine } from "@/lib/types";
 
 const STORAGE_KEY = "danidunner_cart_v1";
 
-function lineKey(line: Pick<CartLine, "productId" | "sizeId" | "extras">) {
+function lineKey(
+  line: Pick<CartLine, "productId" | "sizeId" | "extras" | "removedIngredients">
+) {
   const extrasKey = line.extras
     .map((e) => `${e.id}:${e.optionId ?? ""}`)
     .sort()
     .join(",");
-  return `${line.productId}-${line.sizeId ?? "default"}-${extrasKey}`;
+  const removedKey = [...(line.removedIngredients ?? [])].sort().join(",");
+  return `${line.productId}-${line.sizeId ?? "default"}-${extrasKey}-${removedKey}`;
 }
 
 type CartContextValue = {

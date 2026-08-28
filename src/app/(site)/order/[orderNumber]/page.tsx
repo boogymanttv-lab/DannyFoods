@@ -44,6 +44,9 @@ export default async function OrderConfirmationPage({
                 <span className="text-muted">
                   {item.quantity}× {item.name}
                   {item.sizeLabel ? ` (${item.sizeLabel})` : ""}
+                  {item.removed && item.removed.length > 0 && (
+                    <span className="block text-xs">Без: {item.removed.join(", ")}</span>
+                  )}
                 </span>
                 <span className="font-semibold">{formatPrice(item.lineTotal)}</span>
               </li>

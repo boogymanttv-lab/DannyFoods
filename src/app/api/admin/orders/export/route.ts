@@ -70,7 +70,9 @@ export async function GET(req: NextRequest) {
       itemsText = items
         .map((it) => {
           const extras = it.extras.length > 0 ? ` + ${it.extras.map((e) => e.name).join(", ")}` : "";
-          return `${it.quantity}× ${it.name}${it.sizeLabel ? ` (${it.sizeLabel})` : ""}${extras}`;
+          const removed =
+            it.removed && it.removed.length > 0 ? ` (Без: ${it.removed.join(", ")})` : "";
+          return `${it.quantity}× ${it.name}${it.sizeLabel ? ` (${it.sizeLabel})` : ""}${extras}${removed}`;
         })
         .join("; ");
     } catch {
