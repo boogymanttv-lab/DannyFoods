@@ -34,6 +34,13 @@ CREATE TABLE IF NOT EXISTS products (
   active INTEGER NOT NULL DEFAULT 1,
   featured INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  -- 1 = this product's price isn't typed in directly — it's computed from
+  -- the rows in combo_items (a chosen product+size+quantity of each) minus
+  -- combo_discount_percent. The customer never sees any of that: a combo
+  -- product looks and orders exactly like any other menu item, just with a
+  -- price that happens to be a bundle deal.
+  is_combo INTEGER NOT NULL DEFAULT 0,
+  combo_discount_percent REAL NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
 
@@ -246,7 +253,22 @@ CREATE TABLE IF NOT EXISTS promo_cards (
   full_banner INTEGER NOT NULL DEFAULT 0
 );
 
+-- The components of a combo product (products.is_combo = 1) — which
+-- existing menu product, at which of its own sizes, and how many of it,
+-- go into the combo. Purely an admin-side bill of materials used to
+-- compute the combo's price; the customer only ever sees the parent
+-- product in the menu, never these rows.
+CREATE TABLE IF NOT EXISTS combo_items (
+  id SERIAL PRIMARY KEY,
+  combo_product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  size_id INTEGER REFERENCES product_sizes(id) ON DELETE SET NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);
+CREATE INDEX IF NOT EXISTS idx_combo_items_combo ON combo_items(combo_product_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_customer_product ON product_reviews(customer_id, product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id);

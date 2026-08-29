@@ -479,6 +479,32 @@ async function runMigrations() {
     []
   );
 
+  // Combo products (products.is_combo + combo_discount_percent, plus the
+  // combo_items bill-of-materials table) — safe no-op on a fresh database
+  // (already in schema.ts's CREATE TABLE), needed here so an
+  // already-deployed database picks up the new column/table too.
+  await rawQuery(
+    `ALTER TABLE products
+       ADD COLUMN IF NOT EXISTS is_combo INTEGER NOT NULL DEFAULT 0,
+       ADD COLUMN IF NOT EXISTS combo_discount_percent REAL NOT NULL DEFAULT 0`,
+    []
+  );
+  await rawQuery(
+    `CREATE TABLE IF NOT EXISTS combo_items (
+       id SERIAL PRIMARY KEY,
+       combo_product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+       product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+       size_id INTEGER REFERENCES product_sizes(id) ON DELETE SET NULL,
+       quantity INTEGER NOT NULL DEFAULT 1,
+       sort_order INTEGER NOT NULL DEFAULT 0
+     )`,
+    []
+  );
+  await rawQuery(
+    `CREATE INDEX IF NOT EXISTS idx_combo_items_combo ON combo_items(combo_product_id)`,
+    []
+  );
+
   // Shortened the homepage hero tagline — the old one just listed every
   // category name ("Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза
   // доставка във Варна"), which read as long and cluttered next to the new

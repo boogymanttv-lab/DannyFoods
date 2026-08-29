@@ -8,6 +8,10 @@ import type { Category, Extra, ProductWithOptions } from "@/lib/types";
 
 type SizeRow = { label: string; price_delta: number; weight_label: string };
 type ExtraOptionRow = { label: string; price: number };
+// One line of a combo's bill of materials, as edited in the form —
+// size_id is null until the chosen product has more than one size, at
+// which point it must point at one of that product's own product_sizes.
+type ComboItemRow = { product_id: number; size_id: number | null; quantity: number };
 
 const emptyProductForm = {
   id: null as number | null,
@@ -20,7 +24,25 @@ const emptyProductForm = {
   featured: false,
   active: true,
   sizes: [] as SizeRow[],
+  is_combo: false,
+  combo_discount_percent: 0 as string | number,
+  combo_items: [] as ComboItemRow[],
 };
+
+// Sums each combo line's (component's own base price + chosen size's
+// delta) × quantity, from the *currently loaded* product list — this is
+// only ever a live preview for the admin; the server recomputes the real,
+// authoritative total from the database on save.
+function comboSum(items: ComboItemRow[], allProducts: ProductWithOptions[]): number {
+  let sum = 0;
+  for (const item of items) {
+    const product = allProducts.find((p) => p.id === item.product_id);
+    if (!product) continue;
+    const size = item.size_id ? product.sizes.find((s) => s.id === item.size_id) : undefined;
+    sum += (product.base_price + (size?.price_delta ?? 0)) * item.quantity;
+  }
+  return sum;
+}
 
 export function ProductsManager({
   initialCategories,
@@ -170,8 +192,42 @@ export function ProductsManager({
         price_delta: s.price_delta,
         weight_label: s.weight_label ?? "",
       })),
+      is_combo: p.is_combo === 1,
+      combo_discount_percent: p.combo_discount_percent ?? 0,
+      combo_items: p.combo_items.map((ci) => ({
+        product_id: ci.product_id,
+        size_id: ci.size_id,
+        quantity: ci.quantity,
+      })),
     });
     setShowProductForm(true);
+  }
+
+  // ---------- Combo builder ----------
+  function toggleComboItem(product: ProductWithOptions) {
+    setProductForm((f) => {
+      const exists = f.combo_items.some((ci) => ci.product_id === product.id);
+      if (exists) {
+        return { ...f, combo_items: f.combo_items.filter((ci) => ci.product_id !== product.id) };
+      }
+      const defaultSize = product.sizes.find((s) => s.is_default) ?? product.sizes[0];
+      return {
+        ...f,
+        combo_items: [
+          ...f.combo_items,
+          { product_id: product.id, size_id: defaultSize?.id ?? null, quantity: 1 },
+        ],
+      };
+    });
+  }
+
+  function updateComboItem(productId: number, patch: Partial<ComboItemRow>) {
+    setProductForm((f) => ({
+      ...f,
+      combo_items: f.combo_items.map((ci) =>
+        ci.product_id === productId ? { ...ci, ...patch } : ci
+      ),
+    }));
   }
 
   function updateSizeRow(idx: number, patch: Partial<SizeRow>) {
@@ -193,8 +249,17 @@ export function ProductsManager({
   }
 
   async function saveProduct() {
-    if (!productForm.name || !productForm.category_id || productForm.base_price === "") {
-      alert("Попълнете име, категория и базова цена.");
+    if (!productForm.name || !productForm.category_id) {
+      alert("Попълнете име и категория.");
+      return;
+    }
+    if (productForm.is_combo) {
+      if (productForm.combo_items.length === 0) {
+        alert("Изберете поне един продукт, който да влиза в комбото.");
+        return;
+      }
+    } else if (productForm.base_price === "") {
+      alert("Попълнете базова цена.");
       return;
     }
     const payload = {
@@ -202,11 +267,14 @@ export function ProductsManager({
       name: productForm.name,
       description: productForm.description,
       image: productForm.image,
-      base_price: Number(productForm.base_price),
+      base_price: productForm.is_combo ? 0 : Number(productForm.base_price),
       is_pizza: productForm.is_pizza,
       featured: productForm.featured,
       active: productForm.active,
       sizes: productForm.sizes.filter((s) => s.label),
+      is_combo: productForm.is_combo,
+      combo_discount_percent: Number(productForm.combo_discount_percent) || 0,
+      combo_items: productForm.is_combo ? productForm.combo_items : [],
     };
     if (productForm.id) {
       await fetch(`/api/admin/products/${productForm.id}`, {
@@ -386,7 +454,14 @@ export function ProductsManager({
                             </button>
                           </div>
                           <div>
-                            <p className="font-semibold">{p.name}</p>
+                            <p className="font-semibold flex items-center gap-1.5">
+                              {p.name}
+                              {p.is_combo === 1 && (
+                                <span className="text-[9px] font-extrabold uppercase tracking-wide text-brand bg-brand/10 px-1.5 py-0.5 rounded-md">
+                                  Комбо
+                                </span>
+                              )}
+                            </p>
                             <p className="text-sm text-muted">{formatPrice(p.base_price)}</p>
                           </div>
                         </div>
@@ -586,14 +661,127 @@ export function ProductsManager({
               value={productForm.image}
               onChange={(url) => setProductForm((f) => ({ ...f, image: url }))}
             />
-            <input
-              type="number"
-              step="0.01"
-              className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Базова цена (€)"
-              value={productForm.base_price}
-              onChange={(e) => setProductForm((f) => ({ ...f, base_price: e.target.value }))}
-            />
+
+            <label className="flex items-start gap-2 text-xs text-muted bg-background rounded-xl border border-border px-3.5 py-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={productForm.is_combo}
+                onChange={(e) =>
+                  setProductForm((f) => ({ ...f, is_combo: e.target.checked }))
+                }
+                className="accent-[var(--brand)] h-4 w-4 mt-0.5"
+              />
+              <span>
+                <span className="font-semibold text-foreground">Комбо от продукти</span> —
+                вместо да пишеш цена, избираш кои съществуващи продукти влизат в него; цената се
+                смята сама от техните цени минус процент намаление. Клиентът вижда само това
+                комбо като обикновен продукт с крайна цена — не вижда от какво е съставено.
+              </span>
+            </label>
+
+            {productForm.is_combo ? (
+              <div className="rounded-xl border border-border p-3 space-y-3">
+                <p className="font-semibold text-sm">Продукти в комбото</p>
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {products
+                    .filter(
+                      (p) =>
+                        p.active === 1 && p.is_combo !== 1 && p.id !== productForm.id
+                    )
+                    .map((p) => {
+                      const item = productForm.combo_items.find((ci) => ci.product_id === p.id);
+                      const included = Boolean(item);
+                      return (
+                        <div key={p.id} className="rounded-lg border border-border p-2">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={included}
+                              onChange={() => toggleComboItem(p)}
+                              className="accent-[var(--brand)] h-4 w-4"
+                            />
+                            <span className="flex-1">{p.name}</span>
+                            <span className="text-muted text-xs">{formatPrice(p.base_price)}</span>
+                          </label>
+                          {included && item && (
+                            <div className="flex gap-2 items-center mt-2 pl-6">
+                              <label className="text-xs text-muted">Бройки</label>
+                              <input
+                                type="number"
+                                min={1}
+                                className="w-16 rounded-lg border border-border px-2 py-1.5 text-sm"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  updateComboItem(p.id, {
+                                    quantity: Math.max(1, Number(e.target.value) || 1),
+                                  })
+                                }
+                              />
+                              {p.sizes.length > 1 && (
+                                <select
+                                  className="flex-1 rounded-lg border border-border px-2 py-1.5 text-sm"
+                                  value={item.size_id ?? ""}
+                                  onChange={(e) =>
+                                    updateComboItem(p.id, { size_id: Number(e.target.value) })
+                                  }
+                                >
+                                  {p.sizes.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.label} ({formatPrice(p.base_price + s.price_delta)})
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <div className="flex gap-2 items-center">
+                  <label className="text-sm font-semibold whitespace-nowrap">% намаление</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min={0}
+                    max={100}
+                    className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
+                    value={productForm.combo_discount_percent}
+                    onChange={(e) =>
+                      setProductForm((f) => ({ ...f, combo_discount_percent: e.target.value }))
+                    }
+                  />
+                </div>
+
+                {(() => {
+                  const sum = comboSum(productForm.combo_items, products);
+                  const discount = Number(productForm.combo_discount_percent) || 0;
+                  const final = sum * (1 - discount / 100);
+                  return (
+                    <div className="rounded-lg bg-background border border-border p-3 text-sm space-y-1">
+                      <div className="flex justify-between text-muted">
+                        <span>Сбор от избраните продукти</span>
+                        <span>{formatPrice(sum)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-base">
+                        <span>Крайна цена (вижда я клиентът)</span>
+                        <span className="text-brand">{formatPrice(final)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
+                placeholder="Базова цена (€)"
+                value={productForm.base_price}
+                onChange={(e) => setProductForm((f) => ({ ...f, base_price: e.target.value }))}
+              />
+            )}
 
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
@@ -614,6 +802,7 @@ export function ProductsManager({
               </label>
             </div>
 
+            {!productForm.is_combo && (
             <div>
               <p className="font-semibold text-sm mb-2">Размери / варианти</p>
               <div className="space-y-2">
@@ -659,6 +848,7 @@ export function ProductsManager({
                 </button>
               </div>
             </div>
+            )}
 
             <button
               onClick={saveProduct}

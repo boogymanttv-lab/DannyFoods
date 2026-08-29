@@ -49,13 +49,34 @@ export type Product = {
   active: number;
   featured: number;
   sort_order: number;
+  // 1 = base_price is computed from combo_items (see ComboItem) minus
+  // combo_discount_percent, rather than typed in directly. Customer-facing
+  // pages never look at this — a combo orders exactly like any other
+  // product.
+  is_combo: number;
+  combo_discount_percent: number;
   created_at: string;
+};
+
+// One component of a combo product (products.is_combo = 1) — an existing
+// product, optionally at one of its own sizes, and how many of it go into
+// the combo. Admin-only bill of materials, used to compute the combo's
+// price.
+export type ComboItem = {
+  id: number;
+  combo_product_id: number;
+  product_id: number;
+  size_id: number | null;
+  quantity: number;
+  sort_order: number;
 };
 
 export type ProductWithOptions = Product & {
   sizes: ProductSize[];
   extras: Extra[];
   category?: Category;
+  // Only populated for combo products — empty for everything else.
+  combo_items: ComboItem[];
 };
 
 export type DeliveryZone = {
