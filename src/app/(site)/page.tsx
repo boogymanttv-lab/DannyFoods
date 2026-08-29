@@ -59,22 +59,31 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <section className="relative overflow-hidden bg-accent-dark text-white">
+      <section className="relative overflow-hidden bg-gradient-to-b from-accent-dark to-[#120d0d] text-white">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/40 via-transparent to-transparent" />
+        {/* Soft drifting glow blobs for depth, matching the splash screen's
+            premium backdrop treatment. */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -left-16 h-80 w-80 rounded-full bg-brand/25 blur-3xl animate-blob" />
+          <div
+            className="absolute -bottom-28 -right-10 h-96 w-96 rounded-full bg-gold/20 blur-3xl animate-blob"
+            style={{ animationDelay: "-4s" }}
+          />
+        </div>
         <div className="relative mx-auto max-w-6xl px-4 py-14 sm:py-20">
-          <span className="inline-block bg-gold text-accent-dark text-xs font-bold px-3 py-1.5 rounded-full mb-4">
+          <span className="inline-block bg-gradient-to-r from-gold to-[#ffc247] text-accent-dark text-xs font-bold px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_16px_rgba(245,166,35,0.35)]">
             Доставка само в град Варна 🚴
           </span>
           <div className="mb-4">
             <span
-              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-bold ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-bold backdrop-blur-sm ${
                 openNow
-                  ? "border-gold/40 bg-gold/10 text-gold"
+                  ? "border-gold/40 bg-gold/10 text-gold shadow-[0_0_18px_rgba(245,166,35,0.2)]"
                   : "border-white/20 bg-white/5 text-white/60"
               }`}
             >
               <span
-                className={`h-2 w-2 rounded-full ${openNow ? "bg-gold" : "bg-white/40"}`}
+                className={`h-2 w-2 rounded-full ${openNow ? "bg-gold shadow-[0_0_8px_rgba(245,166,35,0.9)]" : "bg-white/40"}`}
                 aria-hidden
               />
               {openNow
@@ -82,7 +91,7 @@ export default async function HomePage() {
                 : "В МОМЕНТА СМЕ ЗАТВОРЕНИ"}
             </span>
           </div>
-          <h1 className="font-display font-extrabold text-3xl sm:text-5xl leading-tight max-w-xl">
+          <h1 className="font-display font-extrabold text-3xl sm:text-5xl leading-tight max-w-xl bg-gradient-to-br from-white via-white to-white/70 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
             {settings.tagline}
           </h1>
           <p className="mt-4 text-white/70 max-w-md">
@@ -91,7 +100,7 @@ export default async function HomePage() {
           </p>
           <a
             href="#menu"
-            className="inline-block mt-6 bg-brand hover:bg-brand-light transition-colors font-bold px-6 py-3.5 rounded-xl"
+            className="inline-block mt-6 bg-gradient-to-r from-brand to-brand-dark hover:from-brand-light hover:to-brand transition-all font-bold px-6 py-3.5 rounded-xl shadow-[0_8px_24px_rgba(225,29,46,0.45)] hover:shadow-[0_10px_30px_rgba(225,29,46,0.6)] hover:-translate-y-0.5"
           >
             🔥 Разгледай менюто
           </a>

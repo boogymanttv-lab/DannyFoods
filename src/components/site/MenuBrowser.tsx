@@ -49,16 +49,16 @@ export function MenuBrowser({
 
   return (
     <div id="menu">
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
+      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
         <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
               key={c.slug}
               onClick={() => selectCategory(c.slug)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold border transition-colors ${
+              className={`rounded-full px-4 py-2 text-sm font-semibold border transition-all ${
                 activeSlug === c.slug
-                  ? "bg-brand text-white border-brand"
-                  : "bg-surface border-border text-foreground/70"
+                  ? "bg-gradient-to-r from-brand to-brand-dark text-white border-brand shadow-[0_6px_16px_rgba(225,29,46,0.35)] -translate-y-0.5"
+                  : "bg-surface border-border text-foreground/70 shadow-sm hover:shadow-md hover:-translate-y-0.5"
               }`}
             >
               <span className="mr-1">{c.icon}</span>
@@ -72,7 +72,10 @@ export function MenuBrowser({
         {activeCategory && (
           <div key={activeCategory.slug} className="animate-pop-in">
             <h2 className="font-display font-extrabold text-2xl mb-5 flex items-center gap-2">
-              <span>{activeCategory.icon}</span> {activeCategory.name}
+              <span className="drop-shadow-[0_2px_6px_rgba(225,29,46,0.15)]">{activeCategory.icon}</span>{" "}
+              <span className="bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+                {activeCategory.name}
+              </span>
             </h2>
 
             {items.length === 0 ? (
@@ -85,19 +88,20 @@ export function MenuBrowser({
                   <button
                     key={p.id}
                     onClick={() => setSelectedProduct(p)}
-                    className="text-left bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col"
+                    className="group text-left bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-[0_16px_32px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-200 flex flex-col"
                   >
-                    <div className="aspect-square bg-gradient-to-br from-brand/10 to-gold/10 grid place-items-center overflow-hidden">
+                    <div className="relative aspect-square bg-gradient-to-br from-brand/10 to-gold/10 grid place-items-center overflow-hidden">
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={p.image}
                           alt={p.name}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
                         <span className="text-3xl sm:text-5xl">{activeCategory.icon}</span>
                       )}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/15 to-transparent" />
                     </div>
                     <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
                       <div className="flex items-start justify-between gap-1.5">
@@ -115,7 +119,7 @@ export function MenuBrowser({
                           })()}
                         </h3>
                         {p.featured === 1 && (
-                          <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold bg-gold/20 text-gold px-1.5 sm:px-2 py-0.5 rounded-full">
+                          <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold bg-gradient-to-r from-gold to-[#ffc247] text-accent-dark px-1.5 sm:px-2 py-0.5 rounded-full shadow-[0_2px_8px_rgba(245,166,35,0.4)]">
                             🔥 HOT
                           </span>
                         )}
@@ -132,7 +136,7 @@ export function MenuBrowser({
                         })()}
                       </span>
                     </div>
-                    <span className="block text-center text-xs sm:text-sm font-bold text-white bg-brand py-1.5 sm:py-2.5 hover:bg-brand-dark transition-colors">
+                    <span className="block text-center text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand to-brand-dark py-1.5 sm:py-2.5 group-hover:from-brand-light group-hover:to-brand transition-colors">
                       Избери
                     </span>
                   </button>

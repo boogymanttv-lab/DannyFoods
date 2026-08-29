@@ -17,14 +17,18 @@ export function Header({
   const { itemCount, openDrawer } = useCart();
 
   return (
-    <header className="sticky top-0 z-40 bg-accent-dark text-white border-b border-white/10">
+    <header className="sticky top-0 z-40 bg-gradient-to-b from-accent-dark to-[#141414] text-white border-b border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
       <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={siteName} className="h-10 w-10 rounded-full object-cover" />
+            <img
+              src={logoUrl}
+              alt={siteName}
+              className="h-10 w-10 rounded-full object-cover ring-2 ring-gold/40 shadow-[0_0_14px_rgba(245,166,35,0.35)]"
+            />
           ) : (
-            <span className="h-10 w-10 rounded-full bg-brand text-white grid place-items-center font-display font-extrabold text-lg">
+            <span className="h-10 w-10 rounded-full bg-gradient-to-br from-brand to-brand-dark text-white grid place-items-center font-display font-extrabold text-lg ring-2 ring-gold/30 shadow-[0_0_14px_rgba(225,29,46,0.45)]">
               {siteName.slice(0, 1)}
             </span>
           )}
@@ -51,7 +55,7 @@ export function Header({
           <Link
             href={loggedIn ? "/account" : "/account/login"}
             aria-label={loggedIn ? "Профил" : "Вход"}
-            className="sm:hidden h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 transition-colors"
+            className="sm:hidden h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 hover:shadow-[0_0_14px_rgba(245,166,35,0.3)] transition-all"
           >
             <span aria-hidden>👤</span>
           </Link>
@@ -59,11 +63,11 @@ export function Header({
           <button
             onClick={openDrawer}
             aria-label="Количка"
-            className="relative h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 transition-colors"
+            className="relative h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 hover:shadow-[0_0_14px_rgba(245,166,35,0.3)] transition-all"
           >
             <span aria-hidden>🛒</span>
             {itemCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-brand text-white text-xs font-bold rounded-full h-5 w-5 grid place-items-center">
+              <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-br from-brand-light to-brand text-white text-xs font-bold rounded-full h-5 w-5 grid place-items-center shadow-[0_0_8px_rgba(225,29,46,0.6)]">
                 {itemCount}
               </span>
             )}
