@@ -232,3 +232,15 @@ export type ProductReview = {
 
 // Joined in for display — the reviewer's own name, never their contact info.
 export type ProductReviewPublic = ProductReview & { customer_name: string };
+
+// One of the 4 fixed homepage "showcase" slots (see promo_cards table) —
+// position is the row's permanent identity, never reassigned.
+export type PromoCard = {
+  id: number;
+  position: number;
+  active: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string;
+};

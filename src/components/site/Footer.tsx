@@ -6,7 +6,7 @@ const HELP_LINKS = [
 ];
 
 const INFO_LINKS = [
-  { label: "Оферти", href: "/#menu" },
+  { label: "Оферти", href: "/oferti" },
   { label: "Зони за доставка", href: "/zones" },
   { label: "Алергени", href: "/allergens" },
   { label: "Политика за защита на личните данни", href: "/privacy" },

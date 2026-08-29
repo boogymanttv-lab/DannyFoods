@@ -218,6 +218,23 @@ CREATE TABLE IF NOT EXISTS product_reviews (
   updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
 
+-- Exactly 4 promo "showcase" cards shown on the homepage right under the
+-- hero CTA (e.g. "Пица + Дюнер комбо", "Фамилен пакет") — a fixed slot count
+-- rather than an open-ended list, so the homepage layout never has to
+-- reflow around a variable number of them. Position is the row's identity
+-- (1-4); an admin edits one in place rather than creating/deleting rows.
+-- Each links through to /oferti, the dedicated page listing every currently
+-- active card with its longer description.
+CREATE TABLE IF NOT EXISTS promo_cards (
+  id SERIAL PRIMARY KEY,
+  position INTEGER NOT NULL UNIQUE CHECK (position BETWEEN 1 AND 4),
+  active INTEGER NOT NULL DEFAULT 0,
+  title TEXT NOT NULL DEFAULT '',
+  subtitle TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  image TEXT NOT NULL DEFAULT ''
+);
+
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_customer_product ON product_reviews(customer_id, product_id);

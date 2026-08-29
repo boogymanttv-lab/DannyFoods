@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/couriers", label: "Куриери", icon: "🛵" },
   { href: "/admin/products", label: "Продукти и меню", icon: "🍕" },
   { href: "/admin/promotions", label: "Промоции", icon: "🏷️" },
+  { href: "/admin/showcase", label: "Витрина на началния екран", icon: "🖼️" },
   { href: "/admin/zones", label: "Зони за доставка", icon: "🗺️" },
   { href: "/admin/settings", label: "Настройки", icon: "⚙️" },
 ];

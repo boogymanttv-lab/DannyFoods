@@ -445,6 +445,42 @@ async function runMigrations() {
     `CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id)`,
     []
   );
+
+  // Homepage "showcase" promo cards — 4 fixed slots (already in schema.ts's
+  // CREATE TABLE for a fresh database; needed here too for an
+  // already-deployed one). Seeded once so all 4 rows always exist —
+  // toggling one on/off in admin is then just an UPDATE, never an
+  // INSERT/DELETE that could accidentally change how many slots there are.
+  await rawQuery(
+    `CREATE TABLE IF NOT EXISTS promo_cards (
+       id SERIAL PRIMARY KEY,
+       position INTEGER NOT NULL UNIQUE CHECK (position BETWEEN 1 AND 4),
+       active INTEGER NOT NULL DEFAULT 0,
+       title TEXT NOT NULL DEFAULT '',
+       subtitle TEXT NOT NULL DEFAULT '',
+       description TEXT NOT NULL DEFAULT '',
+       image TEXT NOT NULL DEFAULT ''
+     )`,
+    []
+  );
+  await rawQuery(
+    `INSERT INTO promo_cards (position) VALUES (1), (2), (3), (4)
+     ON CONFLICT (position) DO NOTHING`,
+    []
+  );
+
+  // Shortened the homepage hero tagline — the old one just listed every
+  // category name ("Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза
+  // доставка във Варна"), which read as long and cluttered next to the new
+  // promo cards below it. Only swapped if it's still exactly the old
+  // default — an admin who already customized this field keeps their own
+  // wording untouched.
+  await rawQuery(
+    `UPDATE site_settings SET value = 'Гладен? Доставяме бързо.'
+     WHERE key = 'tagline'
+       AND value = 'Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза доставка във Варна'`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

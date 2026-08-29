@@ -3,7 +3,7 @@ import { DEFAULT_BUSY_HOURS } from "@/lib/delivery-estimate";
 
 export const DEFAULT_SETTINGS = {
   site_name: "DannyFoods",
-  tagline: "Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза доставка във Варна",
+  tagline: "Гладен? Доставяме бързо.",
   phone: "052 000 000",
   // Public-facing address shown on the Contact page, the footer, and (as
   // the legal texts note) where an order can be picked up in person.
