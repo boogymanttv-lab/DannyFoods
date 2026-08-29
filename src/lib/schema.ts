@@ -224,17 +224,20 @@ CREATE TABLE IF NOT EXISTS product_reviews (
 -- reflow around a variable number of them. Position is the row's identity
 -- (1-4); an admin edits one in place rather than creating/deleting rows.
 -- Each links through to /oferti, the dedicated page listing every currently
--- active card with its longer description.
--- No image column on purpose — these are designed to look good with just
--- text over a built-in gradient (see PROMO_CARD_STYLES), so there's nothing
--- to upload and no "card with a missing photo" state to worry about.
+-- active card with its longer description. "image" is optional — a card
+-- with none falls back to a built-in per-position gradient + icon (see
+-- PROMO_CARD_STYLES) rather than showing a blank photo area.
 CREATE TABLE IF NOT EXISTS promo_cards (
   id SERIAL PRIMARY KEY,
   position INTEGER NOT NULL UNIQUE CHECK (position BETWEEN 1 AND 4),
   active INTEGER NOT NULL DEFAULT 0,
+  -- Small tag shown above the title (e.g. "ХИТ ОФЕРТА", "НОВО") — optional,
+  -- blank just omits it.
+  badge TEXT NOT NULL DEFAULT '',
   title TEXT NOT NULL DEFAULT '',
   subtitle TEXT NOT NULL DEFAULT '',
-  description TEXT NOT NULL DEFAULT ''
+  description TEXT NOT NULL DEFAULT '',
+  image TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);

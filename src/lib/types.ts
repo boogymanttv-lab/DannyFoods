@@ -239,7 +239,9 @@ export type PromoCard = {
   id: number;
   position: number;
   active: number;
+  badge: string;
   title: string;
   subtitle: string;
   description: string;
+  image: string;
 };

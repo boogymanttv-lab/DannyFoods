@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { promoCardStyle } from "@/lib/promo-card-style";
 import type { PromoCard } from "@/lib/types";
 
@@ -25,9 +26,11 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         active: Boolean(card.active),
+        badge: card.badge,
         title: card.title,
         subtitle: card.subtitle,
         description: card.description,
+        image: card.image,
       }),
     });
     setSavingPosition(null);
@@ -41,11 +44,12 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
         <h1 className="font-display font-extrabold text-2xl">Витрина на началния екран</h1>
         <p className="text-muted text-sm mt-1">
           4-те карти, които се показват на началната страница, точно под бутона
-          &quot;Разгледай менюто&quot;. Всяка има собствен фиксиран дизайн (градиент +
-          иконка) — няма нужда от качване на снимка. Натискане на активна карта
+          &quot;Разгледай менюто&quot; — на телефон като лента с малки карти, на
+          компютър като 3 по-широки банера. Снимка е по избор — без такава
+          картата пада на вграден цвят + иконка. Натискане на активна карта
           отвежда клиента към <span className="font-semibold">/oferti</span> — там
-          се показва и по-дългото описание. Неактивна карта просто не се показва —
-          слотовете не се преномерират.
+          се показва и по-дългото описание. Неактивна карта просто не се показва
+          — слотовете не се преномерират.
         </p>
       </div>
 
@@ -67,28 +71,40 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
                 </label>
               </div>
 
-              {/* Live preview of how the card actually looks on the site —
-                  same gradient/icon/text stack as PromoShowcase. */}
+              {/* Live preview — same square-photo/gradient-icon + badge
+                  treatment as the phone card. */}
               <div
-                className={`relative aspect-[4/3] rounded-xl overflow-hidden bg-gradient-to-br ${style.gradient}`}
+                className={`relative aspect-square w-36 rounded-xl overflow-hidden bg-gradient-to-br ${style.gradient}`}
               >
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -right-3 -bottom-4 text-6xl opacity-20 rotate-[-8deg]"
-                >
-                  {style.icon}
-                </span>
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10" />
-                <div className="absolute inset-x-0 bottom-0 p-3 text-white">
-                  <p className="font-display font-bold text-sm leading-tight">
+                {card.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <span aria-hidden className="absolute inset-0 grid place-items-center text-4xl">
+                    {style.icon}
+                  </span>
+                )}
+                {card.badge && (
+                  <span className="absolute top-2 left-2 bg-brand text-white text-[9px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-md">
+                    {card.badge}
+                  </span>
+                )}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
+                  <p className="font-display font-bold text-white text-xs leading-tight">
                     {card.title || "Заглавие..."}
                   </p>
                   {card.subtitle && (
-                    <p className="text-xs font-bold text-gold mt-0.5">{card.subtitle}</p>
+                    <p className="text-white font-bold text-xs mt-0.5">{card.subtitle}</p>
                   )}
                 </div>
               </div>
 
+              <input
+                className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
+                placeholder="Значка (по желание, напр. „ХИТ ОФЕРТА“, „НОВО“)"
+                value={card.badge}
+                onChange={(e) => updateLocal(card.position, { badge: e.target.value })}
+              />
               <input
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
                 placeholder="Заглавие (напр. „Пица + Дюнер“)"
@@ -103,10 +119,14 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
               />
               <textarea
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-                placeholder="По-дълго описание — показва се само на страницата /oferti"
+                placeholder="Кратко описание"
                 rows={2}
                 value={card.description}
                 onChange={(e) => updateLocal(card.position, { description: e.target.value })}
+              />
+              <ImageUploadField
+                value={card.image}
+                onChange={(url) => updateLocal(card.position, { image: url })}
               />
 
               <button

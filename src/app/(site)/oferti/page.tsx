@@ -39,14 +39,24 @@ export default async function OffersPage() {
                 <div
                   className={`relative aspect-[16/10] overflow-hidden bg-gradient-to-br ${style.gradient}`}
                 >
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute -right-4 -bottom-6 text-[130px] opacity-20 rotate-[-8deg]"
-                  >
-                    {style.icon}
-                  </span>
+                  {card.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -right-4 -bottom-6 text-[130px] opacity-20 rotate-[-8deg]"
+                    >
+                      {style.icon}
+                    </span>
+                  )}
                 </div>
                 <div className="p-5">
+                  {card.badge && (
+                    <p className="text-brand-dark text-[11px] font-extrabold uppercase tracking-wider mb-1">
+                      {card.badge}
+                    </p>
+                  )}
                   <h2 className="font-display font-bold text-lg">{card.title}</h2>
                   {card.subtitle && (
                     <p className="text-brand font-bold text-sm mt-0.5">{card.subtitle}</p>

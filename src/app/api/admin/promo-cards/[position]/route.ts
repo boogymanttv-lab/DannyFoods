@@ -13,9 +13,11 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}));
   await updatePromoCard(pos, {
     active: Boolean(body.active),
+    badge: String(body.badge ?? "").trim(),
     title: String(body.title ?? "").trim(),
     subtitle: String(body.subtitle ?? "").trim(),
     description: String(body.description ?? "").trim(),
+    image: String(body.image ?? "").trim(),
   });
   return NextResponse.json({ ok: true });
 }

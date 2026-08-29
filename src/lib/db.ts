@@ -467,11 +467,16 @@ async function runMigrations() {
      ON CONFLICT (position) DO NOTHING`,
     []
   );
-  // Dropped again — these cards are designed to look good with just text
-  // over a built-in gradient, so photo upload was removed. Safe to drop
-  // even on a database that already has the column: nothing had ever been
-  // uploaded there yet.
-  await rawQuery(`ALTER TABLE promo_cards DROP COLUMN IF EXISTS image`, []);
+  // "image" went through a drop-then-re-add across two rounds of this
+  // feature (photo upload removed, then brought back) — ADD COLUMN IF NOT
+  // EXISTS is safe regardless of which state an already-deployed database
+  // is in. "badge" (small tag like "ХИТ ОФЕРТА") is new alongside it.
+  await rawQuery(
+    `ALTER TABLE promo_cards
+       ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '',
+       ADD COLUMN IF NOT EXISTS badge TEXT NOT NULL DEFAULT ''`,
+    []
+  );
 
   // Shortened the homepage hero tagline — the old one just listed every
   // category name ("Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза

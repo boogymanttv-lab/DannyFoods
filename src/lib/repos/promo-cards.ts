@@ -21,21 +21,30 @@ export async function listActivePromoCards(): Promise<PromoCard[]> {
 
 export async function updatePromoCard(
   position: number,
-  data: { active: boolean; title: string; subtitle: string; description: string }
+  data: {
+    active: boolean;
+    badge: string;
+    title: string;
+    subtitle: string;
+    description: string;
+    image: string;
+  }
 ): Promise<void> {
   const db = await getDb();
   await db
     .prepare(
       `UPDATE promo_cards
-       SET active = @active, title = @title, subtitle = @subtitle,
-           description = @description
+       SET active = @active, badge = @badge, title = @title, subtitle = @subtitle,
+           description = @description, image = @image
        WHERE position = @position`
     )
     .run({
       position,
       active: data.active ? 1 : 0,
+      badge: data.badge,
       title: data.title,
       subtitle: data.subtitle,
       description: data.description,
+      image: data.image,
     });
 }
