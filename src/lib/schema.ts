@@ -225,14 +225,16 @@ CREATE TABLE IF NOT EXISTS product_reviews (
 -- (1-4); an admin edits one in place rather than creating/deleting rows.
 -- Each links through to /oferti, the dedicated page listing every currently
 -- active card with its longer description.
+-- No image column on purpose — these are designed to look good with just
+-- text over a built-in gradient (see PROMO_CARD_STYLES), so there's nothing
+-- to upload and no "card with a missing photo" state to worry about.
 CREATE TABLE IF NOT EXISTS promo_cards (
   id SERIAL PRIMARY KEY,
   position INTEGER NOT NULL UNIQUE CHECK (position BETWEEN 1 AND 4),
   active INTEGER NOT NULL DEFAULT 0,
   title TEXT NOT NULL DEFAULT '',
   subtitle TEXT NOT NULL DEFAULT '',
-  description TEXT NOT NULL DEFAULT '',
-  image TEXT NOT NULL DEFAULT ''
+  description TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);

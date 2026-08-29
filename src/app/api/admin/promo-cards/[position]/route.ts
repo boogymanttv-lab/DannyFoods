@@ -16,7 +16,6 @@ export async function PATCH(
     title: String(body.title ?? "").trim(),
     subtitle: String(body.subtitle ?? "").trim(),
     description: String(body.description ?? "").trim(),
-    image: String(body.image ?? "").trim(),
   });
   return NextResponse.json({ ok: true });
 }

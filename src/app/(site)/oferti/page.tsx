@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listActivePromoCards } from "@/lib/repos/promo-cards";
+import { promoCardStyle } from "@/lib/promo-card-style";
 
 export const dynamic = "force-dynamic";
 
@@ -28,34 +29,35 @@ export default async function OffersPage() {
         </p>
       ) : (
         <div className="grid sm:grid-cols-2 gap-5">
-          {cards.map((card) => (
-            <div
-              key={card.id}
-              className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm"
-            >
-              <div className="relative aspect-[16/10] bg-gradient-to-br from-brand/15 to-accent-dark/10">
-                {card.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={card.image}
-                    alt={card.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full grid place-items-center text-5xl">🔥</div>
-                )}
+          {cards.map((card) => {
+            const style = promoCardStyle(card.position);
+            return (
+              <div
+                key={card.id}
+                className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm"
+              >
+                <div
+                  className={`relative aspect-[16/10] overflow-hidden bg-gradient-to-br ${style.gradient}`}
+                >
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -right-4 -bottom-6 text-[130px] opacity-20 rotate-[-8deg]"
+                  >
+                    {style.icon}
+                  </span>
+                </div>
+                <div className="p-5">
+                  <h2 className="font-display font-bold text-lg">{card.title}</h2>
+                  {card.subtitle && (
+                    <p className="text-brand font-bold text-sm mt-0.5">{card.subtitle}</p>
+                  )}
+                  {card.description && (
+                    <p className="text-muted text-sm mt-2">{card.description}</p>
+                  )}
+                </div>
               </div>
-              <div className="p-5">
-                <h2 className="font-display font-bold text-lg">{card.title}</h2>
-                {card.subtitle && (
-                  <p className="text-brand font-bold text-sm mt-0.5">{card.subtitle}</p>
-                )}
-                {card.description && (
-                  <p className="text-muted text-sm mt-2">{card.description}</p>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

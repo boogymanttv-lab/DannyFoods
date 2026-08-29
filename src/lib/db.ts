@@ -458,8 +458,7 @@ async function runMigrations() {
        active INTEGER NOT NULL DEFAULT 0,
        title TEXT NOT NULL DEFAULT '',
        subtitle TEXT NOT NULL DEFAULT '',
-       description TEXT NOT NULL DEFAULT '',
-       image TEXT NOT NULL DEFAULT ''
+       description TEXT NOT NULL DEFAULT ''
      )`,
     []
   );
@@ -468,6 +467,11 @@ async function runMigrations() {
      ON CONFLICT (position) DO NOTHING`,
     []
   );
+  // Dropped again — these cards are designed to look good with just text
+  // over a built-in gradient, so photo upload was removed. Safe to drop
+  // even on a database that already has the column: nothing had ever been
+  // uploaded there yet.
+  await rawQuery(`ALTER TABLE promo_cards DROP COLUMN IF EXISTS image`, []);
 
   // Shortened the homepage hero tagline — the old one just listed every
   // category name ("Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза
