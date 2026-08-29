@@ -5,20 +5,20 @@ import { useEffect, useState } from "react";
 const VISIBLE_MS = 2600; // matches the .animate-splash-fill duration in globals.css
 const FADE_MS = 450;
 
-// The döner box "fills up" as fries/meat/veggies drop into it one after
-// another — each entry's own CSS animation-delay staggers the fall, and
-// `left`/`top` place it so the pile looks roughly centered over the box.
+// The döner box "fills up" as fries/meat/cheese/veggies drop into it one
+// after another — each entry's own CSS animation-delay staggers the fall.
+// `top` is tuned so roughly the top half of each emoji clears the box's
+// front wall (rendered afterwards, see below) while the rest is hidden
+// behind it — that's what sells the "landing inside an open box" illusion.
 const INGREDIENTS = [
-  { emoji: "🍟", left: "8%", top: "34%", delay: "0.15s" },
-  { emoji: "🥩", left: "58%", top: "28%", delay: "0.45s" },
-  { emoji: "🧀", left: "30%", top: "22%", delay: "0.75s" },
-  { emoji: "🍅", left: "72%", top: "40%", delay: "1.05s" },
-  { emoji: "🥬", left: "18%", top: "44%", delay: "1.35s" },
+  { emoji: "🍟", left: "6%", top: "18%", delay: "0.15s" },
+  { emoji: "🥩", left: "56%", top: "10%", delay: "0.45s" },
+  { emoji: "🧀", left: "30%", top: "4%", delay: "0.75s" },
+  { emoji: "🍅", left: "70%", top: "24%", delay: "1.05s" },
+  { emoji: "🥬", left: "16%", top: "30%", delay: "1.35s" },
 ];
 
 export function SplashScreen({
-  siteName,
-  logoUrl,
   children,
 }: {
   siteName: string;
@@ -54,51 +54,48 @@ export function SplashScreen({
       {phase !== "done" && (
         <div
           aria-hidden={phase === "fading"}
-          className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-accent-dark transition-opacity ease-out"
+          className="fixed inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden bg-accent-dark transition-opacity ease-out"
           style={{
             opacity: phase === "fading" ? 0 : 1,
             transitionDuration: `${FADE_MS}ms`,
           }}
         >
-          <div className="animate-splash-badge">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={siteName}
-                className="h-14 w-14 rounded-full object-cover shadow-lg"
-              />
-            ) : (
-              <div className="h-14 w-14 rounded-full bg-brand text-white grid place-items-center font-display font-extrabold text-xl shadow-lg">
-                {siteName.slice(0, 1)}
-              </div>
-            )}
+          {/* Slow-drifting glow blobs — an animated backdrop instead of a
+              flat color, kept subtle so the box/ingredients stay the focus. */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -top-16 -left-12 h-72 w-72 rounded-full bg-brand/30 blur-3xl animate-blob" />
+            <div
+              className="absolute -bottom-20 -right-10 h-80 w-80 rounded-full bg-gold/25 blur-3xl animate-blob"
+              style={{ animationDelay: "-4s" }}
+            />
+            <div
+              className="absolute top-1/3 right-1/4 h-56 w-56 rounded-full bg-brand-light/20 blur-3xl animate-blob"
+              style={{ animationDelay: "-8s" }}
+            />
           </div>
 
-          <h1 className="mt-4 font-display font-extrabold text-xl sm:text-2xl text-white tracking-tight">
-            {siteName}
-          </h1>
-
-          {/* Дюнер бокс — fries/meat/cheese/veggies drop in one by one */}
-          <div className="relative mt-8 h-28 w-36">
+          {/* Дюнер бокс — an open kraft-paper box built from CSS (not an
+              emoji) so the ingredients can visibly fall INSIDE it: a back
+              panel gives it depth, then the ingredients drop in, then a
+              shorter front wall paints over their lower half. */}
+          <div className="relative z-10 h-32 w-40">
+            {/* back interior + floor */}
+            <div className="absolute inset-x-3 bottom-0 h-24 rounded-t-sm rounded-b-2xl bg-[#8a5a35]" />
+            {/* falling ingredients */}
             {INGREDIENTS.map((ing, i) => (
               <span
                 key={i}
-                className="absolute text-3xl animate-drop-in"
+                className="absolute z-10 text-3xl animate-drop-in"
                 style={{ left: ing.left, top: ing.top, animationDelay: ing.delay }}
               >
                 {ing.emoji}
               </span>
             ))}
-            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-6xl leading-none">
-              🥡
-            </span>
+            {/* front wall + rim, painted over the ingredients' lower half */}
+            <div className="absolute inset-x-0 bottom-0 z-20 h-11 rounded-b-2xl bg-gradient-to-b from-[#d99a58] to-[#b97b3f] shadow-[inset_0_2px_0_0_rgba(255,255,255,0.35)]" />
           </div>
-          <p className="mt-3 text-white/60 text-sm font-bold tracking-wide">
-            Приготвяме менюто...
-          </p>
 
-          <div className="mt-8 h-1.5 w-48 rounded-full bg-white/15 overflow-hidden">
+          <div className="relative z-10 mt-8 h-1.5 w-48 rounded-full bg-white/15 overflow-hidden">
             <div className="h-full rounded-full bg-brand animate-splash-fill" />
           </div>
         </div>
