@@ -184,23 +184,38 @@ export default function AdminOrdersPage() {
                 <div className="border-t border-border p-4 space-y-4">
                   <ul className="text-sm space-y-1">
                     {items.map((item, idx) => (
-                      <li key={idx} className="flex justify-between">
-                        <span className="text-muted">
-                          {item.quantity}× {item.name}
-                          {item.sizeLabel ? ` (${item.sizeLabel})` : ""}
-                          {item.extras.length > 0 && (
-                            <span className="text-xs">
-                              {" "}
-                              + {item.extras.map((e) => e.name).join(", ")}
-                            </span>
-                          )}
-                          {item.removed && item.removed.length > 0 && (
-                            <span className="block text-xs text-brand font-semibold">
-                              Без: {item.removed.join(", ")}
-                            </span>
-                          )}
-                        </span>
-                        <span className="font-semibold">{formatPrice(item.lineTotal)}</span>
+                      <li key={idx} className="flex flex-col gap-0.5">
+                        <div className="flex justify-between">
+                          <span className="text-muted">
+                            {item.quantity}× {item.name}
+                            {item.sizeLabel ? ` (${item.sizeLabel})` : ""}
+                            {item.extras.length > 0 && (
+                              <span className="text-xs">
+                                {" "}
+                                + {item.extras.map((e) => e.name).join(", ")}
+                              </span>
+                            )}
+                            {item.removed && item.removed.length > 0 && (
+                              <span className="block text-xs text-brand font-semibold">
+                                Без: {item.removed.join(", ")}
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-semibold">{formatPrice(item.lineTotal)}</span>
+                        </div>
+                        {/* Combo product — show what it's actually made of, so
+                            whoever's preparing the order doesn't need to go
+                            look up the offer's recipe separately. */}
+                        {item.components && item.components.length > 0 && (
+                          <ul className="ml-3 border-l-2 border-border pl-2 text-xs text-muted space-y-0.5">
+                            {item.components.map((c, ci) => (
+                              <li key={ci}>
+                                {c.quantity * item.quantity}× {c.name}
+                                {c.sizeLabel ? ` (${c.sizeLabel})` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     ))}
                   </ul>

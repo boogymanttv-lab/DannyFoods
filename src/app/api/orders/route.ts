@@ -156,6 +156,27 @@ export async function POST(req: NextRequest) {
     const extrasTotal = extras.reduce((s, e) => s + e.price, 0);
     const lineTotal = (unitPrice + extrasTotal) * item.quantity;
     subtotal += lineTotal;
+
+    // Snapshot the combo's bill of materials so the admin orders panel can
+    // show staff exactly what to prepare (e.g. "Дюнер Класик + Айрян")
+    // instead of just the combo's own name — resolved from live product
+    // data now, at order time, same as the price above, since the combo's
+    // recipe could change later.
+    let components: OrderItem["components"];
+    if (product.is_combo && product.combo_items.length > 0) {
+      components = [];
+      for (const ci of product.combo_items) {
+        const compProduct = await getProduct(ci.product_id);
+        if (!compProduct) continue;
+        const size = ci.size_id ? compProduct.sizes.find((s) => s.id === ci.size_id) : undefined;
+        components.push({
+          name: compProduct.name,
+          sizeLabel: size?.label,
+          quantity: ci.quantity,
+        });
+      }
+    }
+
     orderItems.push({
       productId: product.id,
       name: product.name,
@@ -166,6 +187,7 @@ export async function POST(req: NextRequest) {
       extras,
       removed: item.removed && item.removed.length > 0 ? item.removed : undefined,
       lineTotal: Math.round(lineTotal * 100) / 100,
+      components,
     });
   }
   subtotal = Math.round(subtotal * 100) / 100;

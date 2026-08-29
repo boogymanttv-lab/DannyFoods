@@ -135,6 +135,13 @@ export type OrderItem = {
   // kitchen/courier.
   removed?: string[];
   lineTotal: number;
+  // Only set when this line is a combo product — a snapshot of its bill of
+  // materials at order time (component product name/size + quantity PER
+  // ONE combo unit), so staff preparing the order can see exactly what to
+  // put together without needing to open the admin menu/showcase to look
+  // it up. Snapshotted rather than looked up live because the combo's own
+  // recipe could change later.
+  components?: { name: string; sizeLabel?: string; quantity: number }[];
 };
 
 export type OrderType = "delivery" | "pickup";
