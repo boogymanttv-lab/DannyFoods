@@ -3,6 +3,23 @@ import { promoCardStyle } from "@/lib/promo-card-style";
 import { AddComboButton } from "@/components/site/AddComboButton";
 import type { PromoCard } from "@/lib/types";
 
+// Small cart-icon badge for a full-banner card that adds straight to the
+// cart — a corner badge rather than a text bar, so it signals the action
+// without covering much of the banner artwork underneath it.
+function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
+  return (
+    <span
+      className={`absolute bottom-2 right-2 ${size} rounded-full bg-brand text-white grid place-items-center shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <circle cx="9" cy="21" r="1" />
+        <circle cx="20" cy="21" r="1" />
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+      </svg>
+    </span>
+  );
+}
+
 // The homepage's 4 fixed "showcase" slots — active ones only (see
 // listActivePromoCards). Two entirely different layouts by breakpoint
 // rather than one responsive card: on phone, a horizontally-scrollable
@@ -47,12 +64,8 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                 />
                 {/* The banner has no CTA of its own baked in, so tapping it
                     silently adding to the cart would give no warning that's
-                    what's about to happen — this label is the only signal. */}
-                {orderable && (
-                  <span className="absolute inset-x-0 bottom-0 bg-brand text-white text-xs font-bold text-center py-2">
-                    Добави в количката
-                  </span>
-                )}
+                    what's about to happen — this badge is the only signal. */}
+                {orderable && <CartBadge />}
               </div>
             );
             const className =
@@ -169,12 +182,8 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                 />
                 {/* The banner has no CTA of its own baked in, so clicking it
                     silently adding to the cart would give no warning that's
-                    what's about to happen — this label is the only signal. */}
-                {orderable && (
-                  <span className="absolute inset-x-0 bottom-0 bg-brand text-white text-sm font-bold text-center py-2.5">
-                    Добави в количката
-                  </span>
-                )}
+                    what's about to happen — this badge is the only signal. */}
+                {orderable && <CartBadge size="h-10 w-10" />}
               </>
             );
             const className =
