@@ -91,41 +91,23 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
             <Link
               key={card.id}
               href="/oferti"
-              className={`group relative rounded-2xl overflow-hidden p-5 min-h-[168px] flex flex-col justify-between bg-gradient-to-br ${style.gradient} hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200`}
+              className={`group relative rounded-2xl overflow-hidden p-5 min-h-[168px] flex flex-col justify-between hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200 ${
+                card.image ? "" : `bg-gradient-to-br ${style.gradient}`
+              }`}
             >
-              <div>
-                {card.badge && (
-                  <p className="text-gold text-[11px] font-extrabold uppercase tracking-wider mb-1.5">
-                    {card.badge}
-                  </p>
-                )}
-                <h3 className="font-display font-extrabold text-white text-lg leading-tight max-w-[75%]">
-                  {card.title}
-                </h3>
-                {card.description && (
-                  <p className="text-white/60 text-xs mt-1 line-clamp-1 max-w-[75%]">{card.description}</p>
-                )}
-              </div>
-              <div>
-                {card.subtitle && (
-                  <p className="text-white font-extrabold text-xl mb-1">{card.subtitle}</p>
-                )}
-                <span className="text-white/85 text-sm font-bold underline underline-offset-2 decoration-white/40 group-hover:text-gold group-hover:decoration-gold transition-colors">
-                  Поръчай сега →
-                </span>
-              </div>
-
-              {/* Corner accent — the uploaded photo if there is one, else the
-                  slot's built-in icon, both kept small and decorative rather
-                  than a full-bleed background image. */}
               {card.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={card.image}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute right-3 bottom-3 h-16 w-16 rounded-xl object-cover opacity-90 rotate-[6deg] shadow-lg"
-                />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={card.image}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* Scrim over the full photo so the title/price stay
+                      readable regardless of what's in the picture. */}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+                </>
               ) : (
                 <span
                   aria-hidden
@@ -134,6 +116,30 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   {style.icon}
                 </span>
               )}
+
+              <div className="relative">
+                {card.badge && (
+                  <p className="text-gold text-[11px] font-extrabold uppercase tracking-wider mb-1.5">
+                    {card.badge}
+                  </p>
+                )}
+                <h3 className="font-display font-extrabold text-white text-lg leading-tight max-w-[75%] drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+                  {card.title}
+                </h3>
+                {card.description && (
+                  <p className="text-white/70 text-xs mt-1 line-clamp-1 max-w-[75%]">{card.description}</p>
+                )}
+              </div>
+              <div className="relative">
+                {card.subtitle && (
+                  <p className="text-white font-extrabold text-xl mb-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+                    {card.subtitle}
+                  </p>
+                )}
+                <span className="text-white/85 text-sm font-bold underline underline-offset-2 decoration-white/40 group-hover:text-gold group-hover:decoration-gold transition-colors">
+                  Поръчай сега →
+                </span>
+              </div>
             </Link>
           );
         })}
