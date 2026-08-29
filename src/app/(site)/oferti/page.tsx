@@ -44,7 +44,7 @@ export default async function OffersPage() {
                     <img
                       src={card.image}
                       alt={card.title}
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     <span

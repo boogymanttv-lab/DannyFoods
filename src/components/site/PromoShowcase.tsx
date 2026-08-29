@@ -39,7 +39,7 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   <img
                     src={card.image}
                     alt={card.title}
-                    className="absolute inset-0 h-full w-full object-contain"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (
                   <span aria-hidden className="absolute inset-0 grid place-items-center text-4xl">
@@ -99,19 +99,16 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
             >
               {card.image ? (
                 <>
-                  {/* object-contain — the whole photo always stays visible,
-                      whatever its own aspect ratio; the gradient behind
-                      shows through as letterboxing instead of cropping in. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={card.image}
                     alt=""
                     aria-hidden
-                    className="absolute inset-0 h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   {/* Scrim over the full photo so the title/price stay
                       readable regardless of what's in the picture. */}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/0" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
                 </>
               ) : (
                 <span

@@ -78,7 +78,7 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
               >
                 {card.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                  <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
                   <span aria-hidden className="absolute inset-0 grid place-items-center text-4xl">
                     {style.icon}
