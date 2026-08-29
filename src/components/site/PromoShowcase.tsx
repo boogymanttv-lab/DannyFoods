@@ -36,7 +36,11 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
               <div className={`relative aspect-square bg-gradient-to-br ${style.gradient}`}>
                 {card.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={card.image} alt={card.title} className="absolute inset-0 h-full w-full object-cover" />
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="absolute inset-0 h-full w-full object-contain"
+                  />
                 ) : (
                   <span aria-hidden className="absolute inset-0 grid place-items-center text-4xl">
                     {style.icon}
@@ -91,22 +95,23 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
             <Link
               key={card.id}
               href="/oferti"
-              className={`group relative rounded-2xl overflow-hidden p-5 min-h-[168px] flex flex-col justify-between hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200 ${
-                card.image ? "" : `bg-gradient-to-br ${style.gradient}`
-              }`}
+              className={`group relative rounded-2xl overflow-hidden p-5 min-h-[168px] flex flex-col justify-between bg-gradient-to-br ${style.gradient} hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200`}
             >
               {card.image ? (
                 <>
+                  {/* object-contain — the whole photo always stays visible,
+                      whatever its own aspect ratio; the gradient behind
+                      shows through as letterboxing instead of cropping in. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={card.image}
                     alt=""
                     aria-hidden
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="absolute inset-0 h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                   {/* Scrim over the full photo so the title/price stay
                       readable regardless of what's in the picture. */}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/0" />
                 </>
               ) : (
                 <span

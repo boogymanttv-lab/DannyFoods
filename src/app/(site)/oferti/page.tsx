@@ -41,7 +41,11 @@ export default async function OffersPage() {
                 >
                   {card.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      className="h-full w-full object-contain"
+                    />
                   ) : (
                     <span
                       aria-hidden
