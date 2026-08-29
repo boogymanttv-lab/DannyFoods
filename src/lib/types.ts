@@ -244,4 +244,7 @@ export type PromoCard = {
   subtitle: string;
   description: string;
   image: string;
+  // 1 = the image is itself a finished ad (own title/price already baked
+  // in) — no text is overlaid on top and the photo is never cropped.
+  full_banner: number;
 };

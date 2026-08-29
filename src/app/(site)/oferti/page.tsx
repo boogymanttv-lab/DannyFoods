@@ -31,6 +31,29 @@ export default async function OffersPage() {
         <div className="grid sm:grid-cols-2 gap-5">
           {cards.map((card) => {
             const style = promoCardStyle(card.position);
+
+            // Full-banner cards: the image is a finished ad with its own
+            // text already baked in — show just the picture, intact
+            // (object-contain) on a black ground, no title/description
+            // underneath.
+            if (card.full_banner && card.image) {
+              return (
+                <div
+                  key={card.id}
+                  className="rounded-2xl border border-border bg-black overflow-hidden shadow-sm"
+                >
+                  <div className="relative aspect-[16/10]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={card.id}

@@ -31,6 +31,7 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
         subtitle: card.subtitle,
         description: card.description,
         image: card.image,
+        fullBanner: Boolean(card.full_banner),
       }),
     });
     setSavingPosition(null);
@@ -71,33 +72,64 @@ export function PromoCardsManager({ initialCards }: { initialCards: PromoCard[] 
                 </label>
               </div>
 
-              {/* Live preview — same square-photo/gradient-icon + badge
-                  treatment as the phone card. */}
-              <div
-                className={`relative aspect-square w-36 rounded-xl overflow-hidden bg-gradient-to-br ${style.gradient}`}
-              >
-                {card.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                ) : (
-                  <span aria-hidden className="absolute inset-0 grid place-items-center text-4xl">
-                    {style.icon}
-                  </span>
-                )}
-                {card.badge && (
-                  <span className="absolute top-2 left-2 bg-brand text-white text-[9px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-md">
-                    {card.badge}
-                  </span>
-                )}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
-                  <p className="font-display font-bold text-white text-xs leading-tight">
-                    {card.title || "Заглавие..."}
-                  </p>
-                  {card.subtitle && (
-                    <p className="text-white font-bold text-xs mt-0.5">{card.subtitle}</p>
+              {/* Live preview — square-photo/gradient-icon + badge treatment
+                  as the phone card, or (when "Готов банер" is on) just the
+                  raw image, untouched, on black. */}
+              {card.full_banner ? (
+                <div className="relative aspect-[3/2] w-52 rounded-xl overflow-hidden bg-black">
+                  {card.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                  ) : (
+                    <span className="absolute inset-0 grid place-items-center text-white/40 text-xs">
+                      Качи снимка на банера
+                    </span>
                   )}
                 </div>
-              </div>
+              ) : (
+                <div
+                  className={`relative aspect-square w-36 rounded-xl overflow-hidden bg-gradient-to-br ${style.gradient}`}
+                >
+                  {card.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <span aria-hidden className="absolute inset-0 grid place-items-center text-4xl">
+                      {style.icon}
+                    </span>
+                  )}
+                  {card.badge && (
+                    <span className="absolute top-2 left-2 bg-brand text-white text-[9px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-md">
+                      {card.badge}
+                    </span>
+                  )}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
+                    <p className="font-display font-bold text-white text-xs leading-tight">
+                      {card.title || "Заглавие..."}
+                    </p>
+                    {card.subtitle && (
+                      <p className="text-white font-bold text-xs mt-0.5">{card.subtitle}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <label className="flex items-start gap-2 text-xs text-muted bg-background rounded-xl border border-border px-3.5 py-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(card.full_banner)}
+                  onChange={(e) =>
+                    updateLocal(card.position, { full_banner: e.target.checked ? 1 : 0 })
+                  }
+                  className="accent-[var(--brand)] h-4 w-4 mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold text-foreground">Готов банер</span> — снимката
+                  вече има целия текст (заглавие, цена и т.н.) вградени в нея. При включено, показваме
+                  само снимката, изцяло и без нищо отгоре — заглавието/значката/цената по-долу се
+                  ползват само вътрешно, не се виждат на сайта.
+                </span>
+              </label>
 
               <input
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"

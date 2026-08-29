@@ -28,6 +28,7 @@ export async function updatePromoCard(
     subtitle: string;
     description: string;
     image: string;
+    fullBanner: boolean;
   }
 ): Promise<void> {
   const db = await getDb();
@@ -35,7 +36,7 @@ export async function updatePromoCard(
     .prepare(
       `UPDATE promo_cards
        SET active = @active, badge = @badge, title = @title, subtitle = @subtitle,
-           description = @description, image = @image
+           description = @description, image = @image, full_banner = @full_banner
        WHERE position = @position`
     )
     .run({
@@ -46,5 +47,6 @@ export async function updatePromoCard(
       subtitle: data.subtitle,
       description: data.description,
       image: data.image,
+      full_banner: data.fullBanner ? 1 : 0,
     });
 }

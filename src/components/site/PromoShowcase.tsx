@@ -27,6 +27,31 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
       <div className="sm:hidden flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 pb-1">
         {cards.map((card) => {
           const style = promoCardStyle(card.position);
+
+          // Full-banner cards: the image is a finished ad with its own
+          // title/price already baked in, so it's the whole card — no text
+          // pasted on top, and never cropped (object-contain), wider than
+          // the regular card so it stays legible instead of squeezed into a
+          // small square.
+          if (card.full_banner && card.image) {
+            return (
+              <Link
+                key={card.id}
+                href="/oferti"
+                className="shrink-0 w-56 snap-start rounded-2xl bg-black overflow-hidden shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]"
+              >
+                <div className="relative aspect-[3/2]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="absolute inset-0 h-full w-full object-contain"
+                  />
+                </div>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={card.id}
@@ -91,6 +116,27 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
       >
         {cards.map((card) => {
           const style = promoCardStyle(card.position);
+
+          // Full-banner cards here too: just the finished ad image,
+          // untouched and never cropped, on a black ground so no colored
+          // letterboxing shows through — no badge/title/subtitle/CTA on top.
+          if (card.full_banner && card.image) {
+            return (
+              <Link
+                key={card.id}
+                href="/oferti"
+                className="group relative rounded-2xl overflow-hidden bg-black min-h-[168px] hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={card.image}
+                  alt={card.title}
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={card.id}

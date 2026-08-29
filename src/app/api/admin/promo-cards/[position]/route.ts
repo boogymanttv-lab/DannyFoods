@@ -18,6 +18,7 @@ export async function PATCH(
     subtitle: String(body.subtitle ?? "").trim(),
     description: String(body.description ?? "").trim(),
     image: String(body.image ?? "").trim(),
+    fullBanner: Boolean(body.fullBanner),
   });
   return NextResponse.json({ ok: true });
 }

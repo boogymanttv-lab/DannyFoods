@@ -237,7 +237,13 @@ CREATE TABLE IF NOT EXISTS promo_cards (
   title TEXT NOT NULL DEFAULT '',
   subtitle TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
-  image TEXT NOT NULL DEFAULT ''
+  image TEXT NOT NULL DEFAULT '',
+  -- When the uploaded image is itself a finished ad (its own title/price/
+  -- crown graphics already baked in, not a plain product photo), the card
+  -- shows nothing but that image — no badge/title/subtitle/CTA pasted on
+  -- top, and the whole picture is kept intact (never cropped) instead of
+  -- being cover-cropped to the card's shape.
+  full_banner INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);

@@ -474,7 +474,8 @@ async function runMigrations() {
   await rawQuery(
     `ALTER TABLE promo_cards
        ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '',
-       ADD COLUMN IF NOT EXISTS badge TEXT NOT NULL DEFAULT ''`,
+       ADD COLUMN IF NOT EXISTS badge TEXT NOT NULL DEFAULT '',
+       ADD COLUMN IF NOT EXISTS full_banner INTEGER NOT NULL DEFAULT 0`,
     []
   );
 
