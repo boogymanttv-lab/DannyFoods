@@ -111,7 +111,13 @@ export async function POST(req: NextRequest) {
   let subtotal = 0;
   for (const item of data.items) {
     const product = await getProduct(item.productId);
-    if (!product || !product.active) {
+    // Combo products created from a promo card are intentionally
+    // `active = 0` — that's what keeps them out of the normal
+    // category-browsed menu — but a customer can still have one in
+    // their cart via the card's own "add to cart" button, so an
+    // inactive combo must still be allowed through here. Only a
+    // genuinely inactive, non-combo product gets rejected.
+    if (!product || (!product.active && !product.is_combo)) {
       return NextResponse.json(
         { error: `Продукт с ID ${item.productId} не е наличен` },
         { status: 400 }
