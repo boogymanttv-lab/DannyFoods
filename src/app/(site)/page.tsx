@@ -1,6 +1,7 @@
 import { listCategories } from "@/lib/repos/categories";
 import { listProducts } from "@/lib/repos/products";
 import { getSettings } from "@/lib/repos/settings";
+import { getRatingSummaries } from "@/lib/repos/reviews";
 import { MenuBrowser } from "@/components/site/MenuBrowser";
 import { isShopOpenNow } from "@/lib/delivery-slots";
 import { estimateLabel, parseBusyHours, suggestEstimate } from "@/lib/delivery-estimate";
@@ -11,6 +12,7 @@ export default async function HomePage() {
   const categories = await listCategories();
   const products = await listProducts();
   const settings = await getSettings();
+  const ratings = await getRatingSummaries();
 
   const openNow = isShopOpenNow(new Date(), settings.opening_time, settings.closing_time);
   const currentEstimate = estimateLabel(
@@ -111,6 +113,7 @@ export default async function HomePage() {
         categories={categories}
         products={products}
         suggestedCategoryId={settings.suggested_category_id}
+        ratings={ratings}
       />
     </div>
   );

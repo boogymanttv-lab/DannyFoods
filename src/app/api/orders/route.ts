@@ -10,6 +10,7 @@ import {
   countActiveOrders,
 } from "@/lib/repos/orders";
 import { getSettings } from "@/lib/repos/settings";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { geocodeAddress } from "@/lib/geocode";
 import { approximateZoneCenter } from "@/lib/varna-geo";
 import { getCustomerSession } from "@/lib/auth";
@@ -30,6 +31,10 @@ const checkoutSchema = z
     // it falls back to a placeholder when left blank.
     customer_name: z.string().max(100).optional(),
     phone: z.string().min(6).max(30),
+    // Optional — powers the Resend order confirmation email when present.
+    // No email at all (a guest who left it blank) just means no email gets
+    // sent; everything else about the order works the same.
+    email: z.string().email().max(200).optional().or(z.literal("")),
     // "delivery" needs the address fields below; "pickup" needs none of
     // them — the customer collects the order in person.
     order_type: z.enum(["delivery", "pickup"]).default("delivery"),
@@ -127,16 +132,19 @@ export async function POST(req: NextRequest) {
     // what counts, never the extra's plain base price or anything sent by
     // the client. Anything that doesn't resolve (unknown extra/option id)
     // is silently dropped, same permissive behavior as before this feature.
-    const extras: { name: string; price: number }[] = [];
+    // id/optionId are kept alongside name/price (not just for display) so
+    // "Поръчай отново" can later rebuild this exact cart line without
+    // re-matching extras by their display name text.
+    const extras: { name: string; price: number; id?: number; optionId?: number }[] = [];
     for (const sel of item.extras) {
       const extra = product.extras.find((e) => e.id === sel.id);
       if (!extra) continue;
       if (sel.optionId != null) {
         const option = extra.options.find((o) => o.id === sel.optionId);
         if (!option) continue;
-        extras.push({ name: `${extra.name} (${option.label})`, price: option.price });
+        extras.push({ name: `${extra.name} (${option.label})`, price: option.price, id: extra.id, optionId: option.id });
       } else {
-        extras.push({ name: extra.name, price: extra.price });
+        extras.push({ name: extra.name, price: extra.price, id: extra.id });
       }
     }
     const extrasTotal = extras.reduce((s, e) => s + e.price, 0);
@@ -146,6 +154,7 @@ export async function POST(req: NextRequest) {
       productId: product.id,
       name: product.name,
       sizeLabel,
+      sizeId: item.sizeId,
       unitPrice,
       quantity: item.quantity,
       extras,
@@ -235,6 +244,14 @@ export async function POST(req: NextRequest) {
     notes: data.notes,
     customer_id: customerSession?.customerId ?? null,
     requested_time: data.requested_time ?? null,
+    email: data.email ?? "",
+  });
+
+  // Fire-and-forget — a slow or failing email provider should never delay
+  // or break the checkout response; sendOrderConfirmationEmail already
+  // no-ops silently when there's no address or no Resend key configured.
+  sendOrderConfirmationEmail(order, settings).catch((err) => {
+    console.error("Order confirmation email failed", err);
   });
 
   if (promoCode) {

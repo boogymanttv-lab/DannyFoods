@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { formatRequestedTime } from "@/lib/delivery-slots";
+import { playNewOrderChime } from "@/lib/notify-sound";
 import {
   DELIVERY_ESTIMATE_OPTIONS,
   combineEstimates,
@@ -34,13 +35,28 @@ export default function AdminOrdersPage() {
   const [timeSuggestion, setTimeSuggestion] = useState<DeliveryEstimate>("15-20");
   const [loadSuggestion, setLoadSuggestion] = useState<DeliveryEstimate>("15-20");
   const suggestedEstimate = combineEstimates(timeSuggestion, loadSuggestion);
+  // Tracks every order id already seen across polls (regardless of the
+  // current status filter) so a genuinely new order — not just a filter
+  // switch surfacing older ones — is what triggers the chime. Stays null
+  // until the very first load resolves, so opening the page never plays a
+  // sound for orders that were already sitting there.
+  const seenOrderIdsRef = useRef<Set<number> | null>(null);
 
   async function load() {
     setLoading(true);
     const url = filter ? `/api/admin/orders?status=${filter}` : "/api/admin/orders";
     const res = await fetch(url);
     const data = await res.json();
-    setOrders(data.orders ?? []);
+    const fetched: Order[] = data.orders ?? [];
+    const seen = seenOrderIdsRef.current;
+    if (seen === null) {
+      seenOrderIdsRef.current = new Set(fetched.map((o) => o.id));
+    } else {
+      const hasNewOrder = fetched.some((o) => !seen.has(o.id));
+      if (hasNewOrder) playNewOrderChime();
+      for (const o of fetched) seen.add(o.id);
+    }
+    setOrders(fetched);
     setLoading(false);
   }
 

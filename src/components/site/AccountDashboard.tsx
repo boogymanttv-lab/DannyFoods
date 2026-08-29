@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
-import type { CustomerPublic, CustomerAddress, Order, OrderStatus } from "@/lib/types";
+import { useCart } from "@/lib/cart-context";
+import type { CustomerPublic, CustomerAddress, Order, OrderItem, OrderStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   new: "Приета",
@@ -344,34 +345,83 @@ function AddressesTab({
 }
 
 function OrdersTab({ orders }: { orders: Order[] }) {
+  const { addLine, openDrawer } = useCart();
+  const router = useRouter();
+
+  // Rebuilds the exact cart lines from a past order's stored items_json —
+  // relies on sizeId/extras[].id/optionId (added alongside quick-reorder)
+  // rather than re-matching by display name/label text, which could break
+  // if a product's wording changed since the order was placed. A product,
+  // size or extra that's since been deleted just quietly won't have an id
+  // to match against on the *current* menu when the customer next checks
+  // out — that's a product-availability question, not something to solve
+  // here — so this only needs the ids to be internally consistent, which
+  // they always are for orders placed after this field was added.
+  function reorder(o: Order) {
+    let items: OrderItem[];
+    try {
+      items = JSON.parse(o.items_json);
+    } catch {
+      return;
+    }
+    for (const item of items) {
+      addLine({
+        productId: item.productId,
+        name: item.name,
+        image: "",
+        sizeLabel: item.sizeLabel,
+        sizeId: item.sizeId,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        extras: item.extras
+          .filter((e) => e.id != null)
+          .map((e) => ({ id: e.id!, name: e.name, price: e.price, optionId: e.optionId })),
+        removedIngredients: item.removed,
+      });
+    }
+    openDrawer();
+  }
+
   if (orders.length === 0) {
     return <p className="text-muted text-sm text-center py-10">Нямаш направени поръчки все още.</p>;
   }
   return (
     <div className="space-y-3">
       {orders.map((o) => (
-        <Link
+        <div
           key={o.id}
-          href={`/order/${o.order_number}`}
-          className="block bg-surface rounded-2xl border border-border p-4 hover:shadow-md transition-shadow"
+          className="bg-surface rounded-2xl border border-border p-4 hover:shadow-md transition-shadow"
         >
-          <div className="flex justify-between items-start gap-2">
-            <div>
-              <p className="font-semibold">{o.order_number}</p>
-              <p className="text-xs text-muted">
-                {new Date(o.created_at).toLocaleDateString("bg-BG", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
+          <Link href={`/order/${o.order_number}`} className="block">
+            <div className="flex justify-between items-start gap-2">
+              <div>
+                <p className="font-semibold">{o.order_number}</p>
+                <p className="text-xs text-muted">
+                  {new Date(o.created_at).toLocaleDateString("bg-BG", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="font-bold text-brand block">{formatPrice(o.total)}</span>
+                <span className="text-xs font-semibold text-muted">{STATUS_LABELS[o.status]}</span>
+              </div>
             </div>
-            <div className="text-right">
-              <span className="font-bold text-brand block">{formatPrice(o.total)}</span>
-              <span className="text-xs font-semibold text-muted">{STATUS_LABELS[o.status]}</span>
-            </div>
-          </div>
-        </Link>
+          </Link>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              reorder(o);
+              router.push("/checkout");
+            }}
+            className="mt-3 w-full rounded-xl border border-brand text-brand font-semibold text-sm py-2 hover:bg-brand/5 transition-colors"
+          >
+            🔁 Поръчай отново
+          </button>
+        </div>
       ))}
     </div>
   );

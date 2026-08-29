@@ -96,9 +96,19 @@ export type OrderItem = {
   productId: number;
   name: string;
   sizeLabel?: string;
+  // Kept alongside sizeLabel (which is just for display) so "Order again"
+  // can rebuild the exact same cart line without re-matching by label text.
+  sizeId?: number;
   unitPrice: number;
   quantity: number;
-  extras: { name: string; price: number }[];
+  extras: {
+    name: string;
+    price: number;
+    // Same reasoning as sizeId — id/optionId aren't needed for display (the
+    // name+price already show that), only to reconstruct the cart line.
+    id?: number;
+    optionId?: number;
+  }[];
   // Ingredients (parsed from the product's description) the customer asked
   // to leave out — e.g. "Без сирене". No price effect, purely a note to the
   // kitchen/courier.
@@ -113,6 +123,7 @@ export type Order = {
   order_number: string;
   customer_name: string;
   phone: string;
+  email: string;
   zone_id: number | null;
   quarter: string;
   order_type: OrderType;
@@ -207,3 +218,17 @@ export type CartLine = {
   // unchecked in "Без —" — e.g. ["Сирене"]. No price effect.
   removedIngredients?: string[];
 };
+
+export type ProductReview = {
+  id: number;
+  product_id: number;
+  customer_id: number;
+  order_id: number | null;
+  rating: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// Joined in for display — the reviewer's own name, never their contact info.
+export type ProductReviewPublic = ProductReview & { customer_name: string };

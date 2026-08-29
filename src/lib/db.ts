@@ -416,6 +416,35 @@ async function runMigrations() {
     `ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS quarter TEXT DEFAULT ''`,
     []
   );
+
+  // Optional email collected at checkout — powers the Resend order
+  // confirmation (see src/lib/email.ts). Existing orders simply have none.
+  await rawQuery(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT DEFAULT ''`, []);
+
+  // Product reviews — safe no-op on a fresh database (already in
+  // schema.ts's CREATE TABLE), needed here so an already-deployed database
+  // picks up the new table too.
+  await rawQuery(
+    `CREATE TABLE IF NOT EXISTS product_reviews (
+       id SERIAL PRIMARY KEY,
+       product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+       customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+       order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+       rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+       comment TEXT DEFAULT '',
+       created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
+       updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
+     )`,
+    []
+  );
+  await rawQuery(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_customer_product ON product_reviews(customer_id, product_id)`,
+    []
+  );
+  await rawQuery(
+    `CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id)`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

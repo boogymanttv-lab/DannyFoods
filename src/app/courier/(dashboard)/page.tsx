@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
+import { playNewOrderChime } from "@/lib/notify-sound";
 import type { Order, DeliveryZone } from "@/lib/types";
 
 type OrderWithZone = Order & { zone?: DeliveryZone };
@@ -19,6 +20,11 @@ export default function CourierDashboardPage() {
   const [delivered, setDelivered] = useState<OrderWithZone[]>([]);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  // Only "available" orders get a chime — a new entry there means a fresh
+  // delivery order just came in for any courier to grab. Null until the
+  // first load resolves, so opening the app never sounds off for orders
+  // that were already sitting in the pool.
+  const seenAvailableIdsRef = useRef<Set<number> | null>(null);
 
   async function load() {
     const [availRes, mineRes] = await Promise.all([
@@ -27,7 +33,16 @@ export default function CourierDashboardPage() {
     ]);
     const availData = await availRes.json();
     const mineData = await mineRes.json();
-    setAvailable(availData.orders ?? []);
+    const fetchedAvailable: OrderWithZone[] = availData.orders ?? [];
+    const seen = seenAvailableIdsRef.current;
+    if (seen === null) {
+      seenAvailableIdsRef.current = new Set(fetchedAvailable.map((o) => o.id));
+    } else {
+      const hasNewOrder = fetchedAvailable.some((o) => !seen.has(o.id));
+      if (hasNewOrder) playNewOrderChime();
+      for (const o of fetchedAvailable) seen.add(o.id);
+    }
+    setAvailable(fetchedAvailable);
     setMine(mineData.active ?? []);
     setDelivered(mineData.delivered ?? []);
   }

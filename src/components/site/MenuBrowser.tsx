@@ -9,6 +9,7 @@ export function MenuBrowser({
   categories,
   products,
   suggestedCategoryId,
+  ratings,
 }: {
   categories: Category[];
   products: ProductWithOptions[];
@@ -16,6 +17,9 @@ export function MenuBrowser({
   // products should show as "Често купувано с" suggestions in the product
   // modal — empty string/undefined disables the section entirely.
   suggestedCategoryId?: string;
+  // Precomputed per-product review averages (one query for the whole menu,
+  // rather than one per card) — a product with no reviews just has no entry.
+  ratings?: Record<number, { average: number; count: number }>;
 }) {
   const [activeSlug, setActiveSlug] = useState(categories[0]?.slug ?? "");
   const [selectedProduct, setSelectedProduct] = useState<ProductWithOptions | null>(
@@ -124,6 +128,12 @@ export function MenuBrowser({
                           })()}
                         </h3>
                       </div>
+                      {ratings?.[p.id] && ratings[p.id].count > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] sm:text-xs text-muted mt-0.5">
+                          <span className="text-gold">★</span>
+                          {ratings[p.id].average.toFixed(1)} ({ratings[p.id].count})
+                        </span>
+                      )}
                       {p.description && (
                         <p className="text-[11px] sm:text-xs text-muted mt-1 line-clamp-2 flex-1">
                           {p.description}

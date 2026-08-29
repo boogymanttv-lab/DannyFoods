@@ -11,7 +11,9 @@ export const DEFAULT_SETTINGS = {
   working_hours: "Всеки ден: 09:00 - 00:00",
   opening_time: "09:00",
   closing_time: "00:00",
-  min_order_global: "8",
+  // One flat minimum for every order, regardless of neighborhood — replaced
+  // the old per-zone minimums (which used to vary, e.g. 15 € for Тракия).
+  min_order_global: "10",
   free_delivery_over: "25",
   // Flat delivery fee charged on every delivery order under the free-
   // delivery threshold above — replaced the old per-neighborhood zone fees
@@ -73,6 +75,14 @@ export const DEFAULT_SETTINGS = {
   // pizza account receives the full pizza-item amount, net of any
   // proportional discount, before Stripe's cut). ---
   pizza_stripe_account_id: "",
+
+  // --- Order confirmation email (Resend). Empty API key = feature off —
+  // checkout still works exactly the same, it just skips sending the email.
+  // "From" defaults to a plausible address on the site's own domain; it
+  // must be on a domain verified in the Resend account or sending will
+  // fail, so double-check it in Resend's dashboard before relying on it. ---
+  resend_api_key: "",
+  notification_from_email: "DannyFoods <поръчки@cfxwebstudio.xyz>",
 };
 
 export type SettingsKey = keyof typeof DEFAULT_SETTINGS;

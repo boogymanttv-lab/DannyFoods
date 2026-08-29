@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
+import { ProductReviews } from "@/components/site/ProductReviews";
 import type { ProductWithOptions } from "@/lib/types";
 
 // The description is written as a comma-separated ingredient list (e.g.
@@ -302,6 +303,8 @@ export function ProductModal({
               </button>
             </div>
           </div>
+
+          <ProductReviews productId={product.id} />
 
           {suggestions.length > 0 && (
             <div>

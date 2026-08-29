@@ -19,6 +19,7 @@ function generateOrderNumber(): string {
 export async function createOrder(data: {
   customer_name: string;
   phone: string;
+  email?: string;
   zone_id: number | null;
   quarter?: string;
   order_type: "delivery" | "pickup";
@@ -43,14 +44,15 @@ export async function createOrder(data: {
   const info = await db
     .prepare(
       `INSERT INTO orders
-        (order_number, customer_name, phone, zone_id, quarter, order_type, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time)
+        (order_number, customer_name, phone, email, zone_id, quarter, order_type, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time)
        VALUES
-        (@order_number, @customer_name, @phone, @zone_id, @quarter, @order_type, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time)`
+        (@order_number, @customer_name, @phone, @email, @zone_id, @quarter, @order_type, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time)`
     )
     .run({
       order_number,
       customer_name: data.customer_name,
       phone: data.phone,
+      email: data.email ?? "",
       zone_id: data.zone_id,
       quarter: data.quarter ?? "",
       order_type: data.order_type,

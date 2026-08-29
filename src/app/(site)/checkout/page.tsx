@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const [pickupAddress, setPickupAddress] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
   const [intercom, setIntercom] = useState("");
@@ -93,6 +94,7 @@ export default function CheckoutPage() {
         setLoggedIn(true);
         setName(d.customer.name);
         setPhone(d.customer.phone ?? "");
+        setEmail(d.customer.email ?? "");
         const addresses: CustomerAddress[] = d.addresses ?? [];
         setSavedAddresses(addresses);
         // If the customer already made an explicit address choice while
@@ -200,6 +202,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customer_name: name,
           phone,
+          email: email.trim() || undefined,
           order_type: orderType,
           ...(orderType === "delivery"
             ? {
@@ -324,6 +327,13 @@ export default function CheckoutPage() {
               placeholder="Телефон *"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+            />
+            <input
+              type="email"
+              className="rounded-xl border border-border px-3.5 py-2.5 text-sm sm:col-span-2"
+              placeholder="Имейл (по желание — за потвърждение на поръчката)"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 

@@ -444,6 +444,31 @@ export function SettingsManager({
         </Field>
       </Section>
 
+      <Section title="Имейл потвърждение на поръчка (Resend)">
+        <p className="text-xs text-muted -mt-2">
+          Ако попълните API ключа, всеки клиент, който въведе имейл при поръчка (или е
+          логнат с имейл в профила), получава автоматично писмо с потвърждение и номер на
+          поръчката. Оставете празно, за да изключите — чекаутът работи по същия начин и
+          без това. Адресът &quot;От&quot; трябва да е на домейн, верифициран във вашия
+          Resend акаунт (Resend → Domains), иначе изпращането ще се провали.
+        </p>
+        <Field label="Resend API key">
+          <input
+            type="password"
+            className="input"
+            value={settings.resend_api_key}
+            onChange={(e) => set("resend_api_key", e.target.value)}
+          />
+        </Field>
+        <Field label='Адрес "От" (напр. DannyFoods <поръчки@домейн.bg>)'>
+          <input
+            className="input"
+            value={settings.notification_from_email}
+            onChange={(e) => set("notification_from_email", e.target.value)}
+          />
+        </Field>
+      </Section>
+
       <Section title="Автоматично разпределяне на плащанията (пица → друга сметка)">
         <p className="text-xs text-muted -mt-2">
           Ако попълните това поле, при всяко картово плащане делът за продуктите от типа

@@ -124,6 +124,10 @@ CREATE TABLE IF NOT EXISTS orders (
   order_number TEXT UNIQUE NOT NULL,
   customer_name TEXT NOT NULL,
   phone TEXT NOT NULL,
+  -- Optional — collected at checkout (guests can type one in; logged-in
+  -- customers get their account email prefilled) so the confirmation email
+  -- has somewhere to go. Empty means the order simply doesn't get one.
+  email TEXT DEFAULT '',
   zone_id INTEGER REFERENCES delivery_zones(id),
   -- Free-typed neighborhood name (replaced the old zone dropdown — every
   -- zone ended up with the same flat delivery fee anyway, so the dropdown's
@@ -198,8 +202,26 @@ CREATE TABLE IF NOT EXISTS site_settings (
   value TEXT NOT NULL
 );
 
+-- One review per (customer, product) — enforced by the unique index below,
+-- so submitting again just updates the existing review instead of piling
+-- up duplicates. Restricted to customers who actually ordered the product
+-- (checked in the API against their own order history), so this is closer
+-- to a verified-purchase review than an open one.
+CREATE TABLE IF NOT EXISTS product_reviews (
+  id SERIAL PRIMARY KEY,
+  product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
+  updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_customer_product ON product_reviews(customer_id, product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_courier ON orders(courier_id);
