@@ -59,7 +59,7 @@ export function SplashScreen({
       {phase !== "done" && (
         <div
           aria-hidden={phase === "fading"}
-          className="fixed inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#2a0a0a] via-accent-dark to-[#1a0505] transition-opacity ease-out"
+          className="fixed inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#2f0f0f] to-[#200a0a] transition-opacity ease-out"
           style={{
             opacity: phase === "fading" ? 0 : 1,
             transitionDuration: `${FADE_MS}ms`,
