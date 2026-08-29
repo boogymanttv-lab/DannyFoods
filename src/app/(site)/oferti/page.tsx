@@ -42,9 +42,9 @@ export default async function OffersPage() {
               return (
                 <div
                   key={card.id}
-                  className="rounded-2xl border border-border bg-black overflow-hidden shadow-sm"
+                  className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm"
                 >
-                  <div className="relative aspect-[16/10]">
+                  <div className="relative aspect-[16/10] bg-black">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={card.image}
@@ -52,16 +52,22 @@ export default async function OffersPage() {
                       className="absolute inset-0 h-full w-full object-contain"
                     />
                   </div>
+                  {/* A padded footer below the (black) image, rather than
+                      the button sitting flush against it — reads as a
+                      clearly separate action, not part of the banner
+                      artwork itself. */}
                   {card.linked_product_id && (
-                    <AddComboButton
-                      productId={card.linked_product_id}
-                      name={card.title}
-                      image={card.image}
-                      price={card.linked_product_price ?? 0}
-                      className="w-full bg-brand text-white font-bold text-sm py-3"
-                    >
-                      Добави в количката · {formatPrice(card.linked_product_price ?? 0)}
-                    </AddComboButton>
+                    <div className="p-4">
+                      <AddComboButton
+                        productId={card.linked_product_id}
+                        name={card.title}
+                        image={card.image}
+                        price={card.linked_product_price ?? 0}
+                        className="w-full bg-brand text-white font-bold text-sm py-3 rounded-xl"
+                      >
+                        Добави в количката · {formatPrice(card.linked_product_price ?? 0)}
+                      </AddComboButton>
+                    </div>
                   )}
                 </div>
               );

@@ -45,6 +45,14 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   alt={card.title}
                   className="absolute inset-0 h-full w-full object-contain"
                 />
+                {/* The banner has no CTA of its own baked in, so tapping it
+                    silently adding to the cart would give no warning that's
+                    what's about to happen — this label is the only signal. */}
+                {orderable && (
+                  <span className="absolute inset-x-0 bottom-0 bg-brand text-white text-xs font-bold text-center py-2">
+                    Добави в количката
+                  </span>
+                )}
               </div>
             );
             const className =
@@ -152,12 +160,22 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
           // letterboxing shows through — no badge/title/subtitle/CTA on top.
           if (card.full_banner && card.image) {
             const content = (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={card.image}
-                alt={card.title}
-                className="absolute inset-0 h-full w-full object-contain"
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={card.image}
+                  alt={card.title}
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+                {/* The banner has no CTA of its own baked in, so clicking it
+                    silently adding to the cart would give no warning that's
+                    what's about to happen — this label is the only signal. */}
+                {orderable && (
+                  <span className="absolute inset-x-0 bottom-0 bg-brand text-white text-sm font-bold text-center py-2.5">
+                    Добави в количката
+                  </span>
+                )}
+              </>
             );
             const className =
               "group relative rounded-2xl overflow-hidden bg-black min-h-[168px] w-full text-left hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200";
