@@ -5,17 +5,16 @@ import { useEffect, useState } from "react";
 const VISIBLE_MS = 2600; // matches the .animate-splash-fill duration in globals.css
 const FADE_MS = 450;
 
-// Cycles through the menu's five categories while the splash is up — more
-// fun to look at than a plain spinner, and doubles as a little teaser of
-// what's on the menu.
-const FOOD_STEPS = [
-  { emoji: "🌯", label: "Дюнер" },
-  { emoji: "🍕", label: "Пица" },
-  { emoji: "🍔", label: "Бургер" },
-  { emoji: "🥪", label: "Сандвич" },
-  { emoji: "🥙", label: "Джоб" },
+// The döner box "fills up" as fries/meat/veggies drop into it one after
+// another — each entry's own CSS animation-delay staggers the fall, and
+// `left`/`top` place it so the pile looks roughly centered over the box.
+const INGREDIENTS = [
+  { emoji: "🍟", left: "8%", top: "34%", delay: "0.15s" },
+  { emoji: "🥩", left: "58%", top: "28%", delay: "0.45s" },
+  { emoji: "🧀", left: "30%", top: "22%", delay: "0.75s" },
+  { emoji: "🍅", left: "72%", top: "40%", delay: "1.05s" },
+  { emoji: "🥬", left: "18%", top: "44%", delay: "1.35s" },
 ];
-const STEP_MS = VISIBLE_MS / FOOD_STEPS.length;
 
 export function SplashScreen({
   siteName,
@@ -31,18 +30,13 @@ export function SplashScreen({
   // client-side navigation between pages) — so it greets a visitor once,
   // not every time they click around the site.
   const [phase, setPhase] = useState<"visible" | "fading" | "done">("visible");
-  const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
     const toFading = setTimeout(() => setPhase("fading"), VISIBLE_MS);
     const toDone = setTimeout(() => setPhase("done"), VISIBLE_MS + FADE_MS);
-    const stepInterval = setInterval(() => {
-      setStepIndex((i) => (i + 1) % FOOD_STEPS.length);
-    }, STEP_MS);
     return () => {
       clearTimeout(toFading);
       clearTimeout(toDone);
-      clearInterval(stepInterval);
     };
   }, []);
 
@@ -54,8 +48,6 @@ export function SplashScreen({
       document.body.style.overflow = original;
     };
   }, [phase]);
-
-  const step = FOOD_STEPS[stepIndex];
 
   return (
     <>
@@ -87,14 +79,23 @@ export function SplashScreen({
             {siteName}
           </h1>
 
-          <div
-            key={stepIndex}
-            className="mt-8 h-24 w-24 rounded-3xl bg-white/10 grid place-items-center animate-splash-food"
-          >
-            <span className="text-5xl">{step.emoji}</span>
+          {/* Дюнер бокс — fries/meat/cheese/veggies drop in one by one */}
+          <div className="relative mt-8 h-28 w-36">
+            {INGREDIENTS.map((ing, i) => (
+              <span
+                key={i}
+                className="absolute text-3xl animate-drop-in"
+                style={{ left: ing.left, top: ing.top, animationDelay: ing.delay }}
+              >
+                {ing.emoji}
+              </span>
+            ))}
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-6xl leading-none">
+              🥡
+            </span>
           </div>
-          <p key={`label-${stepIndex}`} className="mt-3 text-white/60 text-sm font-bold tracking-wide animate-splash-food">
-            {step.label}
+          <p className="mt-3 text-white/60 text-sm font-bold tracking-wide">
+            Приготвяме менюто...
           </p>
 
           <div className="mt-8 h-1.5 w-48 rounded-full bg-white/15 overflow-hidden">
