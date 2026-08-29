@@ -102,6 +102,11 @@ export function MenuBrowser({
                         <span className="text-3xl sm:text-5xl">{activeCategory.icon}</span>
                       )}
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/15 to-transparent" />
+                      {p.featured === 1 && (
+                        <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 inline-flex items-center gap-0.5 text-[11px] sm:text-sm font-extrabold text-white bg-gradient-to-br from-brand-light to-brand-dark px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-[0_4px_14px_rgba(225,29,46,0.55)] rotate-[-6deg]">
+                          🔥 HOT
+                        </span>
+                      )}
                     </div>
                     <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
                       <div className="flex items-start justify-between gap-1.5">
@@ -118,11 +123,6 @@ export function MenuBrowser({
                             ) : null;
                           })()}
                         </h3>
-                        {p.featured === 1 && (
-                          <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold bg-gradient-to-r from-gold to-[#ffc247] text-accent-dark px-1.5 sm:px-2 py-0.5 rounded-full shadow-[0_2px_8px_rgba(245,166,35,0.4)]">
-                            🔥 HOT
-                          </span>
-                        )}
                       </div>
                       {p.description && (
                         <p className="text-[11px] sm:text-xs text-muted mt-1 line-clamp-2 flex-1">
