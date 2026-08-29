@@ -250,7 +250,14 @@ CREATE TABLE IF NOT EXISTS promo_cards (
   -- shows nothing but that image — no badge/title/subtitle/CTA pasted on
   -- top, and the whole picture is kept intact (never cropped) instead of
   -- being cover-cropped to the card's shape.
-  full_banner INTEGER NOT NULL DEFAULT 0
+  full_banner INTEGER NOT NULL DEFAULT 0,
+  -- Set when this card was built from the "Комбо от продукти" picker in its
+  -- own admin form rather than plain free-text — points at a hidden
+  -- products row (is_combo = 1, active = 0, so it never shows up in the
+  -- normal category menu) that carries the actual bill of materials and
+  -- computed price. When set, the card shows a real "add to cart" button
+  -- instead of just linking through to /oferti.
+  linked_product_id INTEGER REFERENCES products(id) ON DELETE SET NULL
 );
 
 -- The components of a combo product (products.is_combo = 1) — which

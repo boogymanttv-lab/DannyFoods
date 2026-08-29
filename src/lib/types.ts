@@ -268,4 +268,12 @@ export type PromoCard = {
   // 1 = the image is itself a finished ad (own title/price already baked
   // in) — no text is overlaid on top and the photo is never cropped.
   full_banner: number;
+  // Set when this card was built via the combo picker in its own form —
+  // points at a hidden, non-listed product (is_combo = 1, active = 0) that
+  // carries the actual components + computed price.
+  linked_product_id: number | null;
+  // Populated by a join in listPromoCards/listActivePromoCards — the linked
+  // product's current price, straight from products.base_price. null when
+  // there's no linked product.
+  linked_product_price: number | null;
 };

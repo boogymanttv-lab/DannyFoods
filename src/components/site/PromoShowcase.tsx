@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { promoCardStyle } from "@/lib/promo-card-style";
+import { AddComboButton } from "@/components/site/AddComboButton";
 import type { PromoCard } from "@/lib/types";
 
 // The homepage's 4 fixed "showcase" slots — active ones only (see
@@ -8,9 +9,10 @@ import type { PromoCard } from "@/lib/types";
 // strip of compact dark cards (sized like a menu product card — photo on
 // top, title/description/price below); on desktop, a wide 3-across grid of
 // banner cards (colored background, eyebrow badge, big price, text CTA).
-// Every card links to /oferti — the one page listing all active cards with
-// their fuller description — rather than each having its own destination,
-// since these are meant to read as one themed "offers" section.
+// A plain card links through to /oferti (the one page listing every active
+// card with its fuller description); a card built from the combo picker
+// (see PromoCardsManager) instead adds its linked product straight to the
+// cart — no click-through needed, since there's nothing more to read.
 export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
   if (cards.length === 0) return null;
 
@@ -27,6 +29,7 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
       <div className="sm:hidden flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 pb-1">
         {cards.map((card) => {
           const style = promoCardStyle(card.position);
+          const orderable = Boolean(card.linked_product_id);
 
           // Full-banner cards: the image is a finished ad with its own
           // title/price already baked in, so it's the whole card — no text
@@ -34,30 +37,38 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
           // the regular card so it stays legible instead of squeezed into a
           // small square.
           if (card.full_banner && card.image) {
-            return (
-              <Link
+            const content = (
+              <div className="relative aspect-[3/2]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={card.image}
+                  alt={card.title}
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+              </div>
+            );
+            const className =
+              "shrink-0 w-56 snap-start rounded-2xl bg-black overflow-hidden shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]";
+            return orderable ? (
+              <AddComboButton
                 key={card.id}
-                href="/oferti"
-                className="shrink-0 w-56 snap-start rounded-2xl bg-black overflow-hidden shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]"
+                productId={card.linked_product_id!}
+                name={card.title}
+                image={card.image}
+                price={card.linked_product_price ?? 0}
+                className={className}
               >
-                <div className="relative aspect-[3/2]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={card.image}
-                    alt={card.title}
-                    className="absolute inset-0 h-full w-full object-contain"
-                  />
-                </div>
+                {content}
+              </AddComboButton>
+            ) : (
+              <Link key={card.id} href="/oferti" className={className}>
+                {content}
               </Link>
             );
           }
 
-          return (
-            <Link
-              key={card.id}
-              href="/oferti"
-              className="shrink-0 w-36 snap-start rounded-2xl bg-[#161414] border border-white/5 overflow-hidden shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]"
-            >
+          const content = (
+            <>
               <div className={`relative aspect-square bg-gradient-to-br ${style.gradient}`}>
                 {card.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -95,6 +106,24 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   </span>
                 </div>
               </div>
+            </>
+          );
+          const className =
+            "shrink-0 w-36 snap-start text-left rounded-2xl bg-[#161414] border border-white/5 overflow-hidden shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]";
+          return orderable ? (
+            <AddComboButton
+              key={card.id}
+              productId={card.linked_product_id!}
+              name={card.title}
+              image={card.image}
+              price={card.linked_product_price ?? 0}
+              className={className}
+            >
+              {content}
+            </AddComboButton>
+          ) : (
+            <Link key={card.id} href="/oferti" className={className}>
+              {content}
             </Link>
           );
         })}
@@ -116,33 +145,42 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
       >
         {cards.map((card) => {
           const style = promoCardStyle(card.position);
+          const orderable = Boolean(card.linked_product_id);
 
           // Full-banner cards here too: just the finished ad image,
           // untouched and never cropped, on a black ground so no colored
           // letterboxing shows through — no badge/title/subtitle/CTA on top.
           if (card.full_banner && card.image) {
-            return (
-              <Link
+            const content = (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={card.image}
+                alt={card.title}
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+            );
+            const className =
+              "group relative rounded-2xl overflow-hidden bg-black min-h-[168px] w-full text-left hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200";
+            return orderable ? (
+              <AddComboButton
                 key={card.id}
-                href="/oferti"
-                className="group relative rounded-2xl overflow-hidden bg-black min-h-[168px] hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200"
+                productId={card.linked_product_id!}
+                name={card.title}
+                image={card.image}
+                price={card.linked_product_price ?? 0}
+                className={className}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={card.image}
-                  alt={card.title}
-                  className="absolute inset-0 h-full w-full object-contain"
-                />
+                {content}
+              </AddComboButton>
+            ) : (
+              <Link key={card.id} href="/oferti" className={className}>
+                {content}
               </Link>
             );
           }
 
-          return (
-            <Link
-              key={card.id}
-              href="/oferti"
-              className={`group relative rounded-2xl overflow-hidden p-5 min-h-[168px] flex flex-col justify-between bg-gradient-to-br ${style.gradient} hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200`}
-            >
+          const content = (
+            <>
               {card.image ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -185,9 +223,26 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   </p>
                 )}
                 <span className="text-white/85 text-sm font-bold underline underline-offset-2 decoration-white/40 group-hover:text-gold group-hover:decoration-gold transition-colors">
-                  Поръчай сега →
+                  {orderable ? "Добави в количката" : "Поръчай сега →"}
                 </span>
               </div>
+            </>
+          );
+          const className = `group relative rounded-2xl overflow-hidden p-5 min-h-[168px] w-full text-left flex flex-col justify-between bg-gradient-to-br ${style.gradient} hover:-translate-y-1 hover:shadow-[0_16px_32px_-10px_rgba(20,10,8,0.5)] shadow-[0_10px_24px_-10px_rgba(20,10,8,0.35)] transition-all duration-200`;
+          return orderable ? (
+            <AddComboButton
+              key={card.id}
+              productId={card.linked_product_id!}
+              name={card.title}
+              image={card.image}
+              price={card.linked_product_price ?? 0}
+              className={className}
+            >
+              {content}
+            </AddComboButton>
+          ) : (
+            <Link key={card.id} href="/oferti" className={className}>
+              {content}
             </Link>
           );
         })}

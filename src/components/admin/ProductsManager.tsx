@@ -4,14 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/format";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { comboSum, type ComboItemRow } from "@/lib/combo-preview";
 import type { Category, Extra, ProductWithOptions } from "@/lib/types";
 
 type SizeRow = { label: string; price_delta: number; weight_label: string };
 type ExtraOptionRow = { label: string; price: number };
-// One line of a combo's bill of materials, as edited in the form —
-// size_id is null until the chosen product has more than one size, at
-// which point it must point at one of that product's own product_sizes.
-type ComboItemRow = { product_id: number; size_id: number | null; quantity: number };
 
 const emptyProductForm = {
   id: null as number | null,
@@ -28,21 +25,6 @@ const emptyProductForm = {
   combo_discount_percent: 0 as string | number,
   combo_items: [] as ComboItemRow[],
 };
-
-// Sums each combo line's (component's own base price + chosen size's
-// delta) × quantity, from the *currently loaded* product list — this is
-// only ever a live preview for the admin; the server recomputes the real,
-// authoritative total from the database on save.
-function comboSum(items: ComboItemRow[], allProducts: ProductWithOptions[]): number {
-  let sum = 0;
-  for (const item of items) {
-    const product = allProducts.find((p) => p.id === item.product_id);
-    if (!product) continue;
-    const size = item.size_id ? product.sizes.find((s) => s.id === item.size_id) : undefined;
-    sum += (product.base_price + (size?.price_delta ?? 0)) * item.quantity;
-  }
-  return sum;
-}
 
 export function ProductsManager({
   initialCategories,

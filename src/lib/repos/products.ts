@@ -83,6 +83,10 @@ export async function createProduct(data: {
   base_price: number;
   is_pizza?: boolean;
   featured?: boolean;
+  // Defaults to true (matches the DB column default) — set false for a
+  // product that shouldn't show up in the normal category menu, e.g. the
+  // hidden product backing a combo-built promo card.
+  active?: boolean;
   sort_order?: number;
   is_combo?: boolean;
   combo_discount_percent?: number;
@@ -90,8 +94,8 @@ export async function createProduct(data: {
   const db = await getDb();
   const info = await db
     .prepare(
-      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, sort_order, is_combo, combo_discount_percent)
-       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @sort_order, @is_combo, @combo_discount_percent)`
+      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, active, sort_order, is_combo, combo_discount_percent)
+       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @active, @sort_order, @is_combo, @combo_discount_percent)`
     )
     .run({
       category_id: data.category_id,
@@ -101,6 +105,7 @@ export async function createProduct(data: {
       base_price: data.base_price,
       is_pizza: data.is_pizza ? 1 : 0,
       featured: data.featured ? 1 : 0,
+      active: data.active === false ? 0 : 1,
       sort_order: data.sort_order ?? 0,
       is_combo: data.is_combo ? 1 : 0,
       combo_discount_percent: data.combo_discount_percent ?? 0,

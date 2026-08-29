@@ -505,6 +505,16 @@ async function runMigrations() {
     []
   );
 
+  // A promo card can now be built from the same product-picker + discount
+  // combo builder used in Products — this points it at the hidden product
+  // row backing it. Safe no-op on a fresh database (already in schema.ts's
+  // CREATE TABLE), needed here for an already-deployed one.
+  await rawQuery(
+    `ALTER TABLE promo_cards
+       ADD COLUMN IF NOT EXISTS linked_product_id INTEGER REFERENCES products(id) ON DELETE SET NULL`,
+    []
+  );
+
   // Shortened the homepage hero tagline — the old one just listed every
   // category name ("Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза
   // доставка във Варна"), which read as long and cluttered next to the new

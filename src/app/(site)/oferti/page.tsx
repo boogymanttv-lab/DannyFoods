@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { listActivePromoCards } from "@/lib/repos/promo-cards";
 import { promoCardStyle } from "@/lib/promo-card-style";
+import { AddComboButton } from "@/components/site/AddComboButton";
+import { formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,17 @@ export default async function OffersPage() {
                       className="absolute inset-0 h-full w-full object-contain"
                     />
                   </div>
+                  {card.linked_product_id && (
+                    <AddComboButton
+                      productId={card.linked_product_id}
+                      name={card.title}
+                      image={card.image}
+                      price={card.linked_product_price ?? 0}
+                      className="w-full bg-brand text-white font-bold text-sm py-3"
+                    >
+                      Добави в количката · {formatPrice(card.linked_product_price ?? 0)}
+                    </AddComboButton>
+                  )}
                 </div>
               );
             }
@@ -90,6 +103,17 @@ export default async function OffersPage() {
                   )}
                   {card.description && (
                     <p className="text-muted text-sm mt-2">{card.description}</p>
+                  )}
+                  {card.linked_product_id && (
+                    <AddComboButton
+                      productId={card.linked_product_id}
+                      name={card.title}
+                      image={card.image}
+                      price={card.linked_product_price ?? 0}
+                      className="w-full mt-3 bg-brand text-white font-bold text-sm py-2.5 rounded-xl"
+                    >
+                      Добави в количката
+                    </AddComboButton>
                   )}
                 </div>
               </div>
