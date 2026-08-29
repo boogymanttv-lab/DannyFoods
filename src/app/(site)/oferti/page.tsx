@@ -44,12 +44,21 @@ export default async function OffersPage() {
                   key={card.id}
                   className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm"
                 >
-                  <div className="relative aspect-[16/10] bg-black">
+                  <div className="relative aspect-[16/10] bg-black overflow-hidden">
+                    {/* Blurred, zoomed-in copy of the same image fills the
+                        letterboxed sides object-contain leaves bare. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={card.image}
+                      alt=""
+                      aria-hidden
+                      className="absolute inset-0 h-full w-full object-cover blur-2xl scale-125 opacity-80"
+                    />
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={card.image}
                       alt={card.title}
-                      className="absolute inset-0 h-full w-full object-contain"
+                      className="absolute inset-0 z-10 h-full w-full object-contain"
                     />
                   </div>
                   {/* A padded footer below the (black) image, rather than

@@ -9,7 +9,7 @@ import type { PromoCard } from "@/lib/types";
 function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
   return (
     <span
-      className={`absolute bottom-2 right-2 ${size} rounded-full bg-brand text-white grid place-items-center shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}
+      className={`absolute z-20 bottom-2 right-2 ${size} rounded-full bg-brand text-white grid place-items-center shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
         <circle cx="9" cy="21" r="1" />
@@ -55,12 +55,23 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
           // small square.
           if (card.full_banner && card.image) {
             const content = (
-              <div className="relative aspect-[3/2]">
+              <div className="relative aspect-[3/2] overflow-hidden">
+                {/* Blurred, zoomed-in copy of the same image fills the
+                    letterboxed sides object-contain leaves bare — reads as
+                    a soft glow around the banner instead of flat black
+                    bars. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={card.image}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 h-full w-full object-cover blur-2xl scale-125 opacity-80"
+                />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
                   alt={card.title}
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="relative z-10 h-full w-full object-contain"
                 />
                 {/* The banner has no CTA of its own baked in, so tapping it
                     silently adding to the cart would give no warning that's
@@ -174,11 +185,20 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
           if (card.full_banner && card.image) {
             const content = (
               <>
+                {/* Same blurred-backdrop trick as the mobile card — softens
+                    the letterboxed sides instead of leaving flat black. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={card.image}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 h-full w-full object-cover blur-2xl scale-125 opacity-80"
+                />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
                   alt={card.title}
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 z-10 h-full w-full object-contain"
                 />
                 {/* The banner has no CTA of its own baked in, so clicking it
                     silently adding to the cart would give no warning that's
