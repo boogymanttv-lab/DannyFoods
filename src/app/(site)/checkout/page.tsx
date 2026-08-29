@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
 import type { DeliverySlot } from "@/lib/delivery-slots";
-import type { DeliveryZone, CustomerAddress } from "@/lib/types";
+import type { CustomerAddress, OrderType } from "@/lib/types";
 
 function slotKey(s: DeliverySlot): string {
   return `${s.date}|${s.time}`;
@@ -16,8 +16,14 @@ export default function CheckoutPage() {
   const { lines, subtotal, keyOf, clear } = useCart();
   const router = useRouter();
 
-  const [zones, setZones] = useState<DeliveryZone[]>([]);
-  const [zoneId, setZoneId] = useState<number | null>(null);
+  const [orderType, setOrderType] = useState<OrderType>("delivery");
+  const [quarter, setQuarter] = useState("");
+  // Flat checkout pricing rules, loaded from /api/delivery-slots (see the
+  // effect below) — configurable in Настройки rather than per-neighborhood.
+  const [deliveryFeeFlat, setDeliveryFeeFlat] = useState(2.5);
+  const [freeDeliveryOver, setFreeDeliveryOver] = useState(0);
+  const [minOrderGlobal, setMinOrderGlobal] = useState(0);
+  const [pickupAddress, setPickupAddress] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [street, setStreet] = useState("");
@@ -56,15 +62,6 @@ export default function CheckoutPage() {
   const [shopOpenNow, setShopOpenNow] = useState(true);
 
   useEffect(() => {
-    fetch("/api/zones")
-      .then((r) => r.json())
-      .then((d) => {
-        setZones(d.zones ?? []);
-        if (d.zones?.length) setZoneId(d.zones[0].id);
-      });
-  }, []);
-
-  useEffect(() => {
     fetch("/api/delivery-slots")
       .then((r) => r.json())
       .then((d) => {
@@ -77,6 +74,10 @@ export default function CheckoutPage() {
         // tomorrow's opening if today has nothing left.
         if (!d.isOpenNow) setDeliveryTiming("scheduled");
         setShopOpenNow(Boolean(d.isOpenNow));
+        if (typeof d.deliveryFeeFlat === "number") setDeliveryFeeFlat(d.deliveryFeeFlat);
+        if (typeof d.freeDeliveryOver === "number") setFreeDeliveryOver(d.freeDeliveryOver);
+        if (typeof d.minOrderGlobal === "number") setMinOrderGlobal(d.minOrderGlobal);
+        if (d.pickupAddress) setPickupAddress(d.pickupAddress);
       })
       .catch(() => {});
   }, []);
@@ -105,7 +106,7 @@ export default function CheckoutPage() {
           setHouseNumber(defaultAddr.house_number);
           setIntercom(defaultAddr.intercom);
           setAddressNotes(defaultAddr.address_notes);
-          if (defaultAddr.zone_id) setZoneId(defaultAddr.zone_id);
+          setQuarter(defaultAddr.quarter ?? "");
         }
       })
       .catch(() => {
@@ -121,6 +122,7 @@ export default function CheckoutPage() {
       setHouseNumber("");
       setIntercom("");
       setAddressNotes("");
+      setQuarter("");
       return;
     }
     const addr = savedAddresses.find((a) => a.id === id);
@@ -129,7 +131,7 @@ export default function CheckoutPage() {
       setHouseNumber(addr.house_number);
       setIntercom(addr.intercom);
       setAddressNotes(addr.address_notes);
-      if (addr.zone_id) setZoneId(addr.zone_id);
+      setQuarter(addr.quarter ?? "");
     }
   }
 
@@ -144,13 +146,20 @@ export default function CheckoutPage() {
   // editable inputs instead (pre-filled with whatever IS there) always
   // leaves the customer able to see and fix what's missing.
   const usingSavedAddress =
-    selectedAddressId !== "new" && street.trim() !== "" && houseNumber.trim() !== "";
+    orderType === "delivery" &&
+    selectedAddressId !== "new" &&
+    street.trim() !== "" &&
+    houseNumber.trim() !== "";
 
-  const selectedZone = zones.find((z) => z.id === zoneId) ?? null;
-  const deliveryFee = selectedZone ? selectedZone.delivery_fee : 0;
+  const isPickup = orderType === "pickup";
+  const deliveryFee = isPickup
+    ? 0
+    : freeDeliveryOver > 0 && subtotal >= freeDeliveryOver
+      ? 0
+      : deliveryFeeFlat;
   const discount = promoApplied?.discount ?? 0;
   const total = Math.max(0, subtotal + deliveryFee - discount);
-  const meetsMinimum = selectedZone ? subtotal >= selectedZone.min_order : true;
+  const meetsMinimum = minOrderGlobal > 0 ? subtotal >= minOrderGlobal : true;
 
   async function applyPromo() {
     setPromoError("");
@@ -171,14 +180,16 @@ export default function CheckoutPage() {
 
   async function submitOrder() {
     setSubmitError("");
-    if (!phone.trim() || !street.trim() || !houseNumber.trim() || !zoneId) {
+    if (!phone.trim()) {
+      setSubmitError("Моля, попълнете всички задължителни полета.");
+      return;
+    }
+    if (orderType === "delivery" && (!quarter.trim() || !street.trim() || !houseNumber.trim())) {
       setSubmitError("Моля, попълнете всички задължителни полета.");
       return;
     }
     if (!meetsMinimum) {
-      setSubmitError(
-        `Минималната поръчка за тази зона е ${selectedZone?.min_order.toFixed(2)} €`
-      );
+      setSubmitError(`Минималната поръчка е ${minOrderGlobal.toFixed(2)} €`);
       return;
     }
     setSubmitting(true);
@@ -189,11 +200,16 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customer_name: name,
           phone,
-          zone_id: zoneId,
-          street,
-          house_number: houseNumber,
-          intercom,
-          address_notes: addressNotes,
+          order_type: orderType,
+          ...(orderType === "delivery"
+            ? {
+                quarter,
+                street,
+                house_number: houseNumber,
+                intercom,
+                address_notes: addressNotes,
+              }
+            : {}),
           notes,
           promo_code: promoApplied?.code,
           payment_method: paymentMethod,
@@ -240,9 +256,33 @@ export default function CheckoutPage() {
       <div className="space-y-6">
         <h1 className="font-display font-extrabold text-2xl">Завършване на поръчката</h1>
 
+        <div className="bg-surface rounded-2xl border border-border p-2 grid grid-cols-2 gap-2">
+          {(
+            [
+              { value: "delivery", label: "🚴 Доставка" },
+              { value: "pickup", label: "🏠 Вземи на място" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setOrderType(opt.value)}
+              className={`rounded-xl py-3 text-sm font-bold transition-colors ${
+                orderType === opt.value
+                  ? "bg-brand text-white"
+                  : "bg-transparent text-foreground/60"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">Данни за доставка</h2>
+            <h2 className="font-semibold">
+              {orderType === "delivery" ? "Данни за доставка" : "Данни за поръчката"}
+            </h2>
             {!loggedIn && (
               <Link href="/account/login?redirect=/checkout" className="text-xs font-semibold text-brand">
                 Вход за по-бързо поръчване →
@@ -250,7 +290,7 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {loggedIn && savedAddresses.length > 0 && (
+          {orderType === "delivery" && loggedIn && savedAddresses.length > 0 && (
             <div className="space-y-1">
               <label className="text-xs text-muted block">
                 Зареди запазен адрес — попълва полетата по-долу вместо да пишеш отново:
@@ -286,26 +326,20 @@ export default function CheckoutPage() {
               onChange={(e) => setPhone(e.target.value)}
             />
           </div>
-          <select
-            className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            value={zoneId ?? ""}
-            onChange={(e) => {
-              addressTouchedRef.current = true;
-              setZoneId(Number(e.target.value));
-            }}
-          >
-            <option value="" disabled>
-              Изберете квартал във Варна *
-            </option>
-            {zones.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.name} — доставка {formatPrice(z.delivery_fee)} (мин. поръчка{" "}
-                {formatPrice(z.min_order)})
-              </option>
-            ))}
-          </select>
-          {usingSavedAddress ? (
+
+          {orderType === "pickup" ? (
+            pickupAddress && (
+              <p className="rounded-xl border border-border bg-black/5 px-3.5 py-2.5 text-sm">
+                <span className="text-muted">Вземане от: </span>
+                {pickupAddress}
+              </p>
+            )
+          ) : usingSavedAddress ? (
             <div className="rounded-xl border border-border bg-black/5 px-3.5 py-2.5 text-sm space-y-1">
+              <p>
+                <span className="text-muted">Квартал: </span>
+                {quarter}
+              </p>
               <p>
                 <span className="text-muted">Адрес: </span>
                 {street} {houseNumber}
@@ -324,6 +358,15 @@ export default function CheckoutPage() {
             </div>
           ) : (
             <>
+              <input
+                className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
+                placeholder="Квартал *"
+                value={quarter}
+                onChange={(e) => {
+                  addressTouchedRef.current = true;
+                  setQuarter(e.target.value);
+                }}
+              />
               <div className="grid sm:grid-cols-[1fr_140px] gap-3">
                 <input
                   className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
@@ -368,8 +411,16 @@ export default function CheckoutPage() {
           <h2 className="font-semibold">Начин на плащане</h2>
           {(
             [
-              { value: "cash", label: "Наложен платеж — в брой на куриера" },
-              { value: "card_on_delivery", label: "Наложен платеж — с карта на куриера (ПОС)" },
+              {
+                value: "cash",
+                label: isPickup ? "В брой на място" : "Наложен платеж — в брой на куриера",
+              },
+              {
+                value: "card_on_delivery",
+                label: isPickup
+                  ? "С карта на място (ПОС)"
+                  : "Наложен платеж — с карта на куриера (ПОС)",
+              },
               { value: "stripe", label: "Картово плащане онлайн сега" },
             ] as const
           ).map((opt) => (
@@ -494,8 +545,8 @@ export default function CheckoutPage() {
             <span>{formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Доставка</span>
-            <span>{deliveryFee === 0 ? "Безплатна" : formatPrice(deliveryFee)}</span>
+            <span className="text-muted">{isPickup ? "Вземане от място" : "Доставка"}</span>
+            <span>{deliveryFee === 0 ? (isPickup ? "—" : "Безплатна") : formatPrice(deliveryFee)}</span>
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-success">
@@ -509,9 +560,9 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {!meetsMinimum && selectedZone && (
+        {!meetsMinimum && (
           <p className="text-xs text-brand">
-            Минималната поръчка за {selectedZone.name} е {formatPrice(selectedZone.min_order)}.
+            Минималната поръчка е {formatPrice(minOrderGlobal)}.
           </p>
         )}
         {submitError && <p className="text-xs text-brand font-semibold">{submitError}</p>}

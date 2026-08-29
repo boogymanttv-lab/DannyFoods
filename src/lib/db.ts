@@ -402,6 +402,20 @@ async function runMigrations() {
     `ALTER TABLE product_sizes ADD COLUMN IF NOT EXISTS weight_label TEXT DEFAULT ''`,
     []
   );
+
+  // Checkout rework: a free-typed neighborhood field (replacing the old
+  // per-zone dropdown) and a delivery-vs-pickup toggle. Existing rows get
+  // 'delivery' — that's what every order before this change actually was.
+  await rawQuery(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS quarter TEXT DEFAULT '',
+       ADD COLUMN IF NOT EXISTS order_type TEXT NOT NULL DEFAULT 'delivery'`,
+    []
+  );
+  await rawQuery(
+    `ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS quarter TEXT DEFAULT ''`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

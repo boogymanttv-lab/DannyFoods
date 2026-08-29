@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProduct } from "@/lib/repos/products";
-import { getZone } from "@/lib/repos/zones";
 import { validatePromotion, incrementPromotionUsage, getPromotionByCode } from "@/lib/repos/promotions";
 import {
   createOrder,
@@ -24,54 +23,72 @@ import {
 import type { OrderItem } from "@/lib/types";
 import Stripe from "stripe";
 
-const checkoutSchema = z.object({
-  // Only phone + street + house number are truly required to get an order
-  // to someone — a name is nice to have (and used to greet the customer)
-  // but not essential, so it falls back to a placeholder when left blank.
-  customer_name: z.string().max(100).optional(),
-  phone: z.string().min(6).max(30),
-  zone_id: z.number().int().positive(),
-  // Split so the geocoder only ever sees a clean "street + number" — no
-  // floor/apartment/intercom text mixed in, which used to sometimes end up
-  // inside the old single free-text "address" field and confuse the map.
-  street: z.string().min(2).max(150),
-  house_number: z.string().min(1).max(20),
-  intercom: z.string().max(60).optional(),
-  address_notes: z.string().max(300).optional(),
-  notes: z.string().max(300).optional(),
-  promo_code: z.string().max(40).optional(),
-  payment_method: z.enum(["cash", "card_on_delivery", "stripe"]),
-  // "YYYY-MM-DD HH:MM" — a specific slot the customer picked at checkout;
-  // omitted entirely means "as soon as possible".
-  requested_time: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):[0-5]\d$/)
-    .optional(),
-  items: z
-    .array(
-      z.object({
-        productId: z.number().int().positive(),
-        sizeId: z.number().int().positive().optional(),
-        extras: z
-          .array(
-            z.object({
-              id: z.number().int().positive(),
-              // Set when the customer picked one of that extra's weight/
-              // quantity variants (see ExtraOption) instead of its plain
-              // flat price.
-              optionId: z.number().int().positive().optional(),
-            })
-          )
-          .default([]),
-        // Ingredients (parsed client-side from the product's description)
-        // the customer unchecked in "Без —" — purely a kitchen/courier
-        // note, no effect on price.
-        removed: z.array(z.string().max(80)).max(30).optional(),
-        quantity: z.number().int().min(1).max(30),
-      })
-    )
-    .min(1),
-});
+const checkoutSchema = z
+  .object({
+    // Only phone is truly required to get an order to someone — a name is
+    // nice to have (and used to greet the customer) but not essential, so
+    // it falls back to a placeholder when left blank.
+    customer_name: z.string().max(100).optional(),
+    phone: z.string().min(6).max(30),
+    // "delivery" needs the address fields below; "pickup" needs none of
+    // them — the customer collects the order in person.
+    order_type: z.enum(["delivery", "pickup"]).default("delivery"),
+    // Free-typed neighborhood name — replaces the old zone_id dropdown.
+    // Only meaningful (and required) for delivery orders.
+    quarter: z.string().max(100).optional(),
+    // Split so the geocoder only ever sees a clean "street + number" — no
+    // floor/apartment/intercom text mixed in, which used to sometimes end up
+    // inside the old single free-text "address" field and confuse the map.
+    street: z.string().max(150).optional(),
+    house_number: z.string().max(20).optional(),
+    intercom: z.string().max(60).optional(),
+    address_notes: z.string().max(300).optional(),
+    notes: z.string().max(300).optional(),
+    promo_code: z.string().max(40).optional(),
+    payment_method: z.enum(["cash", "card_on_delivery", "stripe"]),
+    // "YYYY-MM-DD HH:MM" — a specific slot the customer picked at checkout;
+    // omitted entirely means "as soon as possible".
+    requested_time: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):[0-5]\d$/)
+      .optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.number().int().positive(),
+          sizeId: z.number().int().positive().optional(),
+          extras: z
+            .array(
+              z.object({
+                id: z.number().int().positive(),
+                // Set when the customer picked one of that extra's weight/
+                // quantity variants (see ExtraOption) instead of its plain
+                // flat price.
+                optionId: z.number().int().positive().optional(),
+              })
+            )
+            .default([]),
+          // Ingredients (parsed client-side from the product's description)
+          // the customer unchecked in "Без —" — purely a kitchen/courier
+          // note, no effect on price.
+          removed: z.array(z.string().max(80)).max(30).optional(),
+          quantity: z.number().int().min(1).max(30),
+        })
+      )
+      .min(1),
+  })
+  .superRefine((data, ctx) => {
+    if (data.order_type !== "delivery") return;
+    if (!data.quarter || !data.quarter.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["quarter"], message: "Изберете квартал" });
+    }
+    if (!data.street || !data.street.trim() || data.street.trim().length < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["street"], message: "Въведете улица" });
+    }
+    if (!data.house_number || !data.house_number.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["house_number"], message: "Въведете номер" });
+    }
+  });
 
 export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
@@ -83,11 +100,6 @@ export async function POST(req: NextRequest) {
     );
   }
   const data = parsed.data;
-
-  const zone = await getZone(data.zone_id);
-  if (!zone || !zone.active) {
-    return NextResponse.json({ error: "Невалидна зона за доставка" }, { status: 400 });
-  }
 
   // Recompute prices server-side from the DB — never trust client-sent prices.
   const orderItems: OrderItem[] = [];
@@ -143,16 +155,15 @@ export async function POST(req: NextRequest) {
   }
   subtotal = Math.round(subtotal * 100) / 100;
 
-  if (subtotal < zone.min_order) {
+  const settings = await getSettings();
+
+  const minOrderGlobal = Number(settings.min_order_global || "0");
+  if (minOrderGlobal > 0 && subtotal < minOrderGlobal) {
     return NextResponse.json(
-      {
-        error: `Минималната поръчка за тази зона е ${zone.min_order.toFixed(2)} €`,
-      },
+      { error: `Минималната поръчка е ${minOrderGlobal.toFixed(2)} €` },
       { status: 400 }
     );
   }
-
-  const settings = await getSettings();
 
   if (data.requested_time) {
     const [reqDate, reqTime] = data.requested_time.split(" ");
@@ -164,10 +175,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Flat delivery fee under the free-delivery threshold, waived above it —
+  // no delivery fee at all for pickup orders, obviously.
   const freeDeliveryOver = Number(settings.free_delivery_over || "0");
-  let deliveryFee = zone.delivery_fee;
-  if (freeDeliveryOver > 0 && subtotal >= freeDeliveryOver) {
-    deliveryFee = 0;
+  const flatDeliveryFee = Number(settings.delivery_fee_flat || "0");
+  let deliveryFee = 0;
+  if (data.order_type === "delivery") {
+    deliveryFee =
+      freeDeliveryOver > 0 && subtotal >= freeDeliveryOver ? 0 : flatDeliveryFee;
   }
 
   let discount = 0;
@@ -191,19 +206,25 @@ export async function POST(req: NextRequest) {
   // "address" stays as one combined human-readable string for display (order
   // confirmation, admin panel, courier app) — but it's always built from just
   // street + number, never from address_notes/intercom, so what shows up
-  // there matches what gets geocoded below.
-  const combinedAddress = `${data.street.trim()} ${data.house_number.trim()}`.trim();
+  // there matches what gets geocoded below. Pickup orders have no delivery
+  // address at all — the customer collects the order in person.
+  const isDelivery = data.order_type === "delivery";
+  const combinedAddress = isDelivery
+    ? `${data.street!.trim()} ${data.house_number!.trim()}`.trim()
+    : "Взимане от място";
   const customerName = data.customer_name?.trim() || "Клиент";
 
   const order = await createOrder({
     customer_name: customerName,
     phone: data.phone,
-    zone_id: zone.id,
+    zone_id: null,
+    quarter: isDelivery ? data.quarter?.trim() : "",
+    order_type: data.order_type,
     address: combinedAddress,
-    street: data.street.trim(),
-    house_number: data.house_number.trim(),
-    intercom: data.intercom?.trim(),
-    address_notes: data.address_notes,
+    street: isDelivery ? data.street!.trim() : "",
+    house_number: isDelivery ? data.house_number!.trim() : "",
+    intercom: isDelivery ? data.intercom?.trim() : "",
+    address_notes: isDelivery ? data.address_notes : "",
     items: orderItems,
     subtotal,
     delivery_fee: deliveryFee,
@@ -238,17 +259,21 @@ export async function POST(req: NextRequest) {
   // as soon as it resolves (usually within a second or two). If the address
   // can't be geocoded (bad/unusual address text, or the server has no
   // outbound internet access to the free geocoding service), fall back to
-  // an approximate center point for the delivery zone/neighborhood instead
-  // of leaving the destination blank — the tracking map should always show
-  // a destination, even if it's only approximate.
-  geocodeAddress(combinedAddress, zone.name, data.street.trim())
-    .then((geo) => geo ?? approximateZoneCenter(zone.name))
-    .then((coords) => updateOrderDestination(order.id, coords.lat, coords.lng))
-    // updateOrderDestination is async — its promise is returned and chained above,
-    // so the outer .catch still captures any rejection from it.
-    .catch((err) => {
-      console.error("Failed to set order destination point", err);
-    });
+  // an approximate center point for the neighborhood instead of leaving the
+  // destination blank — the tracking map should always show a destination,
+  // even if it's only approximate. Pickup orders have nowhere to deliver to,
+  // so there's nothing to geocode.
+  if (isDelivery) {
+    const quarterName = data.quarter?.trim() ?? "";
+    geocodeAddress(combinedAddress, quarterName, data.street!.trim())
+      .then((geo) => geo ?? approximateZoneCenter(quarterName))
+      .then((coords) => updateOrderDestination(order.id, coords.lat, coords.lng))
+      // updateOrderDestination is async — its promise is returned and chained above,
+      // so the outer .catch still captures any rejection from it.
+      .catch((err) => {
+        console.error("Failed to set order destination point", err);
+      });
+  }
 
   if (data.payment_method === "stripe") {
     if (!settings.stripe_secret_key) {

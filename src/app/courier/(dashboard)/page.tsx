@@ -93,7 +93,7 @@ export default function CourierDashboardPage() {
                 <div>
                   <p className="font-semibold">{o.order_number}</p>
                   <p className="text-sm text-muted">{o.address}</p>
-                  {o.zone && <p className="text-xs text-muted">{o.zone.name}</p>}
+                  {o.quarter && <p className="text-xs text-muted">{o.quarter}</p>}
                 </div>
                 <span className="font-bold text-brand">{formatPrice(o.total)}</span>
               </div>
@@ -124,7 +124,7 @@ export default function CourierDashboardPage() {
                   <div>
                     <p className="font-semibold">{o.order_number}</p>
                     <p className="text-sm text-muted">{o.address}</p>
-                    {o.zone && <p className="text-xs text-muted">{o.zone.name}</p>}
+                    {o.quarter && <p className="text-xs text-muted">{o.quarter}</p>}
                     {o.address_notes && (
                       <p className="text-xs text-muted">Етаж/апартамент: {o.address_notes}</p>
                     )}

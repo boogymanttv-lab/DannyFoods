@@ -189,7 +189,11 @@ export default function AdminOrdersPage() {
                     ))}
                   </ul>
                   <div className="text-sm grid sm:grid-cols-2 gap-1 text-muted">
+                    <p>
+                      Тип: {order.order_type === "pickup" ? "🏠 Вземане от място" : "🚴 Доставка"}
+                    </p>
                     <p>Адрес: {order.address}</p>
+                    {order.quarter && <p>Квартал: {order.quarter}</p>}
                     {order.address_notes && <p>Етаж/апартамент: {order.address_notes}</p>}
                     {order.intercom && <p>Звънец: {order.intercom}</p>}
                     <p>Плащане: {paymentLabel(order.payment_method)}</p>

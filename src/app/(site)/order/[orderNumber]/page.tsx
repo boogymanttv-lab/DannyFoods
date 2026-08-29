@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderByNumber } from "@/lib/repos/orders";
-import { getZone } from "@/lib/repos/zones";
+import { getSettings } from "@/lib/repos/settings";
 import { formatPrice } from "@/lib/format";
 import { formatRequestedTime } from "@/lib/delivery-slots";
 import { OrderTracking } from "@/components/site/OrderTracking";
@@ -19,7 +19,8 @@ export default async function OrderConfirmationPage({
   if (!order) notFound();
 
   const items: OrderItem[] = JSON.parse(order.items_json);
-  const zone = order.zone_id ? await getZone(order.zone_id) : undefined;
+  const isPickup = order.order_type === "pickup";
+  const settings = isPickup ? await getSettings() : null;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-14">
@@ -60,8 +61,8 @@ export default async function OrderConfirmationPage({
             <span>{formatPrice(order.subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Доставка</span>
-            <span>{formatPrice(order.delivery_fee)}</span>
+            <span className="text-muted">{isPickup ? "Вземане от място" : "Доставка"}</span>
+            <span>{isPickup ? "—" : formatPrice(order.delivery_fee)}</span>
           </div>
           {order.discount > 0 && (
             <div className="flex justify-between text-success">
@@ -77,16 +78,18 @@ export default async function OrderConfirmationPage({
 
         <div className="border-t border-border pt-4 text-sm space-y-1">
           <p>
-            <span className="text-muted">Доставка до: </span>
-            {order.address} {zone ? `— ${zone.name}` : ""}
+            <span className="text-muted">{isPickup ? "Вземане от: " : "Доставка до: "}</span>
+            {isPickup
+              ? settings?.address || "адреса на място"
+              : `${order.address}${order.quarter ? ` — ${order.quarter}` : ""}`}
           </p>
-          {order.address_notes && (
+          {!isPickup && order.address_notes && (
             <p>
               <span className="text-muted">Етаж/апартамент: </span>
               {order.address_notes}
             </p>
           )}
-          {order.intercom && (
+          {!isPickup && order.intercom && (
             <p>
               <span className="text-muted">Звънец: </span>
               {order.intercom}

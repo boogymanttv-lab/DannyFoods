@@ -106,12 +106,16 @@ export type OrderItem = {
   lineTotal: number;
 };
 
+export type OrderType = "delivery" | "pickup";
+
 export type Order = {
   id: number;
   order_number: string;
   customer_name: string;
   phone: string;
   zone_id: number | null;
+  quarter: string;
+  order_type: OrderType;
   address: string;
   street: string;
   house_number: string;
@@ -177,6 +181,7 @@ export type CustomerAddress = {
   customer_id: number;
   label: string;
   zone_id: number | null;
+  quarter: string;
   address: string;
   street: string;
   house_number: string;

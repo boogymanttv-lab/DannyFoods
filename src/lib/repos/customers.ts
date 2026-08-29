@@ -98,6 +98,7 @@ export async function createAddress(data: {
   customer_id: number;
   label: string;
   zone_id: number | null;
+  quarter?: string;
   address: string;
   street?: string;
   house_number?: string;
@@ -113,13 +114,14 @@ export async function createAddress(data: {
   }
   const info = await db
     .prepare(
-      `INSERT INTO customer_addresses (customer_id, label, zone_id, address, street, house_number, intercom, address_notes, is_default)
-       VALUES (@customer_id, @label, @zone_id, @address, @street, @house_number, @intercom, @address_notes, @is_default)`
+      `INSERT INTO customer_addresses (customer_id, label, zone_id, quarter, address, street, house_number, intercom, address_notes, is_default)
+       VALUES (@customer_id, @label, @zone_id, @quarter, @address, @street, @house_number, @intercom, @address_notes, @is_default)`
     )
     .run({
       customer_id: data.customer_id,
       label: data.label,
       zone_id: data.zone_id,
+      quarter: data.quarter ?? "",
       address: data.address,
       street: data.street ?? "",
       house_number: data.house_number ?? "",
@@ -136,6 +138,7 @@ export async function updateAddress(
   data: Partial<{
     label: string;
     zone_id: number | null;
+    quarter: string;
     address: string;
     street: string;
     house_number: string;

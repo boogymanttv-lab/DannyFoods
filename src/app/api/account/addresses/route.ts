@@ -5,7 +5,8 @@ import { listAddresses, createAddress } from "@/lib/repos/customers";
 
 const schema = z.object({
   label: z.string().min(1).max(60),
-  zone_id: z.number().int().positive().nullable(),
+  zone_id: z.number().int().positive().nullable().optional(),
+  quarter: z.string().max(100).optional(),
   street: z.string().min(2).max(150),
   house_number: z.string().min(1).max(20),
   intercom: z.string().max(60).optional(),
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
   const id = await createAddress({
     customer_id: session.customerId,
     ...parsed.data,
+    zone_id: parsed.data.zone_id ?? null,
     address,
   });
   return NextResponse.json({ ok: true, id });

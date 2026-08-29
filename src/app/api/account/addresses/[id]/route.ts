@@ -6,6 +6,7 @@ import { updateAddress, deleteAddress } from "@/lib/repos/customers";
 const schema = z.object({
   label: z.string().min(1).max(60).optional(),
   zone_id: z.number().int().positive().nullable().optional(),
+  quarter: z.string().max(100).optional(),
   street: z.string().min(2).max(150).optional(),
   house_number: z.string().min(1).max(20).optional(),
   intercom: z.string().max(60).optional(),

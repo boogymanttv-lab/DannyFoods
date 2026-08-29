@@ -13,6 +13,10 @@ export const DEFAULT_SETTINGS = {
   closing_time: "00:00",
   min_order_global: "8",
   free_delivery_over: "25",
+  // Flat delivery fee charged on every delivery order under the free-
+  // delivery threshold above — replaced the old per-neighborhood zone fees
+  // (they'd all been set to the same value anyway; see the checkout rework).
+  delivery_fee_flat: "2.50",
   primary_color: "#e11d2e",
   accent_color: "#1a1a1a",
   facebook_url: "",

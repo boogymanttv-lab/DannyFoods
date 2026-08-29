@@ -395,12 +395,29 @@ export function SettingsManager({
       </Section>
 
       <Section title="Доставка и промоции">
+        <Field label="Такса за доставка (€)">
+          <input
+            type="number"
+            step="0.01"
+            className="input"
+            value={settings.delivery_fee_flat}
+            onChange={(e) => set("delivery_fee_flat", e.target.value)}
+          />
+        </Field>
         <Field label="Безплатна доставка над (€)">
           <input
             type="number"
             className="input"
             value={settings.free_delivery_over}
             onChange={(e) => set("free_delivery_over", e.target.value)}
+          />
+        </Field>
+        <Field label="Минимална поръчка (€)">
+          <input
+            type="number"
+            className="input"
+            value={settings.min_order_global}
+            onChange={(e) => set("min_order_global", e.target.value)}
           />
         </Field>
       </Section>

@@ -125,6 +125,15 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_name TEXT NOT NULL,
   phone TEXT NOT NULL,
   zone_id INTEGER REFERENCES delivery_zones(id),
+  -- Free-typed neighborhood name (replaced the old zone dropdown — every
+  -- zone ended up with the same flat delivery fee anyway, so the dropdown's
+  -- per-zone price/minimum text was just confusing). Still used to bias the
+  -- geocoder toward the right part of Varna, same as zone.name used to be.
+  quarter TEXT DEFAULT '',
+  -- 'pickup' orders skip the whole delivery address section — the customer
+  -- collects the food themselves, so there's nothing to geocode or hand to
+  -- a courier for these.
+  order_type TEXT NOT NULL DEFAULT 'delivery' CHECK (order_type IN ('delivery','pickup')),
   address TEXT NOT NULL,
   street TEXT DEFAULT '',
   house_number TEXT DEFAULT '',
@@ -166,6 +175,7 @@ CREATE TABLE IF NOT EXISTS customer_addresses (
   customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
   label TEXT NOT NULL DEFAULT 'Адрес',
   zone_id INTEGER REFERENCES delivery_zones(id) ON DELETE SET NULL,
+  quarter TEXT DEFAULT '',
   address TEXT NOT NULL,
   street TEXT DEFAULT '',
   house_number TEXT DEFAULT '',

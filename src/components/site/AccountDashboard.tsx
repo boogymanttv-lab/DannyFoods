@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
-import type { CustomerPublic, CustomerAddress, DeliveryZone, Order, OrderStatus } from "@/lib/types";
+import type { CustomerPublic, CustomerAddress, Order, OrderStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   new: "Приета",
@@ -21,12 +21,10 @@ export function AccountDashboard({
   customer,
   addresses: initialAddresses,
   orders,
-  zones,
 }: {
   customer: CustomerPublic;
   addresses: CustomerAddress[];
   orders: Order[];
-  zones: DeliveryZone[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
@@ -64,7 +62,7 @@ export function AccountDashboard({
       </div>
 
       {tab === "profile" && <ProfileTab customer={customer} onSaved={() => router.refresh()} />}
-      {tab === "addresses" && <AddressesTab addresses={initialAddresses} zones={zones} />}
+      {tab === "addresses" && <AddressesTab addresses={initialAddresses} />}
       {tab === "orders" && <OrdersTab orders={orders} />}
     </div>
   );
@@ -173,15 +171,13 @@ function ProfileTab({
 
 function AddressesTab({
   addresses: initial,
-  zones,
 }: {
   addresses: CustomerAddress[];
-  zones: DeliveryZone[];
 }) {
   const [addresses, setAddresses] = useState(initial);
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("Домашен адрес");
-  const [zoneId, setZoneId] = useState<number | "">(zones[0]?.id ?? "");
+  const [quarter, setQuarter] = useState("");
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
   const [intercom, setIntercom] = useState("");
@@ -196,7 +192,7 @@ function AddressesTab({
 
   async function addAddress() {
     setError("");
-    if (!label.trim() || !street.trim() || !houseNumber.trim() || !zoneId) {
+    if (!label.trim() || !quarter.trim() || !street.trim() || !houseNumber.trim()) {
       setError("Моля, попълнете всички задължителни полета.");
       return;
     }
@@ -205,7 +201,7 @@ function AddressesTab({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         label,
-        zone_id: zoneId,
+        quarter,
         street,
         house_number: houseNumber,
         intercom,
@@ -219,6 +215,7 @@ function AddressesTab({
       return;
     }
     setLabel("Домашен адрес");
+    setQuarter("");
     setStreet("");
     setHouseNumber("");
     setIntercom("");
@@ -243,43 +240,40 @@ function AddressesTab({
 
   return (
     <div className="space-y-3">
-      {addresses.map((a) => {
-        const zone = zones.find((z) => z.id === a.zone_id);
-        return (
-          <div key={a.id} className="bg-surface rounded-2xl border border-border p-4 flex justify-between items-start gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-semibold">{a.label}</p>
-                {a.is_default === 1 && (
-                  <span className="text-[10px] font-bold bg-gold/20 text-gold px-2 py-0.5 rounded-full">
-                    По подразбиране
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-muted">{a.address}</p>
-              {zone && <p className="text-xs text-muted">{zone.name}</p>}
-              {a.address_notes && <p className="text-xs text-muted">{a.address_notes}</p>}
-              {a.intercom && <p className="text-xs text-muted">Звънец: {a.intercom}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5 shrink-0">
-              {a.is_default !== 1 && (
-                <button
-                  onClick={() => makeDefault(a.id)}
-                  className="text-xs font-semibold text-brand"
-                >
+      {addresses.map((a) => (
+        <div key={a.id} className="bg-surface rounded-2xl border border-border p-4 flex justify-between items-start gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold">{a.label}</p>
+              {a.is_default === 1 && (
+                <span className="text-[10px] font-bold bg-gold/20 text-gold px-2 py-0.5 rounded-full">
                   По подразбиране
-                </button>
+                </span>
               )}
-              <button
-                onClick={() => removeAddress(a.id)}
-                className="text-xs font-semibold text-muted"
-              >
-                Изтрий
-              </button>
             </div>
+            <p className="text-sm text-muted">{a.address}</p>
+            {a.quarter && <p className="text-xs text-muted">{a.quarter}</p>}
+            {a.address_notes && <p className="text-xs text-muted">{a.address_notes}</p>}
+            {a.intercom && <p className="text-xs text-muted">Звънец: {a.intercom}</p>}
           </div>
-        );
-      })}
+          <div className="flex flex-col gap-1.5 shrink-0">
+            {a.is_default !== 1 && (
+              <button
+                onClick={() => makeDefault(a.id)}
+                className="text-xs font-semibold text-brand"
+              >
+                По подразбиране
+              </button>
+            )}
+            <button
+              onClick={() => removeAddress(a.id)}
+              className="text-xs font-semibold text-muted"
+            >
+              Изтрий
+            </button>
+          </div>
+        </div>
+      ))}
       {addresses.length === 0 && !adding && (
         <p className="text-muted text-sm text-center py-8">Нямаш запазени адреси.</p>
       )}
@@ -292,20 +286,12 @@ function AddressesTab({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
-          <select
+          <input
             className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            value={zoneId}
-            onChange={(e) => setZoneId(Number(e.target.value))}
-          >
-            <option value="" disabled>
-              Изберете квартал
-            </option>
-            {zones.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.name}
-              </option>
-            ))}
-          </select>
+            placeholder="Квартал"
+            value={quarter}
+            onChange={(e) => setQuarter(e.target.value)}
+          />
           <div className="grid sm:grid-cols-[1fr_140px] gap-3">
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"

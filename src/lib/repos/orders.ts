@@ -20,6 +20,8 @@ export async function createOrder(data: {
   customer_name: string;
   phone: string;
   zone_id: number | null;
+  quarter?: string;
+  order_type: "delivery" | "pickup";
   address: string;
   street?: string;
   house_number?: string;
@@ -41,15 +43,17 @@ export async function createOrder(data: {
   const info = await db
     .prepare(
       `INSERT INTO orders
-        (order_number, customer_name, phone, zone_id, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time)
+        (order_number, customer_name, phone, zone_id, quarter, order_type, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time)
        VALUES
-        (@order_number, @customer_name, @phone, @zone_id, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time)`
+        (@order_number, @customer_name, @phone, @zone_id, @quarter, @order_type, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time)`
     )
     .run({
       order_number,
       customer_name: data.customer_name,
       phone: data.phone,
       zone_id: data.zone_id,
+      quarter: data.quarter ?? "",
+      order_type: data.order_type,
       address: data.address,
       street: data.street ?? "",
       house_number: data.house_number ?? "",
@@ -169,12 +173,15 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
     .run({ id, status });
 }
 
-// Orders ready to be picked up: prepared but not yet claimed by any courier.
+// Orders ready to be picked up by a courier: prepared, unclaimed, and
+// actually needing delivery — 'pickup' orders (customer collects in person)
+// never need a courier, so they're excluded here rather than showing up as
+// unclaimable clutter in the courier queue.
 export async function listAvailableOrdersForCourier(): Promise<Order[]> {
   const db = await getDb();
   return db
     .prepare(
-      `SELECT * FROM orders WHERE courier_id IS NULL AND status IN ('confirmed','preparing') ORDER BY id ASC`
+      `SELECT * FROM orders WHERE courier_id IS NULL AND status IN ('confirmed','preparing') AND order_type = 'delivery' ORDER BY id ASC`
     )
     .all() as Promise<Order[]>;
 }

@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getCustomerSession } from "@/lib/auth";
 import { getCustomerPublic, listAddresses } from "@/lib/repos/customers";
 import { listOrdersForCustomer } from "@/lib/repos/orders";
-import { listZones } from "@/lib/repos/zones";
 import { AccountDashboard } from "@/components/site/AccountDashboard";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +17,6 @@ export default async function AccountPage() {
 
   const addresses = await listAddresses(customer.id);
   const orders = await listOrdersForCustomer(customer.id);
-  const zones = await listZones(true);
 
-  return (
-    <AccountDashboard customer={customer} addresses={addresses} orders={orders} zones={zones} />
-  );
+  return <AccountDashboard customer={customer} addresses={addresses} orders={orders} />;
 }
