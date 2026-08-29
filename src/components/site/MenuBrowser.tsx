@@ -49,19 +49,19 @@ export function MenuBrowser({
 
   return (
     <div id="menu">
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="bg-background/95 backdrop-blur border-b border-border">
+        <div className="mx-auto max-w-6xl px-4 py-4 flex flex-col gap-2.5">
           {categories.map((c) => (
             <button
               key={c.slug}
               onClick={() => selectCategory(c.slug)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold border transition-colors ${
+              className={`w-full flex items-center gap-2.5 rounded-2xl px-5 py-3.5 text-base font-semibold border transition-colors ${
                 activeSlug === c.slug
                   ? "bg-brand text-white border-brand"
                   : "bg-surface border-border text-foreground/70"
               }`}
             >
-              <span className="mr-1">{c.icon}</span>
+              <span className="text-lg">{c.icon}</span>
               {c.name}
             </button>
           ))}
