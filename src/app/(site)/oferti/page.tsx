@@ -58,6 +58,8 @@ export default async function OffersPage() {
                     <img
                       src={card.image}
                       alt={card.title}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 z-10 h-full w-full object-contain"
                     />
                   </div>
@@ -95,6 +97,8 @@ export default async function OffersPage() {
                     <img
                       src={card.image}
                       alt={card.title}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   ) : (

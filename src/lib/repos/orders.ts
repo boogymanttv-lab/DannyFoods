@@ -326,3 +326,44 @@ export async function getOrderStats() {
     topProducts: top,
   };
 }
+
+// One row per calendar day for the last `days` days (oldest first, always
+// including today even if it has no orders yet) — powers the admin
+// dashboard's sales chart. Grouped by the UTC calendar day stored in
+// created_at; cancelled orders don't count toward revenue or the order
+// count, same convention as getOrderStats' "today" figures above.
+export async function getDailySales(
+  days: number
+): Promise<{ date: string; orders: number; revenue: number }[]> {
+  const db = await getDb();
+  // created_at is stored as TEXT ("YYYY-MM-DD HH24:MI:SS", see schema.ts),
+  // not a real timestamp column, so the cutoff is computed as the same
+  // "YYYY-MM-DD" text form and compared lexicographically — that sorts
+  // identically to chronological order for this fixed-width format.
+  const cutoffDate = new Date();
+  cutoffDate.setUTCDate(cutoffDate.getUTCDate() - (days - 1));
+  const cutoff = cutoffDate.toISOString().slice(0, 10);
+  const rows = (await db
+    .prepare(
+      `SELECT left(created_at, 10) as day, COUNT(*) as cnt, COALESCE(SUM(total),0) as revenue
+       FROM orders
+       WHERE status != 'cancelled' AND left(created_at, 10) >= @cutoff
+       GROUP BY day
+       ORDER BY day ASC`
+    )
+    .all({ cutoff })) as { day: string; cnt: number; revenue: number }[];
+  const byDay = new Map(rows.map((r) => [r.day, { orders: Number(r.cnt), revenue: Number(r.revenue) }]));
+
+  // Fill in every day in the range, even ones with zero orders, so the
+  // chart's x-axis is a continuous timeline rather than skipping gaps.
+  const series: { date: string; orders: number; revenue: number }[] = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const found = byDay.get(key);
+    series.push({ date: key, orders: found?.orders ?? 0, revenue: found?.revenue ?? 0 });
+  }
+  return series;
+}

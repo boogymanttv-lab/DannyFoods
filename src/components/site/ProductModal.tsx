@@ -325,6 +325,8 @@ export function ProductModal({
                         <img
                           src={s.image}
                           alt={s.name}
+                          loading="lazy"
+                          decoding="async"
                           className="h-full w-full object-cover"
                         />
                       ) : (

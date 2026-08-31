@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { getOrderStats, listOrders } from "@/lib/repos/orders";
+import { getOrderStats, listOrders, getDailySales } from "@/lib/repos/orders";
 import { formatPrice } from "@/lib/format";
 import { ReportExport } from "@/components/admin/ReportExport";
+import { SalesChart } from "@/components/admin/SalesChart";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default async function AdminDashboardPage() {
   const stats = await getOrderStats();
   const recentOrders = await listOrders({ limit: 8 });
+  const dailySales = await getDailySales(30);
 
   return (
     <div className="space-y-8">
@@ -28,6 +30,8 @@ export default async function AdminDashboardPage() {
         <StatCard label="Активни поръчки" value={String(stats.activeOrders)} />
         <StatCard label="Общо поръчки" value={String(stats.totalOrders)} />
       </div>
+
+      <SalesChart series={dailySales} />
 
       <ReportExport />
 

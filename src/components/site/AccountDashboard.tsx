@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
-import type { CustomerPublic, CustomerAddress, Order, OrderItem, OrderStatus } from "@/lib/types";
+import type {
+  CustomerPublic,
+  CustomerAddress,
+  Order,
+  OrderItem,
+  OrderStatus,
+  ProductWithOptions,
+} from "@/lib/types";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   new: "Приета",
@@ -347,39 +354,74 @@ function AddressesTab({
 function OrdersTab({ orders }: { orders: Order[] }) {
   const { addLine, openDrawer } = useCart();
   const router = useRouter();
+  const [reorderingId, setReorderingId] = useState<number | null>(null);
+  const [skipped, setSkipped] = useState<{ orderId: number; names: string[] } | null>(null);
 
   // Rebuilds the exact cart lines from a past order's stored items_json —
   // relies on sizeId/extras[].id/optionId (added alongside quick-reorder)
   // rather than re-matching by display name/label text, which could break
-  // if a product's wording changed since the order was placed. A product,
-  // size or extra that's since been deleted just quietly won't have an id
-  // to match against on the *current* menu when the customer next checks
-  // out — that's a product-availability question, not something to solve
-  // here — so this only needs the ids to be internally consistent, which
-  // they always are for orders placed after this field was added.
-  function reorder(o: Order) {
+  // if a product's wording changed since the order was placed. Each line's
+  // product is re-fetched live (GET /api/products/[id]) so the cart shows
+  // the product's CURRENT photo (the order snapshot never stored one) and
+  // so a product/size/extra removed from the menu since this order was
+  // placed is quietly dropped instead of silently added with stale data —
+  // the customer sees which items didn't make it back into the cart.
+  async function reorder(o: Order): Promise<boolean> {
     let items: OrderItem[];
     try {
       items = JSON.parse(o.items_json);
     } catch {
-      return;
+      return false;
     }
+    setReorderingId(o.id);
+    setSkipped(null);
+    const skippedNames: string[] = [];
+    // Cache product lookups — a repeated item in the same order (or the
+    // same product across a couple of orders) shouldn't refetch.
+    const cache = new Map<number, ProductWithOptions | null>();
     for (const item of items) {
+      let product = cache.get(item.productId);
+      if (product === undefined) {
+        const fetched: ProductWithOptions | null = await fetch(`/api/products/${item.productId}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => d?.product ?? null)
+          .catch(() => null);
+        product = fetched;
+        cache.set(item.productId, product);
+      }
+      if (!product) {
+        skippedNames.push(item.name);
+        continue;
+      }
+      // If the size this line was ordered at no longer exists, fall back to
+      // the product's current default size rather than dropping the whole
+      // line — still orderable, just possibly a different size than before.
+      const size = item.sizeId ? product.sizes.find((s) => s.id === item.sizeId) : undefined;
+      const fallbackSize = !size && item.sizeId ? product.sizes.find((s) => s.is_default) ?? product.sizes[0] : undefined;
+      const resolvedSize = size ?? fallbackSize;
       addLine({
-        productId: item.productId,
-        name: item.name,
-        image: "",
-        sizeLabel: item.sizeLabel,
-        sizeId: item.sizeId,
-        unitPrice: item.unitPrice,
+        productId: product.id,
+        name: product.name,
+        image: product.image,
+        sizeLabel: resolvedSize?.label,
+        sizeId: resolvedSize?.id,
+        unitPrice: resolvedSize ? product.base_price + resolvedSize.price_delta : product.base_price,
         quantity: item.quantity,
         extras: item.extras
-          .filter((e) => e.id != null)
+          .filter((e) => e.id != null && product!.extras.some((pe) => pe.id === e.id))
           .map((e) => ({ id: e.id!, name: e.name, price: e.price, optionId: e.optionId })),
         removedIngredients: item.removed,
       });
     }
-    openDrawer();
+    setReorderingId(null);
+    if (skippedNames.length > 0) {
+      setSkipped({ orderId: o.id, names: skippedNames });
+    }
+    const addedAny = skippedNames.length < items.length;
+    if (addedAny) {
+      openDrawer();
+    }
+    return addedAny;
   }
 
   if (orders.length === 0) {
@@ -412,15 +454,22 @@ function OrdersTab({ orders }: { orders: Order[] }) {
           </Link>
           <button
             type="button"
-            onClick={(e) => {
+            disabled={reorderingId === o.id}
+            onClick={async (e) => {
               e.preventDefault();
-              reorder(o);
-              router.push("/checkout");
+              const added = await reorder(o);
+              if (added) router.push("/checkout");
             }}
-            className="mt-3 w-full rounded-xl border border-brand text-brand font-semibold text-sm py-2 hover:bg-brand/5 transition-colors"
+            className="mt-3 w-full rounded-xl border border-brand text-brand font-semibold text-sm py-2 hover:bg-brand/5 transition-colors disabled:opacity-60"
           >
-            🔁 Поръчай отново
+            {reorderingId === o.id ? "Зареждане..." : "🔁 Поръчай отново"}
           </button>
+          {skipped?.orderId === o.id && (
+            <p className="mt-2 text-xs text-muted">
+              {skipped.names.join(", ")} вече {skipped.names.length === 1 ? "не е наличен" : "не са налични"} и не{" "}
+              {skipped.names.length === 1 ? "беше добавен" : "бяха добавени"} в количката.
+            </p>
+          )}
         </div>
       ))}
     </div>
