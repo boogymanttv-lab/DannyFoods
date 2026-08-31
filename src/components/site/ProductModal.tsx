@@ -207,22 +207,33 @@ export function ProductModal({
           {ingredients.length > 0 && (
             <div>
               <p className="font-semibold text-sm mb-2">{t("product.removeIngredients")}</p>
-              <div className="flex flex-wrap gap-2">
+              {/* One row per ingredient, checkbox first — each row reads
+                  "Без домати" etc. on its own, rather than a generic "Без —"
+                  heading over a strip of bare ingredient chips. */}
+              <div className="space-y-2">
                 {ingredients.map((ing) => {
                   const isRemoved = removedIngredients.has(ing);
                   return (
-                    <button
+                    <label
                       key={ing}
-                      type="button"
-                      onClick={() => toggleIngredient(ing)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        isRemoved
-                          ? "border-brand bg-brand/5 text-brand line-through"
-                          : "border-border text-foreground/70"
-                      }`}
+                      className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm cursor-pointer"
                     >
-                      {ing}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={isRemoved}
+                        onChange={() => toggleIngredient(ing)}
+                        className="accent-[var(--brand)] h-4 w-4 shrink-0"
+                      />
+                      <span
+                        className={
+                          isRemoved
+                            ? "text-brand font-semibold"
+                            : "text-foreground/80"
+                        }
+                      >
+                        {t("cart.removedIngredients")} {ing}
+                      </span>
+                    </label>
                   );
                 })}
               </div>
