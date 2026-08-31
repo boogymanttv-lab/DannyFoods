@@ -22,7 +22,7 @@ export const DICT = {
     bg: "Поръчай онлайн и получи прясно приготвена храна директно на адреса си във Варна.",
     en: "Order online and get freshly made food delivered straight to your address in Varna.",
   },
-  "hero.cta": { bg: "🔥 Разгледай менюто", en: "🔥 Browse the menu" },
+  "hero.cta": { bg: "🔥 Разгледай менюто!", en: "🔥 Browse the menu!" },
   "kitchen.calm": { bg: "Кухнята работи спокойно", en: "Kitchen is running smoothly" },
   "kitchen.medium": { bg: "Леко натоварени сме", en: "Slightly busy right now" },
   "kitchen.busy": { bg: "Много поръчки в момента", en: "Very busy right now" },
