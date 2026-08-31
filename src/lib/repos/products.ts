@@ -79,6 +79,10 @@ export async function createProduct(data: {
   category_id: number;
   name: string;
   description?: string;
+  // Auto-translated English text (see src/lib/translate.ts) — optional;
+  // empty just means the EN site falls back to the Bulgarian text.
+  name_en?: string;
+  description_en?: string;
   image?: string;
   base_price: number;
   is_pizza?: boolean;
@@ -94,13 +98,15 @@ export async function createProduct(data: {
   const db = await getDb();
   const info = await db
     .prepare(
-      `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, active, sort_order, is_combo, combo_discount_percent)
-       VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @active, @sort_order, @is_combo, @combo_discount_percent)`
+      `INSERT INTO products (category_id, name, description, name_en, description_en, image, base_price, is_pizza, featured, active, sort_order, is_combo, combo_discount_percent)
+       VALUES (@category_id, @name, @description, @name_en, @description_en, @image, @base_price, @is_pizza, @featured, @active, @sort_order, @is_combo, @combo_discount_percent)`
     )
     .run({
       category_id: data.category_id,
       name: data.name,
       description: data.description ?? "",
+      name_en: data.name_en ?? "",
+      description_en: data.description_en ?? "",
       image: data.image ?? "",
       base_price: data.base_price,
       is_pizza: data.is_pizza ? 1 : 0,
@@ -119,6 +125,8 @@ export async function updateProduct(
     category_id: number;
     name: string;
     description: string;
+    name_en: string;
+    description_en: string;
     image: string;
     base_price: number;
     is_pizza: boolean;

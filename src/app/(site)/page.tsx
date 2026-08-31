@@ -3,24 +3,49 @@ import { listProducts } from "@/lib/repos/products";
 import { getSettings } from "@/lib/repos/settings";
 import { getRatingSummaries } from "@/lib/repos/reviews";
 import { listActivePromoCards } from "@/lib/repos/promo-cards";
+import { countActiveOrders } from "@/lib/repos/orders";
 import { MenuBrowser } from "@/components/site/MenuBrowser";
 import { PromoShowcase } from "@/components/site/PromoShowcase";
+import { KitchenStatusBadge } from "@/components/site/KitchenStatusBadge";
 import { isShopOpenNow } from "@/lib/delivery-slots";
-import { estimateLabel, parseBusyHours, suggestEstimate } from "@/lib/delivery-estimate";
+import {
+  combineEstimates,
+  estimateLabel,
+  kitchenLoadLevel,
+  parseBusyHours,
+  suggestByLoad,
+  suggestEstimate,
+} from "@/lib/delivery-estimate";
+import { getLocale } from "@/lib/i18n/locale";
+import { translate, type DictKey } from "@/lib/i18n/dict";
+import { localizeCategory, localizeProduct, localizePromoCard } from "@/lib/i18n/content";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const categories = await listCategories();
-  const products = await listProducts();
+  const locale = await getLocale();
+  const t = (key: DictKey) => translate(locale, key);
+  const categoriesRaw = await listCategories();
+  const productsRaw = await listProducts();
   const settings = await getSettings();
   const ratings = await getRatingSummaries();
-  const promoCards = await listActivePromoCards();
+  const promoCardsRaw = await listActivePromoCards();
+  const categories = categoriesRaw.map((c) => localizeCategory(c, locale));
+  const products = productsRaw.map((p) => localizeProduct(p, locale));
+  const promoCards = promoCardsRaw.map((c) => localizePromoCard(c, locale));
 
   const openNow = isShopOpenNow(new Date(), settings.opening_time, settings.closing_time);
-  const currentEstimate = estimateLabel(
-    suggestEstimate(parseBusyHours(settings.busy_hours_json))
+  // Combines time-of-day busy hours with the CURRENT number of active
+  // orders — same formula used when an order is actually placed (see
+  // /api/orders), so this badge always matches the estimate a customer
+  // would really get right now, not just a static time-of-day guess.
+  const combinedEstimate = combineEstimates(
+    suggestEstimate(parseBusyHours(settings.busy_hours_json)),
+    suggestByLoad(await countActiveOrders())
   );
+  const currentEstimate = estimateLabel(combinedEstimate, locale);
+  const kitchenTier = kitchenLoadLevel(combinedEstimate).tier;
+  const kitchenStatus = { tier: kitchenTier, label: t(`kitchen.${kitchenTier}` as DictKey) };
 
   // Structured data (schema.org Restaurant) — lets Google show rich local-
   // search results (opening hours, phone, price range) instead of just a
@@ -77,9 +102,9 @@ export default async function HomePage() {
         </div>
         <div className="relative mx-auto max-w-6xl px-4 py-14 sm:py-20">
           <span className="inline-block bg-gradient-to-r from-gold to-[#ffc247] text-accent-dark text-xs font-bold px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_16px_rgba(245,166,35,0.35)]">
-            Доставка само в град Варна 🚴
+            {t("hero.deliveryBadge")}
           </span>
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-bold backdrop-blur-sm ${
                 openNow
@@ -92,22 +117,29 @@ export default async function HomePage() {
                 aria-hidden
               />
               {openNow
-                ? `ОТВОРЕНО · ДОСТАВЯМЕ ДО ${currentEstimate.toUpperCase()}`
-                : "В МОМЕНТА СМЕ ЗАТВОРЕНИ"}
+                ? `${t("hero.openBadge")} ${currentEstimate.toUpperCase()}`
+                : t("hero.closedBadge")}
             </span>
+            {/* Honest, live "how busy is the kitchen right now" signal —
+                most delivery apps hide this; showing it builds trust. */}
+            <KitchenStatusBadge
+              initial={{
+                openNow,
+                estimateLabel: currentEstimate,
+                tier: kitchenStatus.tier,
+                label: kitchenStatus.label,
+              }}
+            />
           </div>
           <h1 className="font-display font-extrabold text-3xl sm:text-5xl leading-tight max-w-xl bg-gradient-to-br from-white via-white to-white/70 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
             {settings.tagline}
           </h1>
-          <p className="mt-4 text-white/70 max-w-md">
-            Поръчай онлайн и получи прясно приготвена храна директно на адреса си
-            във Варна.
-          </p>
+          <p className="mt-4 text-white/70 max-w-md">{t("hero.subtitle")}</p>
           <a
             href="#menu"
             className="inline-block mt-6 bg-gradient-to-r from-brand to-brand-dark hover:from-brand-light hover:to-brand transition-all font-bold px-6 py-3.5 rounded-xl shadow-[0_8px_24px_rgba(225,29,46,0.45)] hover:shadow-[0_10px_30px_rgba(225,29,46,0.6)] hover:-translate-y-0.5"
           >
-            🔥 Разгледай менюто
+            {t("hero.cta")}
           </a>
         </div>
       </section>

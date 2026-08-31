@@ -124,6 +124,40 @@ export async function getOrderByNumber(orderNumber: string): Promise<Order | und
   >;
 }
 
+// Delivered orders that (a) belong to a customer account with an email on
+// file — a guest checkout has no account to check a review against, so
+// it's out of scope by design — and (b) haven't had the reminder sent yet.
+// No upper bound on how long ago it was delivered: whether the cron job
+// this feeds runs every few minutes or, on a plan that only allows daily
+// crons, once a day, everything still eventually gets exactly one email —
+// review_reminder_sent_at is what prevents a duplicate, not the query
+// window. Capped at 200/run as a sane batch-size safety net.
+export async function listOrdersNeedingReviewReminder(
+  minMinutesSinceDelivery: number
+): Promise<Order[]> {
+  const db = await getDb();
+  return db
+    .prepare(
+      `SELECT * FROM orders
+       WHERE status = 'delivered'
+         AND customer_id IS NOT NULL
+         AND email IS NOT NULL AND email != ''
+         AND review_reminder_sent_at IS NULL
+         AND delivered_at IS NOT NULL
+         AND delivered_at <= to_char(now() at time zone 'utc' - make_interval(mins => @mins), 'YYYY-MM-DD HH24:MI:SS')
+       ORDER BY delivered_at ASC
+       LIMIT 200`
+    )
+    .all({ mins: minMinutesSinceDelivery }) as Promise<Order[]>;
+}
+
+export async function markReviewReminderSent(orderId: number) {
+  const db = await getDb();
+  await db
+    .prepare(`UPDATE orders SET review_reminder_sent_at = ${NOW_UTC} WHERE id = @orderId`)
+    .run({ orderId });
+}
+
 export async function listOrders(opts?: {
   status?: OrderStatus;
   limit?: number;

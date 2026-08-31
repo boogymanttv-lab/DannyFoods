@@ -6,6 +6,8 @@ import {
   setComboItems,
   computeComboPrice,
 } from "@/lib/repos/products";
+import { getSettings } from "@/lib/repos/settings";
+import { autoTranslateFields } from "@/lib/translate";
 
 export async function GET() {
   const products = await listProducts({ activeOnly: false });
@@ -35,10 +37,17 @@ export async function POST(req: NextRequest) {
   const basePrice = isCombo
     ? await computeComboPrice(comboItems, discountPercent)
     : Number(body.base_price);
+  const settings = await getSettings();
+  const { name_en, description_en } = await autoTranslateFields(
+    { name: body.name, description: body.description ?? "" },
+    settings.deepl_api_key
+  );
   const id = await createProduct({
     category_id: Number(body.category_id),
     name: body.name,
     description: body.description ?? "",
+    name_en,
+    description_en,
     image: body.image ?? "",
     base_price: basePrice,
     is_pizza: Boolean(body.is_pizza),

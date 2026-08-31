@@ -6,8 +6,8 @@
 export const DELIVERY_ESTIMATE_OPTIONS = ["15-20", "20-30", "30-40", "40-60"] as const;
 export type DeliveryEstimate = (typeof DELIVERY_ESTIMATE_OPTIONS)[number];
 
-export function estimateLabel(estimate: string): string {
-  return `${estimate} мин`;
+export function estimateLabel(estimate: string, locale: "bg" | "en" = "bg"): string {
+  return locale === "en" ? `${estimate} min` : `${estimate} мин`;
 }
 
 // Highest minute in an estimate range ("20-30" -> 30) — used as the
@@ -98,4 +98,27 @@ export function parseBusyHours(json: string | undefined | null): BusyHourRule[] 
     // fall through to default
   }
   return DEFAULT_BUSY_HOURS;
+}
+
+export type KitchenLoadTier = "calm" | "medium" | "busy";
+
+// Turns the same combined estimate that already drives an order's
+// delivery-time countdown into a plain-language "how busy is the kitchen
+// right now" signal for the homepage — no separate threshold config to
+// maintain, no new admin settings: whatever estimate a customer would get
+// right now IS the signal. Deliberately just 3 tiers (not the 4 estimate
+// bands) since "20-30 vs 30-40" isn't a meaningfully different customer
+// message — both just mean "busier than usual".
+export function kitchenLoadLevel(estimate: DeliveryEstimate): {
+  tier: KitchenLoadTier;
+  label: string;
+} {
+  switch (estimate) {
+    case "15-20":
+      return { tier: "calm", label: "Кухнята работи спокойно" };
+    case "20-30":
+      return { tier: "medium", label: "Леко натоварени сме" };
+    default:
+      return { tier: "busy", label: "Много поръчки в момента" };
+  }
 }

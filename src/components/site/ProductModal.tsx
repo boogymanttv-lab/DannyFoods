@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
 import { ProductReviews } from "@/components/site/ProductReviews";
+import { useT } from "@/lib/i18n/LocaleProvider";
 import type { ProductWithOptions } from "@/lib/types";
 
 // The description is written as a comma-separated ingredient list (e.g.
@@ -29,6 +30,7 @@ export function ProductModal({
   suggestions?: ProductWithOptions[];
 }) {
   const { addLine, openDrawer } = useCart();
+  const t = useT();
   const defaultSize =
     product.sizes.find((s) => s.is_default) ?? product.sizes[0] ?? null;
   const [sizeId, setSizeId] = useState<number | null>(defaultSize?.id ?? null);
@@ -173,7 +175,7 @@ export function ProductModal({
 
           {product.sizes.length > 1 && (
             <div>
-              <p className="font-semibold text-sm mb-2">Размер</p>
+              <p className="font-semibold text-sm mb-2">{t("product.size")}</p>
               <div className="grid grid-cols-2 gap-2">
                 {product.sizes.map((s) => (
                   <button
@@ -204,7 +206,7 @@ export function ProductModal({
 
           {ingredients.length > 0 && (
             <div>
-              <p className="font-semibold text-sm mb-2">Без —</p>
+              <p className="font-semibold text-sm mb-2">{t("product.removeIngredients")}</p>
               <div className="flex flex-wrap gap-2">
                 {ingredients.map((ing) => {
                   const isRemoved = removedIngredients.has(ing);
@@ -229,7 +231,7 @@ export function ProductModal({
 
           {product.extras.length > 0 && (
             <div>
-              <p className="font-semibold text-sm mb-2">Добавки</p>
+              <p className="font-semibold text-sm mb-2">{t("product.extras")}</p>
               <div className="space-y-2">
                 {product.extras.map((e) => {
                   const isChecked = e.id in selectedExtras;
@@ -286,7 +288,7 @@ export function ProductModal({
           )}
 
           <div>
-            <p className="font-semibold text-sm mb-2">Количество</p>
+            <p className="font-semibold text-sm mb-2">{t("product.quantity")}</p>
             <div className="flex items-center gap-3 bg-black/5 rounded-full w-fit px-2">
               <button
                 className="h-9 w-9 grid place-items-center font-bold text-lg"
@@ -308,7 +310,7 @@ export function ProductModal({
 
           {suggestions.length > 0 && (
             <div>
-              <p className="font-semibold text-sm mb-2">Често купувано с</p>
+              <p className="font-semibold text-sm mb-2">{t("product.pairsWith")}</p>
               {/* A plain vertical list — one row per suggestion, same pattern
                   as "Добавки" above — rather than a horizontal scroll strip,
                   so nothing gets cut off at the edge and there's no
@@ -358,7 +360,7 @@ export function ProductModal({
             onClick={handleAdd}
             className="w-full bg-brand text-white rounded-xl py-3.5 font-bold flex items-center justify-between px-5 hover:bg-brand-dark transition-colors"
           >
-            <span>Добави в количката</span>
+            <span>{t("product.addToCart")}</span>
             <span>{formatPrice(totalPrice)}</span>
           </button>
         </div>

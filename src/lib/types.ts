@@ -2,6 +2,9 @@ export type Category = {
   id: number;
   slug: string;
   name: string;
+  // Auto-translated (DeepL) — empty means not yet translated; the EN site
+  // falls back to `name` in that case (see src/lib/i18n/content.ts).
+  name_en: string;
   icon: string;
   sort_order: number;
   active: number;
@@ -43,6 +46,10 @@ export type Product = {
   category_id: number;
   name: string;
   description: string;
+  // Auto-translated (DeepL) — empty means not yet translated; falls back
+  // to the Bulgarian text on the EN site (see src/lib/i18n/content.ts).
+  name_en: string;
+  description_en: string;
   image: string;
   base_price: number;
   is_pizza: number;
@@ -271,6 +278,9 @@ export type PromoCard = {
   title: string;
   subtitle: string;
   description: string;
+  // Auto-translated (DeepL) — empty falls back to the Bulgarian text.
+  title_en: string;
+  description_en: string;
   image: string;
   // 1 = the image is itself a finished ad (own title/price already baked
   // in) — no text is overlaid on top and the photo is never cropped.

@@ -42,8 +42,10 @@ export async function updatePromoCard(
     active: boolean;
     badge: string;
     title: string;
+    title_en?: string;
     subtitle: string;
     description: string;
+    description_en?: string;
     image: string;
     fullBanner: boolean;
     linkedProductId: number | null;
@@ -53,8 +55,9 @@ export async function updatePromoCard(
   await db
     .prepare(
       `UPDATE promo_cards
-       SET active = @active, badge = @badge, title = @title, subtitle = @subtitle,
-           description = @description, image = @image, full_banner = @full_banner,
+       SET active = @active, badge = @badge, title = @title, title_en = @title_en,
+           subtitle = @subtitle, description = @description, description_en = @description_en,
+           image = @image, full_banner = @full_banner,
            linked_product_id = @linked_product_id
        WHERE position = @position`
     )
@@ -63,8 +66,10 @@ export async function updatePromoCard(
       active: data.active ? 1 : 0,
       badge: data.badge,
       title: data.title,
+      title_en: data.title_en ?? "",
       subtitle: data.subtitle,
       description: data.description,
+      description_en: data.description_en ?? "",
       image: data.image,
       full_banner: data.fullBanner ? 1 : 0,
       linked_product_id: data.linkedProductId,

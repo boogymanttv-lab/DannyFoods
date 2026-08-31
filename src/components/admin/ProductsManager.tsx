@@ -97,6 +97,7 @@ export function ProductsManager({
         id: data.id,
         slug: categoryForm.slug,
         name: categoryForm.name,
+        name_en: "",
         icon: categoryForm.icon,
         sort_order: 0,
         active: 1,

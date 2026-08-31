@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { useT } from "@/lib/i18n/LocaleProvider";
+import { LocaleSwitcher } from "@/components/site/LocaleSwitcher";
 
 export function Header({
   siteName,
@@ -15,6 +17,7 @@ export function Header({
   loggedIn?: boolean;
 }) {
   const { itemCount, openDrawer } = useCart();
+  const t = useT();
 
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-b from-accent-dark to-[#141414] text-white border-b border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
@@ -38,6 +41,8 @@ export function Header({
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          <LocaleSwitcher />
+
           <a
             href={`tel:${phone.replace(/\s/g, "")}`}
             className="hidden md:flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-gold"
@@ -50,11 +55,11 @@ export function Header({
             className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-white/80 hover:text-gold"
           >
             <span aria-hidden>👤</span>
-            <span>{loggedIn ? "Профил" : "Вход"}</span>
+            <span>{loggedIn ? t("nav.account") : t("nav.login")}</span>
           </Link>
           <Link
             href={loggedIn ? "/account" : "/account/login"}
-            aria-label={loggedIn ? "Профил" : "Вход"}
+            aria-label={loggedIn ? t("nav.account") : t("nav.login")}
             className="sm:hidden h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 hover:shadow-[0_0_14px_rgba(245,166,35,0.3)] transition-all"
           >
             <span aria-hidden>👤</span>
@@ -62,7 +67,7 @@ export function Header({
 
           <button
             onClick={openDrawer}
-            aria-label="Количка"
+            aria-label={t("nav.cart")}
             className="relative h-10 w-10 rounded-full bg-white/10 grid place-items-center text-lg hover:bg-white/20 hover:shadow-[0_0_14px_rgba(245,166,35,0.3)] transition-all"
           >
             <span aria-hidden>🛒</span>

@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { estimateLabel, estimateUpperMinutes } from "@/lib/delivery-estimate";
+import { useLocale, useT } from "@/lib/i18n/LocaleProvider";
+import type { DictKey } from "@/lib/i18n/dict";
 import type { OrderStatus } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/shared/MapView").then((m) => m.MapView), {
   ssr: false,
 });
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  new: "Приета",
-  confirmed: "Потвърдена",
-  preparing: "Приготвя се",
-  delivering: "На път е",
-  delivered: "Доставена",
-  cancelled: "Отказана",
+const STATUS_KEYS: Record<OrderStatus, DictKey> = {
+  new: "order.status.new",
+  confirmed: "order.status.confirmed",
+  preparing: "order.status.preparing",
+  delivering: "order.status.delivering",
+  delivered: "order.status.delivered",
+  cancelled: "order.status.cancelled",
 };
 
 type Tracking = {
@@ -37,6 +39,8 @@ function DeliveryCountdownRing({
   estimate: string;
   setAt: string;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -64,7 +68,7 @@ function DeliveryCountdownRing({
   const mm = Math.floor(totalSeconds / 60);
   const ss = totalSeconds % 60;
   const timeLabel =
-    remainingMs <= 0 ? "Всеки момент" : `${mm}:${String(ss).padStart(2, "0")}`;
+    remainingMs <= 0 ? t("order.anyMoment") : `${mm}:${String(ss).padStart(2, "0")}`;
 
   return (
     <div className="flex items-center gap-4">
@@ -95,8 +99,8 @@ function DeliveryCountdownRing({
         </text>
       </svg>
       <div>
-        <p className="text-xs text-muted">Очаквано време за доставка</p>
-        <p className="font-semibold">{estimateLabel(estimate)}</p>
+        <p className="text-xs text-muted">{t("order.estimatedDeliveryTime")}</p>
+        <p className="font-semibold">{estimateLabel(estimate, locale)}</p>
       </div>
     </div>
   );
@@ -109,6 +113,7 @@ export function OrderTracking({
   orderNumber: string;
   initialStatus: OrderStatus;
 }) {
+  const t = useT();
   const [tracking, setTracking] = useState<Tracking>({
     status: initialStatus,
     courierLocation: null,
@@ -140,9 +145,9 @@ export function OrderTracking({
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <span className="font-semibold">Статус</span>
+        <span className="font-semibold">{t("order.status")}</span>
         <span className="bg-brand/10 text-brand font-bold text-sm px-3 py-1 rounded-full">
-          {STATUS_LABELS[tracking.status] ?? tracking.status}
+          {STATUS_KEYS[tracking.status] ? t(STATUS_KEYS[tracking.status]) : tracking.status}
         </span>
       </div>
 
@@ -159,7 +164,7 @@ export function OrderTracking({
       {tracking.status === "delivering" && tracking.courierLocation && (
         <div>
           <p className="text-xs text-muted mb-2">
-            🛵 {tracking.courierLocation.name} е на път към вас — позицията се обновява на живо.
+            🛵 {tracking.courierLocation.name} {t("order.courierOnWay")}
           </p>
           <MapView
             markers={[
@@ -177,7 +182,7 @@ export function OrderTracking({
                       kind: "destination" as const,
                       lat: tracking.destination.lat,
                       lng: tracking.destination.lng,
-                      label: "Адрес за доставка",
+                      label: t("order.deliveryAddressPin"),
                     },
                   ]
                 : []),
@@ -189,9 +194,7 @@ export function OrderTracking({
       )}
 
       {tracking.status === "delivering" && !tracking.courierLocation && (
-        <p className="text-xs text-muted">
-          🛵 Куриерът е тръгнал към вас — все още изчакваме GPS сигнал.
-        </p>
+        <p className="text-xs text-muted">🛵 {t("order.courierNoGps")}</p>
       )}
     </div>
   );

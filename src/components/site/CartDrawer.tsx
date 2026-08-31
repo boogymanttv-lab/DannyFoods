@@ -3,27 +3,29 @@
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
+import { useT } from "@/lib/i18n/LocaleProvider";
 
 export function CartDrawer() {
   const { lines, isDrawerOpen, closeDrawer, updateQuantity, keyOf, subtotal } =
     useCart();
+  const t = useT();
 
   if (!isDrawerOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
-        aria-label="Затвори количката"
+        aria-label={t("cart.close")}
         className="absolute inset-0 bg-black/40"
         onClick={closeDrawer}
       />
       <div className="relative w-full sm:max-w-md h-full bg-surface flex flex-col animate-slide-up sm:animate-none shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="font-display font-bold text-lg">Вашата количка</h2>
+          <h2 className="font-display font-bold text-lg">{t("cart.title")}</h2>
           <button
             onClick={closeDrawer}
             className="h-9 w-9 rounded-full bg-black/5 grid place-items-center text-lg"
-            aria-label="Затвори"
+            aria-label={t("cart.close")}
           >
             ✕
           </button>
@@ -33,7 +35,7 @@ export function CartDrawer() {
           {lines.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-muted gap-2 py-16">
               <span className="text-4xl">🛒</span>
-              <p>Количката е празна</p>
+              <p>{t("cart.emptyShort")}</p>
             </div>
           ) : (
             <ul className="space-y-4">
@@ -67,7 +69,7 @@ export function CartDrawer() {
                       )}
                       {line.removedIngredients && line.removedIngredients.length > 0 && (
                         <p className="text-xs text-brand mt-0.5 truncate">
-                          Без: {line.removedIngredients.join(", ")}
+                          {t("cart.removedIngredients")}: {line.removedIngredients.join(", ")}
                         </p>
                       )}
                       <div className="flex items-center justify-between mt-2">
@@ -103,7 +105,7 @@ export function CartDrawer() {
         {lines.length > 0 && (
           <div className="border-t border-border p-5 space-y-3">
             <div className="flex justify-between font-semibold">
-              <span>Междинна сума</span>
+              <span>{t("cart.subtotal")}</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
             <Link
@@ -111,7 +113,7 @@ export function CartDrawer() {
               onClick={closeDrawer}
               className="block text-center w-full bg-brand text-white rounded-xl py-3.5 font-bold hover:bg-brand-dark transition-colors"
             >
-              Продължи към поръчка
+              {t("cart.checkout")}
             </Link>
           </div>
         )}

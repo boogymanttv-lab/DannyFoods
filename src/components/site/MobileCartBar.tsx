@@ -2,9 +2,11 @@
 
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
+import { useT } from "@/lib/i18n/LocaleProvider";
 
 export function MobileCartBar() {
   const { itemCount, subtotal, openDrawer } = useCart();
+  const t = useT();
 
   if (itemCount === 0) return null;
 
@@ -18,7 +20,7 @@ export function MobileCartBar() {
           <span className="bg-white/20 rounded-full h-6 w-6 grid place-items-center text-xs font-bold">
             {itemCount}
           </span>
-          Виж количката
+          {t("cart.view")}
         </span>
         <span>{formatPrice(subtotal)}</span>
       </button>

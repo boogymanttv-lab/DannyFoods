@@ -83,6 +83,14 @@ export const DEFAULT_SETTINGS = {
   // fail, so double-check it in Resend's dashboard before relying on it. ---
   resend_api_key: "",
   notification_from_email: "DannyFoods <поръчки@cfxwebstudio.xyz>",
+
+  // --- BG/EN language switcher: auto-translates product/category/promo
+  // card names & descriptions via DeepL when an admin saves them. Empty =
+  // feature off — the switcher still shows and works, it just falls back
+  // to showing the Bulgarian text on the English site until this is set.
+  // A free DeepL API key (ends in ":fx") is enough for a single menu's
+  // worth of text. ---
+  deepl_api_key: "",
 };
 
 export type SettingsKey = keyof typeof DEFAULT_SETTINGS;

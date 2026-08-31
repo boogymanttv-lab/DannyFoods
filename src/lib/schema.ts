@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
+  -- Auto-translated (DeepL, when configured) on save from name — empty
+  -- means "not translated yet", in which case the English site just falls
+  -- back to showing the Bulgarian name rather than nothing at all.
+  name_en TEXT NOT NULL DEFAULT '',
   icon TEXT DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0,
   active INTEGER NOT NULL DEFAULT 1
@@ -28,6 +32,10 @@ CREATE TABLE IF NOT EXISTS products (
   category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
+  -- Auto-translated English name/description (see categories.name_en above
+  -- for the fallback behavior — same convention here).
+  name_en TEXT NOT NULL DEFAULT '',
+  description_en TEXT NOT NULL DEFAULT '',
   image TEXT DEFAULT '',
   base_price REAL NOT NULL,
   is_pizza INTEGER NOT NULL DEFAULT 0,
@@ -177,6 +185,10 @@ CREATE TABLE IF NOT EXISTS orders (
   pizza_transfer_amount REAL,
   pizza_transfer_status TEXT,
   pizza_transfer_error TEXT,
+  -- Set once the automatic post-delivery "how was it?" review reminder
+  -- email has actually been sent for this order — the cron job's own
+  -- de-duplication guard (see /api/cron/review-reminders), NULL until then.
+  review_reminder_sent_at TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
   updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
@@ -244,6 +256,10 @@ CREATE TABLE IF NOT EXISTS promo_cards (
   title TEXT NOT NULL DEFAULT '',
   subtitle TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
+  -- Auto-translated English text (see products.name_en) — falls back to
+  -- the Bulgarian text when empty.
+  title_en TEXT NOT NULL DEFAULT '',
+  description_en TEXT NOT NULL DEFAULT '',
   image TEXT NOT NULL DEFAULT '',
   -- When the uploaded image is itself a finished ad (its own title/price/
   -- crown graphics already baked in, not a plain product photo), the card

@@ -1,0 +1,216 @@
+// Static UI-chrome translations (buttons, labels, headings) — separate
+// from menu/promo CONTENT translation (see content.ts), which comes from
+// the database's auto-translated _en columns instead. Deliberately scoped
+// to the pages a tourist actually needs to get through: browsing the menu
+// and completing checkout — not every admin/courier/account screen, which
+// stay Bulgarian-only (staff-facing, not tourist-facing).
+export type Locale = "bg" | "en";
+
+export const DICT = {
+  // Header / nav
+  "nav.menu": { bg: "Меню", en: "Menu" },
+  "nav.offers": { bg: "Оферти", en: "Offers" },
+  "nav.login": { bg: "Вход", en: "Log in" },
+  "nav.account": { bg: "Профил", en: "Account" },
+  "nav.cart": { bg: "Количка", en: "Cart" },
+
+  // Homepage hero
+  "hero.deliveryBadge": { bg: "Доставка само в град Варна 🚴", en: "Delivery in Varna only 🚴" },
+  "hero.openBadge": { bg: "ОТВОРЕНО · ДОСТАВЯМЕ ДО", en: "OPEN · DELIVERY IN" },
+  "hero.closedBadge": { bg: "В МОМЕНТА СМЕ ЗАТВОРЕНИ", en: "CURRENTLY CLOSED" },
+  "hero.subtitle": {
+    bg: "Поръчай онлайн и получи прясно приготвена храна директно на адреса си във Варна.",
+    en: "Order online and get freshly made food delivered straight to your address in Varna.",
+  },
+  "hero.cta": { bg: "🔥 Разгледай менюто", en: "🔥 Browse the menu" },
+  "kitchen.calm": { bg: "Кухнята работи спокойно", en: "Kitchen is running smoothly" },
+  "kitchen.medium": { bg: "Леко натоварени сме", en: "Slightly busy right now" },
+  "kitchen.busy": { bg: "Много поръчки в момента", en: "Very busy right now" },
+
+  // Menu browsing
+  "menu.empty": { bg: "Няма продукти в тази категория все още.", en: "No products in this category yet." },
+  "menu.select": { bg: "Избери", en: "Select" },
+  "menu.from": { bg: "от", en: "from" },
+
+  // Product modal
+  "product.size": { bg: "Размер", en: "Size" },
+  "product.extras": { bg: "Добавки", en: "Extras" },
+  "product.removeIngredients": { bg: "Без —", en: "Remove —" },
+  "product.quantity": { bg: "Количество", en: "Quantity" },
+  "product.addToCart": { bg: "Добави в количката", en: "Add to cart" },
+  "product.pairsWith": { bg: "Често купувано с", en: "Often bought with" },
+  "product.reviews": { bg: "Отзиви", en: "Reviews" },
+  "product.reviews.canReview": {
+    bg: "Поръчвали сте този продукт — оставете отзив:",
+    en: "You've ordered this — leave a review:",
+  },
+  "product.reviews.commentPlaceholder": { bg: "Коментар (по желание)", en: "Comment (optional)" },
+  "product.reviews.submit": { bg: "Запази отзива", en: "Save review" },
+  "product.reviews.submitting": { bg: "Изпращане...", en: "Submitting..." },
+  "product.reviews.empty": { bg: "Все още няма отзиви за този продукт.", en: "No reviews yet for this product." },
+  "product.reviews.loginRequired": {
+    bg: "Вход и поръчка на продукта са нужни, за да оставите отзив.",
+    en: "Log in and order this product to leave a review.",
+  },
+
+  // Cart
+  "cart.title": { bg: "Вашата количка", en: "Your cart" },
+  "cart.empty": { bg: "Количката е празна.", en: "Your cart is empty." },
+  "cart.subtotal": { bg: "Междинна сума", en: "Subtotal" },
+  "cart.checkout": { bg: "Продължи към поръчка", en: "Continue to checkout" },
+  "cart.continueShopping": { bg: "Разгледай менюто", en: "Browse the menu" },
+  "cart.view": { bg: "Виж количката", en: "View cart" },
+  "cart.emptyShort": { bg: "Количката е празна", en: "Your cart is empty" },
+  "cart.removedIngredients": { bg: "Без", en: "Without" },
+  "cart.close": { bg: "Затвори", en: "Close" },
+
+  // Checkout
+  "checkout.title": { bg: "Завършване на поръчката", en: "Complete your order" },
+  "checkout.delivery": { bg: "Доставка", en: "Delivery" },
+  "checkout.pickup": { bg: "Вземане от място", en: "Pickup" },
+  "checkout.contactInfo": { bg: "Данни за контакт", en: "Contact details" },
+  "checkout.name": { bg: "Име", en: "Name" },
+  "checkout.phone": { bg: "Телефон", en: "Phone" },
+  "checkout.email": { bg: "Имейл (по желание)", en: "Email (optional)" },
+  "checkout.deliveryAddress": { bg: "Адрес за доставка", en: "Delivery address" },
+  "checkout.quarter": { bg: "Квартал", en: "Neighborhood" },
+  "checkout.street": { bg: "Улица", en: "Street" },
+  "checkout.houseNumber": { bg: "Номер", en: "No." },
+  "checkout.intercom": { bg: "Звънец (по желание)", en: "Intercom (optional)" },
+  "checkout.addressNotes": { bg: "Етаж, апартамент (по желание)", en: "Floor, apartment (optional)" },
+  "checkout.deliveryTime": { bg: "Час на доставка", en: "Delivery time" },
+  "checkout.asap": { bg: "Възможно най-скоро", en: "As soon as possible" },
+  "checkout.payment": { bg: "Начин на плащане", en: "Payment method" },
+  "checkout.paymentCash": { bg: "В брой", en: "Cash" },
+  "checkout.paymentCardOnDelivery": { bg: "С карта на куриера", en: "Card on delivery" },
+  "checkout.paymentStripe": { bg: "Онлайн с карта", en: "Pay online by card" },
+  "checkout.promoCode": { bg: "Промо код", en: "Promo code" },
+  "checkout.notes": { bg: "Бележка към поръчката (по желание)", en: "Order note (optional)" },
+  "checkout.total": { bg: "Общо", en: "Total" },
+  "checkout.deliveryFee": { bg: "Такса доставка", en: "Delivery fee" },
+  "checkout.discount": { bg: "Отстъпка", en: "Discount" },
+  "checkout.submit": { bg: "Потвърди поръчката", en: "Confirm order" },
+  "checkout.submitting": { bg: "Изпращане...", en: "Submitting..." },
+  "checkout.orderTypeDelivery": { bg: "🚴 Доставка", en: "🚴 Delivery" },
+  "checkout.orderTypePickup": { bg: "🏠 Вземи на място", en: "🏠 Pick up" },
+  "checkout.deliveryDetails": { bg: "Данни за доставка", en: "Delivery details" },
+  "checkout.orderDetails": { bg: "Данни за поръчката", en: "Order details" },
+  "checkout.loginFaster": { bg: "Вход за по-бързо поръчване →", en: "Log in for faster checkout →" },
+  "checkout.loadSavedAddress": {
+    bg: "Зареди запазен адрес — попълва полетата по-долу вместо да пишеш отново:",
+    en: "Load a saved address — fills in the fields below instead of typing again:",
+  },
+  "checkout.newAddress": { bg: "+ Нов адрес (въведи ръчно)", en: "+ New address (enter manually)" },
+  "checkout.nameOptional": { bg: "Име и фамилия (по желание)", en: "Full name (optional)" },
+  "checkout.phoneRequired": { bg: "Телефон *", en: "Phone *" },
+  "checkout.emailPlaceholder": {
+    bg: "Имейл (по желание — за потвърждение на поръчката)",
+    en: "Email (optional — for order confirmation)",
+  },
+  "checkout.pickupFrom": { bg: "Вземане от: ", en: "Pickup from: " },
+  "checkout.quarterLabel": { bg: "Квартал: ", en: "Neighborhood: " },
+  "checkout.addressLabel": { bg: "Адрес: ", en: "Address: " },
+  "checkout.floorApt": { bg: "Етаж/апартамент: ", en: "Floor/apartment: " },
+  "checkout.intercomLabel": { bg: "Звънец: ", en: "Intercom: " },
+  "checkout.changeAddress": { bg: "Промени / въведи друг адрес", en: "Change / enter a different address" },
+  "checkout.quarterRequired": { bg: "Квартал *", en: "Neighborhood *" },
+  "checkout.streetRequired": { bg: "Улица *", en: "Street *" },
+  "checkout.houseNumberRequired": { bg: "Номер *", en: "No. *" },
+  "checkout.addressHint": {
+    bg: "Кварталът, улицата и номерът ориентират картата — моля, попълвайте ги точно.",
+    en: "The neighborhood, street and number are used to locate you on the map — please enter them accurately.",
+  },
+  "checkout.floorBlockApt": { bg: "Етаж, блок, апартамент (по желание)", en: "Floor, block, apartment (optional)" },
+  "checkout.intercomPlaceholder": {
+    bg: "Звънец — име/номер на табло (по желание)",
+    en: "Intercom — name/number on the panel (optional)",
+  },
+  "checkout.orderNotesPlaceholder": { bg: "Бележки към поръчката (по желание)", en: "Order notes (optional)" },
+  "checkout.paymentMethodTitle": { bg: "Начин на плащане", en: "Payment method" },
+  "checkout.paymentCashPickup": { bg: "В брой на място", en: "Cash on pickup" },
+  "checkout.paymentCashDelivery": { bg: "Наложен платеж — в брой на куриера", en: "Cash on delivery" },
+  "checkout.paymentCardPickup": { bg: "С карта на място (ПОС)", en: "Card on pickup (POS)" },
+  "checkout.paymentCardDeliveryPos": {
+    bg: "Наложен платеж — с карта на куриера (ПОС)",
+    en: "Card on delivery (POS)",
+  },
+  "checkout.paymentStripeOnline": { bg: "Картово плащане онлайн сега", en: "Pay by card online now" },
+  "checkout.deliveryTimeTitle": { bg: "Час на доставка", en: "Delivery time" },
+  "checkout.closedPickTime": {
+    bg: "В момента сме затворени — изберете час, в който сме отворени.",
+    en: "We're currently closed — please choose a time when we're open.",
+  },
+  "checkout.asapStandard": { bg: "Възможно най-скоро (стандартно)", en: "As soon as possible (standard)" },
+  "checkout.pickTime": { bg: "Избери час", en: "Choose a time" },
+  "checkout.orderSummary": { bg: "Резюме на поръчката", en: "Order summary" },
+  "checkout.promoCodePlaceholder": { bg: "Промо код", en: "Promo code" },
+  "checkout.apply": { bg: "Приложи", en: "Apply" },
+  "checkout.appliedCode": { bg: "Приложен код", en: "Code applied" },
+  "checkout.free": { bg: "Безплатна", en: "Free" },
+  "checkout.minOrderNotice": { bg: "Минималната поръчка е", en: "The minimum order is" },
+  "checkout.requiredFieldsError": {
+    bg: "Моля, попълнете всички задължителни полета.",
+    en: "Please fill in all required fields.",
+  },
+  "checkout.genericError": { bg: "Възникна грешка. Опитайте отново.", en: "Something went wrong. Please try again." },
+  "checkout.connectionError": {
+    bg: "Възникна грешка при връзката със сървъра.",
+    en: "Connection error. Please try again.",
+  },
+  "checkout.invalidPromoCode": { bg: "Невалиден код", en: "Invalid code" },
+  "checkout.cartEmptyHint": {
+    bg: "Добавете продукти от менюто, за да продължите.",
+    en: "Add items from the menu to continue.",
+  },
+  "checkout.toMenu": { bg: "Към менюто", en: "To the menu" },
+
+  // Order tracking / confirmation
+  "order.thankYou": { bg: "Благодарим Ви за поръчката!", en: "Thank you for your order!" },
+  "order.number": { bg: "Номер на поръчка", en: "Order number" },
+  "order.products": { bg: "Продукти", en: "Products" },
+  "order.backToMenu": { bg: "Обратно към менюто", en: "Back to the menu" },
+  "order.status.new": { bg: "Приета", en: "Received" },
+  "order.status.confirmed": { bg: "Потвърдена", en: "Confirmed" },
+  "order.status.preparing": { bg: "Приготвя се", en: "Preparing" },
+  "order.status.delivering": { bg: "На път е", en: "On the way" },
+  "order.status.delivered": { bg: "Доставена", en: "Delivered" },
+  "order.status.cancelled": { bg: "Отказана", en: "Cancelled" },
+  "order.subtotal": { bg: "Междинна сума", en: "Subtotal" },
+  "order.deliveryOrPickup": { bg: "Доставка", en: "Delivery" },
+  "order.pickupFromPlace": { bg: "Вземане от място", en: "Pickup" },
+  "order.discount": { bg: "Отстъпка", en: "Discount" },
+  "order.total": { bg: "Общо", en: "Total" },
+  "order.pickupFromColon": { bg: "Вземане от: ", en: "Pickup from: " },
+  "order.deliveryToColon": { bg: "Доставка до: ", en: "Delivery to: " },
+  "order.onSitePickupFallback": { bg: "адреса на място", en: "the pickup address" },
+  "order.floorApt": { bg: "Етаж/апартамент: ", en: "Floor/apartment: " },
+  "order.intercom": { bg: "Звънец: ", en: "Intercom: " },
+  "order.phone": { bg: "Телефон: ", en: "Phone: " },
+  "order.deliveryTimeColon": { bg: "Час на доставка: ", en: "Delivery time: " },
+  "order.asap": { bg: "Възможно най-скоро", en: "As soon as possible" },
+  "order.without": { bg: "Без", en: "Without" },
+  "order.loginToReview": { bg: "Влез в акаунта си", en: "Log in" },
+  "order.loginToReviewSuffix": {
+    bg: ", за да оставиш отзив за поръчката.",
+    en: " to leave a review for this order.",
+  },
+  "order.status": { bg: "Статус", en: "Status" },
+  "order.estimatedDeliveryTime": { bg: "Очаквано време за доставка", en: "Estimated delivery time" },
+  "order.anyMoment": { bg: "Всеки момент", en: "Any moment" },
+  "order.courierOnWay": { bg: "е на път към вас — позицията се обновява на живо.", en: "is on the way to you — location updates live." },
+  "order.deliveryAddressPin": { bg: "Адрес за доставка", en: "Delivery address" },
+  "order.courierNoGps": { bg: "Куриерът е тръгнал към вас — все още изчакваме GPS сигнал.", en: "The courier is on the way — still waiting for a GPS signal." },
+  "order.reviewPrompt.title": { bg: "Как мина поръчката?", en: "How was your order?" },
+  "order.reviewPrompt.update": { bg: "Обнови отзива ✔", en: "Update review ✔" },
+  "offers.title": { bg: "Оферти", en: "Offers" },
+  "offers.intro": { bg: "Текущите ни промоции и комбо пакети — за постоянното меню виж", en: "Our current promotions and combo deals — for the full menu see" },
+  "offers.menu": { bg: "менюто", en: "the menu" },
+  "offers.empty": { bg: "В момента няма активни оферти — очаквайте скоро.", en: "No active offers right now — check back soon." },
+  "offers.addToCart": { bg: "Добави в количката", en: "Add to cart" },
+} as const satisfies Record<string, Record<Locale, string>>;
+
+export type DictKey = keyof typeof DICT;
+
+export function translate(locale: Locale, key: DictKey): string {
+  return DICT[key][locale];
+}

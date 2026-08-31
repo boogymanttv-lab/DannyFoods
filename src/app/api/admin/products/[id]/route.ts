@@ -5,7 +5,10 @@ import {
   setProductSizes,
   setComboItems,
   computeComboPrice,
+  getProduct,
 } from "@/lib/repos/products";
+import { getSettings } from "@/lib/repos/settings";
+import { autoTranslateFields } from "@/lib/translate";
 
 export async function PATCH(
   req: NextRequest,
@@ -30,6 +33,23 @@ export async function PATCH(
       // anything, so drop it rather than leaving stale rows behind.
       await setComboItems(productId, []);
     }
+  }
+
+  // Only the full product-form save touches name/description at all — a
+  // plain active/sort_order toggle shouldn't burn a DeepL call re-translating
+  // text that hasn't changed.
+  if ("name" in rest || "description" in rest) {
+    const existing = await getProduct(productId);
+    const settings = await getSettings();
+    const { name_en, description_en } = await autoTranslateFields(
+      {
+        name: rest.name ?? existing?.name ?? "",
+        description: rest.description ?? existing?.description ?? "",
+      },
+      settings.deepl_api_key
+    );
+    rest.name_en = name_en;
+    rest.description_en = description_en;
   }
 
   if (Object.keys(rest).length > 0) {

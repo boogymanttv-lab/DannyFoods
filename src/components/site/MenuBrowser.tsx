@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { ProductModal } from "@/components/site/ProductModal";
+import { useT } from "@/lib/i18n/LocaleProvider";
 import type { Category, ProductWithOptions } from "@/lib/types";
 
 export function MenuBrowser({
@@ -21,6 +22,7 @@ export function MenuBrowser({
   // rather than one per card) — a product with no reviews just has no entry.
   ratings?: Record<number, { average: number; count: number }>;
 }) {
+  const t = useT();
   const [activeSlug, setActiveSlug] = useState(categories[0]?.slug ?? "");
   const [selectedProduct, setSelectedProduct] = useState<ProductWithOptions | null>(
     null
@@ -83,9 +85,7 @@ export function MenuBrowser({
             </h2>
 
             {items.length === 0 ? (
-              <p className="text-muted text-center py-16">
-                Няма продукти в тази категория все още.
-              </p>
+              <p className="text-muted text-center py-16">{t("menu.empty")}</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
                 {items.map((p) => (
@@ -144,12 +144,14 @@ export function MenuBrowser({
                       <span className="mt-1.5 sm:mt-3 font-bold text-brand text-xs sm:text-base">
                         {(() => {
                           const { price, fromMultiple } = getDisplayPrice(p);
-                          return fromMultiple ? `от ${formatPrice(price)}` : formatPrice(price);
+                          return fromMultiple
+                            ? `${t("menu.from")} ${formatPrice(price)}`
+                            : formatPrice(price);
                         })()}
                       </span>
                     </div>
                     <span className="block text-center text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand to-brand-dark py-1.5 sm:py-2.5 group-hover:from-brand-light group-hover:to-brand transition-colors">
-                      Избери
+                      {t("menu.select")}
                     </span>
                   </button>
                 ))}

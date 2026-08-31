@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/format";
+import { useT } from "@/lib/i18n/LocaleProvider";
 import type { DeliverySlot } from "@/lib/delivery-slots";
 import type { CustomerAddress, OrderType } from "@/lib/types";
 
@@ -15,6 +16,7 @@ function slotKey(s: DeliverySlot): string {
 export default function CheckoutPage() {
   const { lines, subtotal, keyOf, clear } = useCart();
   const router = useRouter();
+  const t = useT();
 
   const [orderType, setOrderType] = useState<OrderType>("delivery");
   const [quarter, setQuarter] = useState("");
@@ -173,7 +175,7 @@ export default function CheckoutPage() {
     });
     const data = await res.json();
     if (!res.ok || !data.ok) {
-      setPromoError(data.error ?? "Невалиден код");
+      setPromoError(data.error ?? t("checkout.invalidPromoCode"));
       setPromoApplied(null);
       return;
     }
@@ -183,15 +185,15 @@ export default function CheckoutPage() {
   async function submitOrder() {
     setSubmitError("");
     if (!phone.trim()) {
-      setSubmitError("Моля, попълнете всички задължителни полета.");
+      setSubmitError(t("checkout.requiredFieldsError"));
       return;
     }
     if (orderType === "delivery" && (!quarter.trim() || !street.trim() || !houseNumber.trim())) {
-      setSubmitError("Моля, попълнете всички задължителни полета.");
+      setSubmitError(t("checkout.requiredFieldsError"));
       return;
     }
     if (!meetsMinimum) {
-      setSubmitError(`Минималната поръчка е ${minOrderGlobal.toFixed(2)} €`);
+      setSubmitError(`${t("checkout.minOrderNotice")} ${minOrderGlobal.toFixed(2)} €`);
       return;
     }
     setSubmitting(true);
@@ -229,14 +231,14 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setSubmitError(data.error ?? "Възникна грешка. Опитайте отново.");
+        setSubmitError(data.error ?? t("checkout.genericError"));
         setSubmitting(false);
         return;
       }
       clear();
       router.push(data.redirectUrl);
     } catch {
-      setSubmitError("Възникна грешка при връзката със сървъра.");
+      setSubmitError(t("checkout.connectionError"));
       setSubmitting(false);
     }
   }
@@ -245,10 +247,10 @@ export default function CheckoutPage() {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
         <p className="text-5xl mb-4">🛒</p>
-        <h1 className="font-display font-bold text-xl mb-2">Количката е празна</h1>
-        <p className="text-muted mb-6">Добавете продукти от менюто, за да продължите.</p>
+        <h1 className="font-display font-bold text-xl mb-2">{t("cart.emptyShort")}</h1>
+        <p className="text-muted mb-6">{t("checkout.cartEmptyHint")}</p>
         <Link href="/" className="inline-block bg-brand text-white rounded-xl px-6 py-3 font-bold">
-          Към менюто
+          {t("checkout.toMenu")}
         </Link>
       </div>
     );
@@ -257,13 +259,13 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 grid lg:grid-cols-[1fr_360px] gap-8">
       <div className="space-y-6">
-        <h1 className="font-display font-extrabold text-2xl">Завършване на поръчката</h1>
+        <h1 className="font-display font-extrabold text-2xl">{t("checkout.title")}</h1>
 
         <div className="bg-surface rounded-2xl border border-border p-2 grid grid-cols-2 gap-2">
           {(
             [
-              { value: "delivery", label: "🚴 Доставка" },
-              { value: "pickup", label: "🏠 Вземи на място" },
+              { value: "delivery", label: t("checkout.orderTypeDelivery") },
+              { value: "pickup", label: t("checkout.orderTypePickup") },
             ] as const
           ).map((opt) => (
             <button
@@ -284,11 +286,11 @@ export default function CheckoutPage() {
         <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-semibold">
-              {orderType === "delivery" ? "Данни за доставка" : "Данни за поръчката"}
+              {orderType === "delivery" ? t("checkout.deliveryDetails") : t("checkout.orderDetails")}
             </h2>
             {!loggedIn && (
               <Link href="/account/login?redirect=/checkout" className="text-xs font-semibold text-brand">
-                Вход за по-бързо поръчване →
+                {t("checkout.loginFaster")}
               </Link>
             )}
           </div>
@@ -296,7 +298,7 @@ export default function CheckoutPage() {
           {orderType === "delivery" && loggedIn && savedAddresses.length > 0 && (
             <div className="space-y-1">
               <label className="text-xs text-muted block">
-                Зареди запазен адрес — попълва полетата по-долу вместо да пишеш отново:
+                {t("checkout.loadSavedAddress")}
               </label>
               <select
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
@@ -310,7 +312,7 @@ export default function CheckoutPage() {
                     {a.label} ({a.address})
                   </option>
                 ))}
-                <option value="new">+ Нов адрес (въведи ръчно)</option>
+                <option value="new">{t("checkout.newAddress")}</option>
               </select>
             </div>
           )}
@@ -318,20 +320,20 @@ export default function CheckoutPage() {
           <div className="grid sm:grid-cols-2 gap-3">
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Име и фамилия (по желание)"
+              placeholder={t("checkout.nameOptional")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Телефон *"
+              placeholder={t("checkout.phoneRequired")}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
             <input
               type="email"
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm sm:col-span-2"
-              placeholder="Имейл (по желание — за потвърждение на поръчката)"
+              placeholder={t("checkout.emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -340,37 +342,37 @@ export default function CheckoutPage() {
           {orderType === "pickup" ? (
             pickupAddress && (
               <p className="rounded-xl border border-border bg-black/5 px-3.5 py-2.5 text-sm">
-                <span className="text-muted">Вземане от: </span>
+                <span className="text-muted">{t("checkout.pickupFrom")}</span>
                 {pickupAddress}
               </p>
             )
           ) : usingSavedAddress ? (
             <div className="rounded-xl border border-border bg-black/5 px-3.5 py-2.5 text-sm space-y-1">
               <p>
-                <span className="text-muted">Квартал: </span>
+                <span className="text-muted">{t("checkout.quarterLabel")}</span>
                 {quarter}
               </p>
               <p>
-                <span className="text-muted">Адрес: </span>
+                <span className="text-muted">{t("checkout.addressLabel")}</span>
                 {street} {houseNumber}
               </p>
               {addressNotes && (
-                <p className="text-xs text-muted">Етаж/апартамент: {addressNotes}</p>
+                <p className="text-xs text-muted">{t("checkout.floorApt")}{addressNotes}</p>
               )}
-              {intercom && <p className="text-xs text-muted">Звънец: {intercom}</p>}
+              {intercom && <p className="text-xs text-muted">{t("checkout.intercomLabel")}{intercom}</p>}
               <button
                 type="button"
                 onClick={() => pickSavedAddress("new")}
                 className="text-xs font-semibold text-brand"
               >
-                Промени / въведи друг адрес
+                {t("checkout.changeAddress")}
               </button>
             </div>
           ) : (
             <>
               <input
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-                placeholder="Квартал *"
+                placeholder={t("checkout.quarterRequired")}
                 value={quarter}
                 onChange={(e) => {
                   addressTouchedRef.current = true;
@@ -380,29 +382,27 @@ export default function CheckoutPage() {
               <div className="grid sm:grid-cols-[1fr_140px] gap-3">
                 <input
                   className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
-                  placeholder="Улица *"
+                  placeholder={t("checkout.streetRequired")}
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                 />
                 <input
                   className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
-                  placeholder="Номер *"
+                  placeholder={t("checkout.houseNumberRequired")}
                   value={houseNumber}
                   onChange={(e) => setHouseNumber(e.target.value)}
                 />
               </div>
-              <p className="text-xs text-muted -mt-2">
-                Кварталът, улицата и номерът ориентират картата — моля, попълвайте ги точно.
-              </p>
+              <p className="text-xs text-muted -mt-2">{t("checkout.addressHint")}</p>
               <input
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-                placeholder="Етаж, блок, апартамент (по желание)"
+                placeholder={t("checkout.floorBlockApt")}
                 value={addressNotes}
                 onChange={(e) => setAddressNotes(e.target.value)}
               />
               <input
                 className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-                placeholder="Звънец — име/номер на табло (по желание)"
+                placeholder={t("checkout.intercomPlaceholder")}
                 value={intercom}
                 onChange={(e) => setIntercom(e.target.value)}
               />
@@ -410,7 +410,7 @@ export default function CheckoutPage() {
           )}
           <textarea
             className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            placeholder="Бележки към поръчката (по желание)"
+            placeholder={t("checkout.orderNotesPlaceholder")}
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -418,20 +418,20 @@ export default function CheckoutPage() {
         </div>
 
         <div className="bg-surface rounded-2xl border border-border p-5 space-y-3">
-          <h2 className="font-semibold">Начин на плащане</h2>
+          <h2 className="font-semibold">{t("checkout.paymentMethodTitle")}</h2>
           {(
             [
               {
                 value: "cash",
-                label: isPickup ? "В брой на място" : "Наложен платеж — в брой на куриера",
+                label: isPickup ? t("checkout.paymentCashPickup") : t("checkout.paymentCashDelivery"),
               },
               {
                 value: "card_on_delivery",
                 label: isPickup
-                  ? "С карта на място (ПОС)"
-                  : "Наложен платеж — с карта на куриера (ПОС)",
+                  ? t("checkout.paymentCardPickup")
+                  : t("checkout.paymentCardDeliveryPos"),
               },
-              { value: "stripe", label: "Картово плащане онлайн сега" },
+              { value: "stripe", label: t("checkout.paymentStripeOnline") },
             ] as const
           ).map((opt) => (
             <label
@@ -453,11 +453,9 @@ export default function CheckoutPage() {
         </div>
 
         <div className="bg-surface rounded-2xl border border-border p-5 space-y-3">
-          <h2 className="font-semibold">Час на доставка</h2>
+          <h2 className="font-semibold">{t("checkout.deliveryTimeTitle")}</h2>
           {!shopOpenNow && (
-            <p className="text-xs text-brand font-semibold">
-              В момента сме затворени — изберете час, в който сме отворени.
-            </p>
+            <p className="text-xs text-brand font-semibold">{t("checkout.closedPickTime")}</p>
           )}
           <label
             className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm ${
@@ -472,7 +470,7 @@ export default function CheckoutPage() {
               className="accent-[var(--brand)]"
               disabled={!shopOpenNow}
             />
-            Възможно най-скоро (стандартно)
+            {t("checkout.asapStandard")}
           </label>
           <label
             className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm cursor-pointer ${
@@ -487,7 +485,7 @@ export default function CheckoutPage() {
               className="accent-[var(--brand)]"
               disabled={availableSlots.length === 0}
             />
-            Избери час
+            {t("checkout.pickTime")}
           </label>
           {deliveryTiming === "scheduled" && (
             <select
@@ -506,7 +504,7 @@ export default function CheckoutPage() {
       </div>
 
       <aside className="bg-surface rounded-2xl border border-border p-5 h-fit space-y-4">
-        <h2 className="font-semibold">Резюме на поръчката</h2>
+        <h2 className="font-semibold">{t("checkout.orderSummary")}</h2>
         <ul className="space-y-2 text-sm max-h-64 overflow-y-auto">
           {lines.map((l) => (
             <li key={keyOf(l)} className="flex justify-between gap-2">
@@ -515,7 +513,7 @@ export default function CheckoutPage() {
                 {l.sizeLabel ? ` (${l.sizeLabel})` : ""}
                 {l.removedIngredients && l.removedIngredients.length > 0 && (
                   <span className="block text-brand text-xs">
-                    Без: {l.removedIngredients.join(", ")}
+                    {t("cart.removedIngredients")}: {l.removedIngredients.join(", ")}
                   </span>
                 )}
               </span>
@@ -531,7 +529,7 @@ export default function CheckoutPage() {
         <div className="flex gap-2">
           <input
             className="flex-1 rounded-xl border border-border px-3 py-2 text-sm"
-            placeholder="Промо код"
+            placeholder={t("checkout.promoCodePlaceholder")}
             value={promoInput}
             onChange={(e) => setPromoInput(e.target.value)}
           />
@@ -539,40 +537,40 @@ export default function CheckoutPage() {
             onClick={applyPromo}
             className="rounded-xl bg-accent-dark text-white px-4 text-sm font-semibold"
           >
-            Приложи
+            {t("checkout.apply")}
           </button>
         </div>
         {promoError && <p className="text-xs text-brand">{promoError}</p>}
         {promoApplied && (
           <p className="text-xs text-success font-semibold">
-            Приложен код {promoApplied.code}: -{formatPrice(promoApplied.discount)}
+            {t("checkout.appliedCode")} {promoApplied.code}: -{formatPrice(promoApplied.discount)}
           </p>
         )}
 
         <div className="border-t border-border pt-3 space-y-1.5 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted">Междинна сума</span>
+            <span className="text-muted">{t("cart.subtotal")}</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">{isPickup ? "Вземане от място" : "Доставка"}</span>
-            <span>{deliveryFee === 0 ? (isPickup ? "—" : "Безплатна") : formatPrice(deliveryFee)}</span>
+            <span className="text-muted">{isPickup ? t("checkout.pickup") : t("checkout.delivery")}</span>
+            <span>{deliveryFee === 0 ? (isPickup ? "—" : t("checkout.free")) : formatPrice(deliveryFee)}</span>
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-success">
-              <span>Отстъпка</span>
+              <span>{t("checkout.discount")}</span>
               <span>-{formatPrice(discount)}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-base pt-1">
-            <span>Общо</span>
+            <span>{t("checkout.total")}</span>
             <span>{formatPrice(total)}</span>
           </div>
         </div>
 
         {!meetsMinimum && (
           <p className="text-xs text-brand">
-            Минималната поръчка е {formatPrice(minOrderGlobal)}.
+            {t("checkout.minOrderNotice")} {formatPrice(minOrderGlobal)}.
           </p>
         )}
         {submitError && <p className="text-xs text-brand font-semibold">{submitError}</p>}
@@ -582,7 +580,7 @@ export default function CheckoutPage() {
           disabled={submitting}
           className="w-full bg-brand text-white rounded-xl py-3.5 font-bold hover:bg-brand-dark transition-colors disabled:opacity-60"
         >
-          {submitting ? "Изпращане..." : "Потвърди поръчката"}
+          {submitting ? t("checkout.submitting") : t("checkout.submit")}
         </button>
       </aside>
     </div>

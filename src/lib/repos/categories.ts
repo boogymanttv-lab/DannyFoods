@@ -19,17 +19,19 @@ export async function getCategoryBySlug(slug: string): Promise<Category | undefi
 export async function createCategory(data: {
   slug: string;
   name: string;
+  name_en?: string;
   icon?: string;
   sort_order?: number;
 }) {
   const db = await getDb();
   const info = await db
     .prepare(
-      "INSERT INTO categories (slug, name, icon, sort_order) VALUES (@slug, @name, @icon, @sort_order)"
+      "INSERT INTO categories (slug, name, name_en, icon, sort_order) VALUES (@slug, @name, @name_en, @icon, @sort_order)"
     )
     .run({
       slug: data.slug,
       name: data.name,
+      name_en: data.name_en ?? "",
       icon: data.icon ?? "",
       sort_order: data.sort_order ?? 0,
     });
@@ -38,7 +40,7 @@ export async function createCategory(data: {
 
 export async function updateCategory(
   id: number,
-  data: Partial<Pick<Category, "name" | "icon" | "sort_order" | "active" | "slug">>
+  data: Partial<Pick<Category, "name" | "name_en" | "icon" | "sort_order" | "active" | "slug">>
 ) {
   const db = await getDb();
   const fields = Object.keys(data);

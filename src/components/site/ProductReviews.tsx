@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n/LocaleProvider";
 import type { ProductReviewPublic } from "@/lib/types";
 
 function Stars({
@@ -35,6 +36,7 @@ function Stars({
 // (enforced server-side; this UI just reflects what the API already told
 // it via `canReview`).
 export function ProductReviews({ productId }: { productId: number }) {
+  const t = useT();
   const [reviews, setReviews] = useState<ProductReviewPublic[]>([]);
   const [average, setAverage] = useState(0);
   const [count, setCount] = useState(0);
@@ -96,7 +98,7 @@ export function ProductReviews({ productId }: { productId: number }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <p className="font-semibold text-sm">Отзиви</p>
+        <p className="font-semibold text-sm">{t("product.reviews")}</p>
         {count > 0 && (
           <span className="flex items-center gap-1 text-xs text-muted">
             <Stars value={average} />
@@ -107,13 +109,11 @@ export function ProductReviews({ productId }: { productId: number }) {
 
       {canReview && (
         <div className="rounded-xl border border-border p-3 mb-3 space-y-2">
-          <p className="text-xs text-muted">
-            Поръчвали сте този продукт — оставете отзив:
-          </p>
+          <p className="text-xs text-muted">{t("product.reviews.canReview")}</p>
           <Stars value={rating} size="text-xl" onPick={setRating} />
           <textarea
             className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-            placeholder="Коментар (по желание)"
+            placeholder={t("product.reviews.commentPlaceholder")}
             rows={2}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -124,13 +124,13 @@ export function ProductReviews({ productId }: { productId: number }) {
             disabled={submitting || rating < 1}
             className="text-xs font-bold bg-brand text-white rounded-lg px-3 py-1.5 disabled:opacity-50"
           >
-            {submitting ? "Изпращане..." : "Запази отзива"}
+            {submitting ? t("product.reviews.submitting") : t("product.reviews.submit")}
           </button>
         </div>
       )}
 
       {reviews.length === 0 ? (
-        <p className="text-xs text-muted">Все още няма отзиви за този продукт.</p>
+        <p className="text-xs text-muted">{t("product.reviews.empty")}</p>
       ) : (
         <div className="space-y-2 max-h-40 overflow-y-auto">
           {reviews.map((r) => (
@@ -146,9 +146,7 @@ export function ProductReviews({ productId }: { productId: number }) {
       )}
 
       {!loggedIn && (
-        <p className="text-xs text-muted mt-2">
-          Вход и поръчка на продукта са нужни, за да оставите отзив.
-        </p>
+        <p className="text-xs text-muted mt-2">{t("product.reviews.loginRequired")}</p>
       )}
     </div>
   );

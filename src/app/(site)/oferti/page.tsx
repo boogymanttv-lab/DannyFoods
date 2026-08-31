@@ -3,6 +3,9 @@ import { listActivePromoCards } from "@/lib/repos/promo-cards";
 import { promoCardStyle } from "@/lib/promo-card-style";
 import { AddComboButton } from "@/components/site/AddComboButton";
 import { formatPrice } from "@/lib/format";
+import { getLocale } from "@/lib/i18n/locale";
+import { translate, type DictKey } from "@/lib/i18n/dict";
+import { localizePromoCard } from "@/lib/i18n/content";
 
 export const dynamic = "force-dynamic";
 
@@ -12,23 +15,24 @@ export const metadata = { title: "Оферти" };
 // just with room for the fuller description instead of the homepage's
 // title+subtitle-only teaser.
 export default async function OffersPage() {
-  const cards = await listActivePromoCards();
+  const locale = await getLocale();
+  const t = (key: DictKey) => translate(locale, key);
+  const cardsRaw = await listActivePromoCards();
+  const cards = cardsRaw.map((c) => localizePromoCard(c, locale));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="font-display font-extrabold text-3xl mb-2">Оферти</h1>
+      <h1 className="font-display font-extrabold text-3xl mb-2">{t("offers.title")}</h1>
       <p className="text-foreground/80 mb-8">
-        Текущите ни промоции и комбо пакети — за постоянното меню виж{" "}
+        {t("offers.intro")}{" "}
         <Link href="/#menu" className="text-brand font-semibold">
-          менюто
+          {t("offers.menu")}
         </Link>
         .
       </p>
 
       {cards.length === 0 ? (
-        <p className="text-muted text-center py-16">
-          В момента няма активни оферти — очаквайте скоро.
-        </p>
+        <p className="text-muted text-center py-16">{t("offers.empty")}</p>
       ) : (
         <div className="grid sm:grid-cols-2 gap-5">
           {cards.map((card) => {
@@ -76,7 +80,7 @@ export default async function OffersPage() {
                         price={card.linked_product_price ?? 0}
                         className="w-full bg-brand text-white font-bold text-sm py-3 rounded-xl"
                       >
-                        Добави в количката · {formatPrice(card.linked_product_price ?? 0)}
+                        {t("offers.addToCart")} · {formatPrice(card.linked_product_price ?? 0)}
                       </AddComboButton>
                     </div>
                   )}
@@ -131,7 +135,7 @@ export default async function OffersPage() {
                       price={card.linked_product_price ?? 0}
                       className="w-full mt-3 bg-brand text-white font-bold text-sm py-2.5 rounded-xl"
                     >
-                      Добави в количката
+                      {t("offers.addToCart")}
                     </AddComboButton>
                   )}
                 </div>

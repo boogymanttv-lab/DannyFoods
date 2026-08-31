@@ -469,6 +469,29 @@ export function SettingsManager({
         </Field>
       </Section>
 
+      <Section title="Двуезичен сайт (BG/EN превод на менюто)">
+        <p className="text-xs text-muted -mt-2">
+          Ако попълните API ключа, при всяко запазване на продукт, категория или офертна
+          карта името и описанието автоматично се превеждат на английски (DeepL) — клиент,
+          превключил на EN, вижда превода вместо българския текст. Оставете празно, за да
+          изключите — превключвателят все пак ще се показва, но менюто ще се показва на
+          български и на EN версията, докато зададете ключ. Безплатен DeepL ключ (завършва на
+          &quot;:fx&quot;) стига за менюто на един ресторант — вземете го от{" "}
+          <a href="https://www.deepl.com/pro-api" target="_blank" rel="noreferrer" className="text-brand font-semibold">
+            deepl.com/pro-api
+          </a>
+          .
+        </p>
+        <Field label="DeepL API key">
+          <input
+            type="password"
+            className="input"
+            value={settings.deepl_api_key}
+            onChange={(e) => set("deepl_api_key", e.target.value)}
+          />
+        </Field>
+      </Section>
+
       <Section title="Автоматично разпределяне на плащанията (пица → друга сметка)">
         <p className="text-xs text-muted -mt-2">
           Ако попълните това поле, при всяко картово плащане делът за продуктите от типа

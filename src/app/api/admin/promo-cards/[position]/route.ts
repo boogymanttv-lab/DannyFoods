@@ -10,6 +10,8 @@ import {
 } from "@/lib/repos/products";
 import { formatPrice } from "@/lib/format";
 import type { ComboItemRow } from "@/lib/combo-preview";
+import { getSettings } from "@/lib/repos/settings";
+import { autoTranslateFields } from "@/lib/translate";
 
 export async function PATCH(
   req: NextRequest,
@@ -68,12 +70,20 @@ export async function PATCH(
     linkedProductId = null;
   }
 
+  const settings = await getSettings();
+  const { name_en: title_en, description_en } = await autoTranslateFields(
+    { name: title, description },
+    settings.deepl_api_key
+  );
+
   await updatePromoCard(pos, {
     active: Boolean(body.active),
     badge: String(body.badge ?? "").trim(),
     title,
+    title_en,
     subtitle,
     description,
+    description_en,
     image,
     fullBanner: Boolean(body.fullBanner),
     linkedProductId,

@@ -527,6 +527,37 @@ async function runMigrations() {
        AND value = 'Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза доставка във Варна'`,
     []
   );
+
+  // Tracks whether the automatic post-delivery "how was it?" review
+  // reminder email has already gone out for an order — see
+  // /api/cron/review-reminders. Safe no-op on a fresh database (already in
+  // schema.ts's CREATE TABLE), needed here for an already-deployed one.
+  await rawQuery(
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS review_reminder_sent_at TEXT`,
+    []
+  );
+
+  // Auto-translated English content for the BG/EN language switcher (see
+  // src/lib/i18n) — empty means "not translated yet", falls back to the
+  // Bulgarian text on the English site. Safe no-op on a fresh database
+  // (already in schema.ts's CREATE TABLE), needed here for an
+  // already-deployed one.
+  await rawQuery(
+    `ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_en TEXT NOT NULL DEFAULT ''`,
+    []
+  );
+  await rawQuery(
+    `ALTER TABLE products
+       ADD COLUMN IF NOT EXISTS name_en TEXT NOT NULL DEFAULT '',
+       ADD COLUMN IF NOT EXISTS description_en TEXT NOT NULL DEFAULT ''`,
+    []
+  );
+  await rawQuery(
+    `ALTER TABLE promo_cards
+       ADD COLUMN IF NOT EXISTS title_en TEXT NOT NULL DEFAULT '',
+       ADD COLUMN IF NOT EXISTS description_en TEXT NOT NULL DEFAULT ''`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

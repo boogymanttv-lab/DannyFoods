@@ -64,3 +64,47 @@ export async function sendOrderConfirmationEmail(
     console.error("Failed to send order confirmation email", err);
   }
 }
+
+// Sent once per order by the /api/cron/review-reminders job, a while after
+// the order is marked "Доставена" — a direct nudge with a link straight to
+// the order's own review prompt (see OrderReviewPrompt.tsx), instead of
+// relying on the customer to remember to open their account later. Scoped
+// to account holders only (guest checkouts have no review-eligibility
+// record to check against) — same as the "1-click review" feature itself.
+export async function sendReviewReminderEmail(
+  order: Order,
+  settings: { resend_api_key: string; notification_from_email: string; site_name: string },
+  siteUrl: string
+): Promise<boolean> {
+  const to = order.email?.trim();
+  if (!to || !settings.resend_api_key) return false;
+
+  try {
+    const resend = new Resend(settings.resend_api_key);
+    const reviewUrl = `${siteUrl.replace(/\/$/, "")}/order/${order.order_number}#review`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#201a17;">
+        <h2 style="color:#e11d2e;">Как мина поръчка ${order.order_number}?</h2>
+        <p>Здравей, ${order.customer_name}! Дай ни бърза оценка — отнема секунди.</p>
+        <p style="margin:24px 0;">
+          <a href="${reviewUrl}" style="background:#e11d2e;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold;display:inline-block;">
+            Остави отзив
+          </a>
+        </p>
+        <p style="color:#7a6f68;font-size:13px;">${settings.site_name}</p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: settings.notification_from_email,
+      to,
+      subject: `Как мина поръчка ${order.order_number}? — ${settings.site_name}`,
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error("Failed to send review reminder email", err);
+    return false;
+  }
+}
