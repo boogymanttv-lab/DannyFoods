@@ -217,6 +217,7 @@ export type Customer = {
   password_hash: string | null;
   google_id: string | null;
   avatar_url: string;
+  stripe_customer_id: string | null;
   created_at: string;
 };
 

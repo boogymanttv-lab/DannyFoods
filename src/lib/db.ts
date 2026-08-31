@@ -558,6 +558,12 @@ async function runMigrations() {
        ADD COLUMN IF NOT EXISTS description_en TEXT NOT NULL DEFAULT ''`,
     []
   );
+  // Saved-card support (see src/lib/stripe-customer.ts) — safe no-op on a
+  // fresh database (already in schema.ts's CREATE TABLE).
+  await rawQuery(
+    `ALTER TABLE customers ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

@@ -131,6 +131,10 @@ CREATE TABLE IF NOT EXISTS customers (
   password_hash TEXT,
   google_id TEXT UNIQUE,
   avatar_url TEXT DEFAULT '',
+  -- Set the first time this customer pays by card online — lets a saved
+  -- card be reused/managed later without asking Stripe to look one up by
+  -- email (see src/lib/stripe-customer.ts).
+  stripe_customer_id TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
 

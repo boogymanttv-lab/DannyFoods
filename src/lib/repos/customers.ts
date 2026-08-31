@@ -66,6 +66,7 @@ export async function updateCustomer(
     password_hash: string | null;
     google_id: string | null;
     avatar_url: string;
+    stripe_customer_id: string | null;
   }>
 ) {
   const db = await getDb();

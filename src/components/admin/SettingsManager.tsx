@@ -112,6 +112,16 @@ export function SettingsManager({
           />
         </Field>
         <p className="text-xs text-muted -mt-2">Оставете празно, за да скриете лентата.</p>
+        <Field label="Вид на лентата">
+          <select
+            className="input"
+            value={settings.banner_scroll_mode}
+            onChange={(e) => set("banner_scroll_mode", e.target.value)}
+          >
+            <option value="scroll">Бягаща (движещ се текст)</option>
+            <option value="static">Статична (неподвижна)</option>
+          </select>
+        </Field>
         <Field label="Телефон">
           <input
             className="input"

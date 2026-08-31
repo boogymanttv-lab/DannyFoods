@@ -24,6 +24,10 @@ export const DEFAULT_SETTINGS = {
   facebook_url: "",
   instagram_url: "",
   banner_text: "🚚 Безплатна доставка при поръчка над 25 € · 🔥 Пресни продукти всеки ден",
+  // "scroll" (default, matches the original always-moving ticker) or
+  // "static" — a fixed, centered, non-animated bar. Purely cosmetic; the
+  // banner still hides entirely when banner_text is empty either way.
+  banner_scroll_mode: "scroll",
   stripe_publishable_key: "",
   stripe_secret_key: "",
   logo_url: "",

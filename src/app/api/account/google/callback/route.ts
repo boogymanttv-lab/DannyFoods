@@ -102,6 +102,7 @@ export async function GET(req: NextRequest) {
           password_hash: null,
           google_id: info.sub,
           avatar_url: info.picture ?? "",
+          stripe_customer_id: null,
           created_at: new Date().toISOString(),
         };
       }

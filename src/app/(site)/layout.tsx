@@ -18,7 +18,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <LocaleProvider initialLocale={locale}>
       <SplashScreen siteName={settings.site_name} logoUrl={settings.logo_url}>
-        <PromoBanner text={settings.banner_text} />
+        <PromoBanner
+          text={settings.banner_text}
+          mode={settings.banner_scroll_mode === "static" ? "static" : "scroll"}
+        />
         <Header
           siteName={settings.site_name}
           phone={settings.phone}

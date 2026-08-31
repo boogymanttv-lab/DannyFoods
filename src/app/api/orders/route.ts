@@ -14,6 +14,7 @@ import { sendOrderConfirmationEmail } from "@/lib/email";
 import { geocodeAddress } from "@/lib/geocode";
 import { approximateZoneCenter } from "@/lib/varna-geo";
 import { getCustomerSession } from "@/lib/auth";
+import { getOrCreateStripeCustomerId } from "@/lib/stripe-customer";
 import { isValidDeliverySlot } from "@/lib/delivery-slots";
 import {
   combineEstimates,
@@ -333,9 +334,22 @@ export async function POST(req: NextRequest) {
     try {
       const stripe = new Stripe(settings.stripe_secret_key);
       const origin = req.nextUrl.origin;
+      // A logged-in customer gets their card saved to their own Stripe
+      // Customer object (setup_future_usage) — Stripe's hosted Checkout page
+      // then automatically offers any previously-saved cards for that same
+      // customer as one-click options, alongside the "enter a new card"
+      // form. Guests (no account) get a plain one-off card form, same as
+      // before — nothing is saved since there's no account to attach it to.
+      const stripeCustomerId = customerSession
+        ? await getOrCreateStripeCustomerId(stripe, customerSession.customerId)
+        : undefined;
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
+        ...(stripeCustomerId ? { customer: stripeCustomerId } : {}),
+        payment_intent_data: stripeCustomerId
+          ? { setup_future_usage: "off_session" }
+          : undefined,
         line_items: [
           {
             price_data: {

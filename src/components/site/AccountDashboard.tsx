@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Отказана",
 };
 
-type Tab = "profile" | "addresses" | "orders";
+type Tab = "profile" | "addresses" | "payment" | "orders";
 
 export function AccountDashboard({
   customer,
@@ -36,6 +36,19 @@ export function AccountDashboard({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
+
+  // Returning here from the "add a card" Stripe redirect (?tab=payment)
+  // should land straight back on that tab instead of the default Profile
+  // one — read directly from the URL rather than useSearchParams so this
+  // component doesn't need a Suspense boundary just for this.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("tab");
+    if (requested === "payment" || requested === "addresses" || requested === "orders") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from the URL on mount, not a render loop
+      setTab(requested);
+    }
+  }, []);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -64,6 +77,9 @@ export function AccountDashboard({
         <TabButton active={tab === "addresses"} onClick={() => setTab("addresses")}>
           Адреси
         </TabButton>
+        <TabButton active={tab === "payment"} onClick={() => setTab("payment")}>
+          Карти
+        </TabButton>
         <TabButton active={tab === "orders"} onClick={() => setTab("orders")}>
           Поръчки
         </TabButton>
@@ -71,6 +87,7 @@ export function AccountDashboard({
 
       {tab === "profile" && <ProfileTab customer={customer} onSaved={() => router.refresh()} />}
       {tab === "addresses" && <AddressesTab addresses={initialAddresses} />}
+      {tab === "payment" && <PaymentMethodsTab />}
       {tab === "orders" && <OrdersTab orders={orders} />}
     </div>
   );
@@ -347,6 +364,132 @@ function AddressesTab({
           + Добави адрес
         </button>
       )}
+    </div>
+  );
+}
+
+type SavedCard = {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+};
+
+const CARD_BRAND_LABELS: Record<string, string> = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  amex: "American Express",
+  discover: "Discover",
+  diners: "Diners Club",
+  jcb: "JCB",
+  unionpay: "UnionPay",
+};
+
+// Saved cards live entirely in Stripe (see src/lib/stripe-customer.ts) — this
+// tab never handles raw card numbers itself. "Добави карта" redirects to a
+// Stripe-hosted setup form (same pattern as the checkout card-payment
+// redirect) and lands back here; a card also gets saved automatically the
+// first time this customer pays by card at checkout.
+function PaymentMethodsTab() {
+  const [cards, setCards] = useState<SavedCard[] | null>(null);
+  const [error, setError] = useState("");
+  const [addingCard, setAddingCard] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  async function refresh() {
+    try {
+      const res = await fetch("/api/account/payment-methods");
+      const data = await res.json();
+      setCards(data.cards ?? []);
+    } catch {
+      setCards([]);
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch on mount, same pattern as other tabs' data loads
+    refresh();
+  }, []);
+
+  async function addCard() {
+    setError("");
+    setAddingCard(true);
+    try {
+      const res = await fetch("/api/account/payment-methods", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Грешка при добавяне на картата.");
+        setAddingCard(false);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Грешка при връзката със сървъра.");
+      setAddingCard(false);
+    }
+  }
+
+  async function removeCard(id: string) {
+    setError("");
+    setRemovingId(id);
+    const res = await fetch(`/api/account/payment-methods/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Грешка при премахване на картата.");
+    }
+    setRemovingId(null);
+    refresh();
+  }
+
+  return (
+    <div className="space-y-3">
+      {cards === null ? (
+        <p className="text-muted text-sm text-center py-8">Зареждане...</p>
+      ) : cards.length === 0 ? (
+        <p className="text-muted text-sm text-center py-8">Нямаш запазени карти.</p>
+      ) : (
+        cards.map((c) => (
+          <div
+            key={c.id}
+            className="bg-surface rounded-2xl border border-border p-4 flex justify-between items-center gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <span className="h-10 w-14 rounded-lg bg-black/5 grid place-items-center text-lg" aria-hidden>
+                💳
+              </span>
+              <div>
+                <p className="font-semibold">
+                  {CARD_BRAND_LABELS[c.brand] ?? c.brand} •••• {c.last4}
+                </p>
+                <p className="text-xs text-muted">
+                  Валидна до {String(c.expMonth).padStart(2, "0")}/{c.expYear}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => removeCard(c.id)}
+              disabled={removingId === c.id}
+              className="text-xs font-semibold text-muted disabled:opacity-50 shrink-0"
+            >
+              {removingId === c.id ? "Премахване..." : "Изтрий"}
+            </button>
+          </div>
+        ))
+      )}
+
+      {error && <p className="text-sm text-brand font-semibold">{error}</p>}
+
+      <button
+        onClick={addCard}
+        disabled={addingCard}
+        className="w-full border-2 border-dashed border-border rounded-2xl py-4 text-sm font-semibold text-muted hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
+      >
+        {addingCard ? "Отваряне..." : "+ Добави карта"}
+      </button>
+      <p className="text-xs text-muted text-center">
+        Данните на картата се въвеждат директно при Stripe — никога не минават през нашия сървър.
+      </p>
     </div>
   );
 }
