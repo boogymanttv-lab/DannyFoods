@@ -107,7 +107,7 @@ function LogoutButton() {
   return (
     <button
       onClick={logout}
-      className="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-black/5 transition-colors"
+      className="rounded-xl border border-border bg-black/5 px-4 py-2 text-sm font-semibold text-foreground hover:bg-black/10 transition-colors"
     >
       Изход
     </button>
