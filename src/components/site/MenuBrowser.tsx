@@ -56,12 +56,12 @@ export function MenuBrowser({
   return (
     <div id="menu">
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap gap-2">
+        <div className="mx-auto max-w-6xl px-4 py-3 flex flex-nowrap gap-2 overflow-x-auto no-scrollbar">
           {categories.map((c) => (
             <button
               key={c.slug}
               onClick={() => selectCategory(c.slug)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold border transition-all ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold border transition-all ${
                 activeSlug === c.slug
                   ? "bg-gradient-to-r from-brand to-brand-dark text-white border-brand shadow-[0_6px_16px_rgba(225,29,46,0.35)] -translate-y-0.5"
                   : "bg-surface border-border text-foreground/70 shadow-sm hover:shadow-md hover:-translate-y-0.5"
