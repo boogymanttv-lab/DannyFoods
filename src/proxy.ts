@@ -37,7 +37,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
-    return guard(req, ADMIN_COOKIE, "/admin/login");
+    return guardAdmin(req);
   }
 
   if (pathname.startsWith("/courier") || pathname.startsWith("/api/courier")) {
@@ -49,6 +49,48 @@ export async function proxy(req: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+// Employee ("staff") admin accounts are restricted to the Поръчки page and
+// the handful of API endpoints that page needs — everything else in
+// /admin and /api/admin is reserved for the owner (see
+// src/components/admin/ProductsManager.tsx's sibling pages, Настройки →
+// Служители). A token with no role at all (signed before this feature
+// existed) is treated as a full-access owner, same as before.
+const STAFF_ALLOWED_API_PREFIXES = ["/api/admin/orders"];
+const STAFF_ALLOWED_API_GET_ONLY = ["/api/admin/couriers", "/api/admin/settings"];
+
+function staffApiAllowed(pathname: string, method: string): boolean {
+  if (pathname === "/api/admin/logout") return true;
+  if (STAFF_ALLOWED_API_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  if (method === "GET" && STAFF_ALLOWED_API_GET_ONLY.some((p) => pathname.startsWith(p))) {
+    return true;
+  }
+  return false;
+}
+
+async function guardAdmin(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const isApi = pathname.startsWith("/api/");
+  const token = req.cookies.get(ADMIN_COOKIE)?.value;
+  if (!token) return redirectToLogin(req, "/admin/login");
+
+  let payload: Record<string, unknown> | null = null;
+  try {
+    payload = (await jwtVerify(token, SECRET)).payload;
+  } catch {
+    return redirectToLogin(req, "/admin/login");
+  }
+
+  if (payload.role !== "staff") return NextResponse.next();
+
+  // Staff account — confined to Поръчки.
+  if (isApi) {
+    if (staffApiAllowed(pathname, req.method)) return NextResponse.next();
+    return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
+  }
+  if (pathname.startsWith("/admin/orders")) return NextResponse.next();
+  return NextResponse.redirect(new URL("/admin/orders", req.url));
 }
 
 async function guard(req: NextRequest, cookieName: string, loginPath: string) {

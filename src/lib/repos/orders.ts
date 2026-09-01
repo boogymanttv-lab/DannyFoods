@@ -112,6 +112,19 @@ export async function updateOrderEstimate(id: number, estimate: string | null) {
     .run({ id, estimate });
 }
 
+// Toggled independently by whichever kitchen station's staff finished
+// prepping their part (see AdminUser.station) — separate from the overall
+// order status, which any staff can still move forward regardless.
+export async function setStationReady(
+  id: number,
+  station: "pizza" | "other",
+  ready: boolean
+) {
+  const db = await getDb();
+  const column = station === "pizza" ? "station_pizza_ready" : "station_other_ready";
+  await db.prepare(`UPDATE orders SET ${column} = ? WHERE id = ?`).run(ready ? 1 : 0, id);
+}
+
 export async function getOrder(id: number): Promise<Order | undefined> {
   const db = await getDb();
   return db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as Promise<Order | undefined>;

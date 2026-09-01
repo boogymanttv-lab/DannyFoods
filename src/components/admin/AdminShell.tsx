@@ -13,14 +13,20 @@ const NAV = [
   { href: "/admin/promotions", label: "Промоции", icon: "🏷️" },
   { href: "/admin/showcase", label: "Витрина на началния екран", icon: "🖼️" },
   { href: "/admin/zones", label: "Зони за доставка", icon: "🗺️" },
+  { href: "/admin/staff", label: "Служители", icon: "👥" },
   { href: "/admin/settings", label: "Настройки", icon: "⚙️" },
 ];
 
 export function AdminShell({
   adminName,
+  role = "owner",
   children,
 }: {
   adminName: string;
+  // Staff accounts (see Настройки → Служители) only ever get the Поръчки
+  // link — everything else is enforced server-side too (see proxy.ts), this
+  // just keeps the nav from advertising pages they can't open.
+  role?: "owner" | "staff";
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -33,7 +39,9 @@ export function AdminShell({
     router.refresh();
   }
 
-  const navItems = NAV.map((item) => {
+  const visibleNav = role === "staff" ? NAV.filter((item) => item.href === "/admin/orders") : NAV;
+
+  const navItems = visibleNav.map((item) => {
     const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
     return (
       <Link

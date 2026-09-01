@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
     adminId: admin.id,
     email: admin.email,
     name: admin.name,
+    role: admin.role,
+    station: admin.station,
   });
   await setSessionCookie(token);
 

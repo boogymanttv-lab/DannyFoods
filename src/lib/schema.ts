@@ -198,6 +198,11 @@ CREATE TABLE IF NOT EXISTS orders (
   -- email has actually been sent for this order — the cron job's own
   -- de-duplication guard (see /api/cron/review-reminders), NULL until then.
   review_reminder_sent_at TEXT,
+  -- Separate kitchen-station prep tracking (see "station" on admin_users
+  -- below) — lets pizza staff and everyone-else staff each mark their own
+  -- part of an order ready, independent of the overall order status.
+  station_pizza_ready INTEGER NOT NULL DEFAULT 0,
+  station_other_ready INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
   updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
@@ -222,6 +227,16 @@ CREATE TABLE IF NOT EXISTS admin_users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   name TEXT NOT NULL DEFAULT 'Admin',
+  -- 'owner' sees the whole admin panel; 'staff' is restricted to the
+  -- Поръчки page only (see proxy.ts and AdminShell.tsx).
+  role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner','staff')),
+  -- Only meaningful for role='staff' — which part of each order this
+  -- employee's kitchen station is responsible for. 'all' (owners always
+  -- behave as 'all' regardless of this column) sees and can mark ready
+  -- both parts; 'pizza' and 'other' each see the other part dimmed and can
+  -- only mark their own part ready (see station_pizza_ready/
+  -- station_other_ready on orders).
+  station TEXT NOT NULL DEFAULT 'all' CHECK (station IN ('all','pizza','other')),
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
 

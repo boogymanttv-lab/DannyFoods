@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
       removed: item.removed && item.removed.length > 0 ? item.removed : undefined,
       lineTotal: Math.round(lineTotal * 100) / 100,
       components,
+      is_pizza: Boolean(product.is_pizza),
     });
   }
   subtotal = Math.round(subtotal * 100) / 100;

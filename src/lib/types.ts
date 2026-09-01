@@ -153,6 +153,10 @@ export type OrderItem = {
   // it up. Snapshotted rather than looked up live because the combo's own
   // recipe could change later.
   components?: { name: string; sizeLabel?: string; quantity: number }[];
+  // Snapshot of the product's is_pizza flag at order time — lets the admin
+  // orders panel split/dim items by kitchen station (see station on
+  // admin_users) without needing a live product lookup.
+  is_pizza?: boolean;
 };
 
 export type OrderType = "delivery" | "pickup";
@@ -195,6 +199,10 @@ export type Order = {
   pizza_transfer_amount: number | null;
   pizza_transfer_status: string | null;
   pizza_transfer_error: string | null;
+  // Per-kitchen-station prep tracking — set by staff assigned to that
+  // station (see AdminUser.station), independent of the overall status.
+  station_pizza_ready: number;
+  station_other_ready: number;
   created_at: string;
   updated_at: string;
 };

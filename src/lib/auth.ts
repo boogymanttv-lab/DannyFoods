@@ -13,6 +13,11 @@ export type SessionPayload = {
   adminId: number;
   email: string;
   name: string;
+  // Optional so tokens signed before this field existed keep decoding —
+  // treated as full access everywhere role/station is checked (see
+  // proxy.ts and AdminShell.tsx), same as the old single-admin behavior.
+  role?: "owner" | "staff";
+  station?: "all" | "pizza" | "other";
 };
 
 export type CourierSessionPayload = {
@@ -103,7 +108,13 @@ export async function maybeGrantAdminAccess(
   const settings = await getSettings();
   const adminEmail = settings.admin_email.trim().toLowerCase();
   if (!adminEmail || email.trim().toLowerCase() !== adminEmail) return false;
-  const token = await createSessionToken({ adminId: customerId, email, name });
+  const token = await createSessionToken({
+    adminId: customerId,
+    email,
+    name,
+    role: "owner",
+    station: "all",
+  });
   await setSessionCookie(token);
   return true;
 }

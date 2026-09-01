@@ -570,6 +570,23 @@ async function runMigrations() {
     `ALTER TABLE extras ADD COLUMN IF NOT EXISTS product_id INTEGER REFERENCES products(id) ON DELETE CASCADE`,
     []
   );
+  // Employee accounts with restricted admin access (see src/lib/auth.ts and
+  // proxy.ts) — safe no-op on a fresh database (already in schema.ts).
+  // Existing rows get DEFAULT 'owner'/'all' applied automatically, so
+  // whoever already had an admin_users login keeps full access.
+  await rawQuery(
+    `ALTER TABLE admin_users
+       ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'owner',
+       ADD COLUMN IF NOT EXISTS station TEXT NOT NULL DEFAULT 'all'`,
+    []
+  );
+  // Per-kitchen-station prep tracking on orders (see the same feature).
+  await rawQuery(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS station_pizza_ready INTEGER NOT NULL DEFAULT 0,
+       ADD COLUMN IF NOT EXISTS station_other_ready INTEGER NOT NULL DEFAULT 0`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {
