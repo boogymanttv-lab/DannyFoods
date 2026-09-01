@@ -26,6 +26,7 @@ type Tracking = {
   destination: { lat: number; lng: number } | null;
   estimatedDelivery: string | null;
   estimatedDeliverySetAt: string | null;
+  requestedTime: string | null;
 };
 
 // A circular countdown ring, counting down from when the admin gave the
@@ -106,6 +107,48 @@ function DeliveryCountdownRing({
   );
 }
 
+// Shown instead of the prep-time ring for a scheduled ("for later") order
+// whose requested time hasn't arrived yet — a plain live countdown to that
+// moment, deliberately NOT styled like the delivery ring so it doesn't read
+// as "your food is being prepared right now". Once the requested time
+// arrives, the tracking endpoint activates the real estimate itself and
+// this component stops rendering (see OrderTracking below).
+function ScheduledTimeCountdown({ requestedTime }: { requestedTime: string }) {
+  const t = useT();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(requestedTime);
+  if (!match) return null;
+  const [, y, mo, d, hh, mm] = match;
+  // Plain local components, no timezone conversion — same convention the
+  // rest of the app uses for this string (see delivery-slots.ts).
+  const deadline = new Date(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm)).getTime();
+  const remainingMs = Math.max(0, deadline - now);
+  if (remainingMs <= 0) return null;
+
+  const totalMinutes = Math.floor(remainingMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}${t("order.days")}`);
+  if (days > 0 || hours > 0) parts.push(`${hours}${t("order.hours")}`);
+  parts.push(`${minutes}${t("order.minutes")}`);
+
+  return (
+    <div>
+      <p className="text-xs text-muted">{t("order.scheduledCountdownLabel")}</p>
+      <p className="font-semibold text-lg">{parts.join(" ")}</p>
+    </div>
+  );
+}
+
 export function OrderTracking({
   orderNumber,
   initialStatus,
@@ -120,6 +163,7 @@ export function OrderTracking({
     destination: null,
     estimatedDelivery: null,
     estimatedDeliverySetAt: null,
+    requestedTime: null,
   });
 
   useEffect(() => {
@@ -159,6 +203,16 @@ export function OrderTracking({
             estimate={tracking.estimatedDelivery}
             setAt={tracking.estimatedDeliverySetAt}
           />
+        )}
+
+      {/* A scheduled order gets no prep-time estimate until its requested
+          time actually arrives (see /api/orders and the tracking route) —
+          until then, a plain countdown to that time instead. */}
+      {!tracking.estimatedDelivery &&
+        tracking.requestedTime &&
+        tracking.status !== "delivered" &&
+        tracking.status !== "cancelled" && (
+          <ScheduledTimeCountdown requestedTime={tracking.requestedTime} />
         )}
 
       {tracking.status === "delivering" && tracking.courierLocation && (

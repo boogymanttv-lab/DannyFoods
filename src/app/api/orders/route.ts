@@ -294,12 +294,19 @@ export async function POST(req: NextRequest) {
   // manually picks one. Uses the same "busy hours" + "current load" signals
   // the admin panel suggests from; the admin can still override it later,
   // which re-stamps the countdown from that moment.
-  const busyRules = parseBusyHours(settings.busy_hours_json);
-  const autoEstimate = combineEstimates(
-    suggestEstimate(busyRules),
-    suggestByLoad(await countActiveOrders())
-  );
-  await updateOrderEstimate(order.id, autoEstimate);
+  //
+  // Skipped for a scheduled ("for later") order — a prep-time countdown
+  // makes no sense while the requested time is still hours/days away. The
+  // tracking endpoint activates the real estimate itself, the moment the
+  // requested time actually arrives (see /api/orders/[orderNumber]/tracking).
+  if (!data.requested_time) {
+    const busyRules = parseBusyHours(settings.busy_hours_json);
+    const autoEstimate = combineEstimates(
+      suggestEstimate(busyRules),
+      suggestByLoad(await countActiveOrders())
+    );
+    await updateOrderEstimate(order.id, autoEstimate);
+  }
 
   // Geocode the delivery address in the background so checkout doesn't wait
   // on an external service — the tracking map picks up the destination pin

@@ -142,6 +142,20 @@ export function OrdersManager({
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: ready ? 1 : 0 } : o)));
   }
 
+  // A station-restricted employee only ever sees orders that actually have
+  // something for them to prep — an all-pizza order has nothing in it for
+  // the "Всичко без пици" station, and vice versa, so there's no reason to
+  // clutter their list with it.
+  const visibleOrders =
+    station === "all"
+      ? orders
+      : orders.filter((order) => {
+          const items: OrderItem[] = JSON.parse(order.items_json);
+          return station === "pizza"
+            ? items.some((i) => i.is_pizza)
+            : items.some((i) => !i.is_pizza);
+        });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -163,7 +177,7 @@ export function OrdersManager({
       {loading && <p className="text-muted text-sm">Зареждане...</p>}
 
       <div className="space-y-3">
-        {orders.map((order) => {
+        {visibleOrders.map((order) => {
           const items: OrderItem[] = JSON.parse(order.items_json);
           const isOpen = expanded === order.id;
           return (
@@ -386,7 +400,7 @@ export function OrdersManager({
             </div>
           );
         })}
-        {!loading && orders.length === 0 && (
+        {!loading && visibleOrders.length === 0 && (
           <p className="text-muted text-sm text-center py-10">Няма поръчки в тази категория.</p>
         )}
       </div>
