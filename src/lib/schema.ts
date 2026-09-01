@@ -72,6 +72,11 @@ CREATE TABLE IF NOT EXISTS extras (
   name TEXT NOT NULL,
   price REAL NOT NULL DEFAULT 0,
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  -- Set to scope this extra to ONE specific product instead of a whole
+  -- category (e.g. an addon that only makes sense on a single dish). When
+  -- set, category_id is ignored for matching — see attachOptions() in
+  -- src/lib/repos/products.ts.
+  product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
   active INTEGER NOT NULL DEFAULT 1
 );
 

@@ -34,6 +34,10 @@ export type Extra = {
   name: string;
   price: number;
   category_id: number | null;
+  // Set to scope this extra to one specific product rather than a whole
+  // category — takes priority over category_id when matching (see
+  // attachOptions() in src/lib/repos/products.ts).
+  product_id: number | null;
   active: number;
   // Weight/quantity variants (e.g. "50г", "100г" — each its own price) for
   // extras that aren't just a single flat add-on price. Empty for a plain

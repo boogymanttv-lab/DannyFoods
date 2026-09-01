@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     name: body.name,
     price: Number(body.price),
     category_id: body.category_id ?? null,
+    product_id: body.product_id ?? null,
   });
   if (Array.isArray(body.options) && body.options.length > 0) {
     await setExtraOptions(id, body.options);

@@ -57,6 +57,10 @@ export function ProductsManager({
     name: "",
     price: "" as string | number,
     category_id: "" as string | number,
+    // Scopes the extra to just one product instead of a whole category —
+    // empty means "not limited to a single product" (category_id, or no
+    // category at all, still decides where it shows).
+    product_id: "" as string | number,
     options: [] as ExtraOptionRow[],
   });
   const [showExtraForm, setShowExtraForm] = useState(false);
@@ -345,6 +349,7 @@ export function ProductsManager({
       name: extraForm.name,
       price: Number(extraForm.price),
       category_id: extraForm.category_id ? Number(extraForm.category_id) : null,
+      product_id: extraForm.product_id ? Number(extraForm.product_id) : null,
       options: extraForm.options.filter((o) => o.label),
     };
     if (extraForm.id) {
@@ -361,7 +366,7 @@ export function ProductsManager({
       });
     }
     setShowExtraForm(false);
-    setExtraForm({ id: null, name: "", price: "", category_id: "", options: [] });
+    setExtraForm({ id: null, name: "", price: "", category_id: "", product_id: "", options: [] });
     const res = await fetch("/api/admin/extras");
     const data = await res.json();
     setExtras(data.extras ?? []);
@@ -555,7 +560,14 @@ export function ProductsManager({
         <div className="space-y-4">
           <button
             onClick={() => {
-              setExtraForm({ id: null, name: "", price: "", category_id: "", options: [] });
+              setExtraForm({
+                id: null,
+                name: "",
+                price: "",
+                category_id: "",
+                product_id: "",
+                options: [],
+              });
               setShowExtraForm(true);
             }}
             className="bg-brand text-white rounded-xl px-4 py-2.5 font-semibold text-sm"
@@ -571,9 +583,11 @@ export function ProductsManager({
                 <p className="font-semibold">
                   {e.name}{" "}
                   <span className="text-xs text-muted font-normal">
-                    {e.category_id
-                      ? categories.find((c) => c.id === e.category_id)?.name
-                      : "Всички категории"}
+                    {e.product_id
+                      ? `Само: ${products.find((p) => p.id === e.product_id)?.name ?? "?"}`
+                      : e.category_id
+                        ? categories.find((c) => c.id === e.category_id)?.name
+                        : "Всички категории"}
                   </span>
                 </p>
                 <div className="flex items-center gap-2">
@@ -589,6 +603,7 @@ export function ProductsManager({
                         name: e.name,
                         price: e.price,
                         category_id: e.category_id ?? "",
+                        product_id: e.product_id ?? "",
                         options: e.options.map((o) => ({ label: o.label, price: o.price })),
                       });
                       setShowExtraForm(true);
@@ -901,7 +916,10 @@ export function ProductsManager({
             <select
               className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
               value={extraForm.category_id}
-              onChange={(e) => setExtraForm((f) => ({ ...f, category_id: e.target.value }))}
+              onChange={(e) =>
+                setExtraForm((f) => ({ ...f, category_id: e.target.value, product_id: "" }))
+              }
+              disabled={Boolean(extraForm.product_id)}
             >
               <option value="">Всички категории</option>
               {categories.map((c) => (
@@ -910,6 +928,28 @@ export function ProductsManager({
                 </option>
               ))}
             </select>
+
+            <div>
+              <select
+                className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
+                value={extraForm.product_id}
+                onChange={(e) => setExtraForm((f) => ({ ...f, product_id: e.target.value }))}
+              >
+                <option value="">— или само за конкретен продукт —</option>
+                {(extraForm.category_id
+                  ? products.filter((p) => p.category_id === Number(extraForm.category_id))
+                  : products
+                ).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted mt-1">
+                Ако избереш продукт, добавката ще излиза само при него — категорията отгоре се
+                игнорира.
+              </p>
+            </div>
 
             <div>
               <p className="font-semibold text-sm mb-2">

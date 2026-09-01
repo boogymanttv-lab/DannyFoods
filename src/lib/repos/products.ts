@@ -28,10 +28,17 @@ async function attachOptions(product: Product): Promise<ProductWithOptions> {
   const extrasRaw = (await db
     .prepare(
       `SELECT e.* FROM extras e
-       WHERE e.active = 1 AND (e.category_id = ? OR e.category_id IS NULL)
+       WHERE e.active = 1
+         AND (
+           e.product_id = @productId
+           OR (e.product_id IS NULL AND (e.category_id = @categoryId OR e.category_id IS NULL))
+         )
        ORDER BY e.id ASC`
     )
-    .all(product.category_id)) as Omit<Extra, "options">[];
+    .all({ productId: product.id, categoryId: product.category_id })) as Omit<
+    Extra,
+    "options"
+  >[];
   const extras = await Promise.all(extrasRaw.map(attachExtraOptions));
   // combo_items only matters for combo products — skip the query for the
   // overwhelming majority of plain products.
@@ -260,17 +267,31 @@ export async function createExtra(data: {
   name: string;
   price: number;
   category_id?: number | null;
+  product_id?: number | null;
 }) {
   const db = await getDb();
   const info = await db
-    .prepare("INSERT INTO extras (name, price, category_id) VALUES (@name, @price, @category_id)")
-    .run({ name: data.name, price: data.price, category_id: data.category_id ?? null });
+    .prepare(
+      "INSERT INTO extras (name, price, category_id, product_id) VALUES (@name, @price, @category_id, @product_id)"
+    )
+    .run({
+      name: data.name,
+      price: data.price,
+      category_id: data.category_id ?? null,
+      product_id: data.product_id ?? null,
+    });
   return info.lastInsertRowid as number;
 }
 
 export async function updateExtra(
   id: number,
-  data: Partial<{ name: string; price: number; category_id: number | null; active: boolean }>
+  data: Partial<{
+    name: string;
+    price: number;
+    category_id: number | null;
+    product_id: number | null;
+    active: boolean;
+  }>
 ) {
   const db = await getDb();
   const payload: Record<string, unknown> = { ...data, id };

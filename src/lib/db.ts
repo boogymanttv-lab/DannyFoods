@@ -564,6 +564,12 @@ async function runMigrations() {
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
     []
   );
+  // Lets an extra be scoped to one specific product instead of a whole
+  // category — safe no-op on a fresh database (already in schema.ts).
+  await rawQuery(
+    `ALTER TABLE extras ADD COLUMN IF NOT EXISTS product_id INTEGER REFERENCES products(id) ON DELETE CASCADE`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {
