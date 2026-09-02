@@ -494,24 +494,28 @@ function PaymentMethodsTab() {
   );
 }
 
-// A short "1x Маргарита, 2x Дюнер Класик" line for the orders list — just
-// enough to jog the customer's memory of what an order actually was
-// without needing to open it. `line-clamp-2` on the caller handles overly
-// long orders, so no truncation logic is needed here.
-function orderItemsSummary(itemsJson: string): string {
+// One "1x Маргарита" line per item — just enough to jog the customer's
+// memory of what an order actually was without needing to open it.
+function orderItemLines(itemsJson: string): string[] {
   try {
     const items: OrderItem[] = JSON.parse(itemsJson);
-    return items.map((i) => `${i.quantity}× ${i.name}`).join(", ");
+    return items.map((i) => `${i.quantity}× ${i.name}`);
   } catch {
-    return "";
+    return [];
   }
 }
+
+const ITEM_LINES_COLLAPSED = 3;
 
 function OrdersTab({ orders }: { orders: Order[] }) {
   const { addLine, openDrawer } = useCart();
   const router = useRouter();
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [skipped, setSkipped] = useState<{ orderId: number; names: string[] } | null>(null);
+  // Which orders' item lists are expanded past the first few lines — kept
+  // outside the Link below so the toggle button doesn't double as a
+  // navigation link (nesting a <button> inside an <a> is invalid HTML).
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
 
   // Rebuilds the exact cart lines from a past order's stored items_json —
   // relies on sizeId/extras[].id/optionId (added alongside quick-reorder)
@@ -607,12 +611,58 @@ function OrdersTab({ orders }: { orders: Order[] }) {
                 <span className="text-xs font-semibold text-muted">{STATUS_LABELS[o.status]}</span>
               </div>
             </div>
-            {/* Nobody remembers what was in an order from the number alone —
-                a quick "what did I get" line right in the list, so they
-                don't have to open every card just to recognize which order
-                was which before deciding whether to reorder it. */}
-            <p className="mt-2 text-sm text-muted line-clamp-2">{orderItemsSummary(o.items_json)}</p>
           </Link>
+          {/* Nobody remembers what was in an order from the number alone —
+              a quick "what did I get" list right in the card, one item per
+              line, so they don't have to open every order just to
+              recognize which one was which before deciding whether to
+              reorder it. Kept outside the Link above so the "покажи още"
+              toggle can be its own button rather than a link nested inside
+              a link. */}
+          {(() => {
+            const lines = orderItemLines(o.items_json);
+            if (lines.length === 0) return null;
+            const isExpanded = expandedItems.has(o.id);
+            const visibleLines = isExpanded ? lines : lines.slice(0, ITEM_LINES_COLLAPSED);
+            const hiddenCount = lines.length - visibleLines.length;
+            return (
+              <div className="mt-2 text-sm text-muted space-y-0.5">
+                {visibleLines.map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+                {hiddenCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedItems((prev) => {
+                        const next = new Set(prev);
+                        next.add(o.id);
+                        return next;
+                      })
+                    }
+                    className="text-brand font-semibold text-xs pt-0.5"
+                  >
+                    Покажи още ({hiddenCount})
+                  </button>
+                )}
+                {isExpanded && lines.length > ITEM_LINES_COLLAPSED && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedItems((prev) => {
+                        const next = new Set(prev);
+                        next.delete(o.id);
+                        return next;
+                      })
+                    }
+                    className="text-brand font-semibold text-xs pt-0.5"
+                  >
+                    Скрий
+                  </button>
+                )}
+              </div>
+            );
+          })()}
           <button
             type="button"
             disabled={reorderingId === o.id}
