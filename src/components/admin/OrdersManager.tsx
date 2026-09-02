@@ -307,21 +307,26 @@ export function OrdersManager({
                       );
                     })}
                   </ul>
+                  {/* The label always names the station and says "Готово" —
+                      it doesn't flip between "not ready"/"ready" text
+                      anymore, only the color does (outline -> solid green),
+                      so the button reads as a single toggle switch rather
+                      than two different instructions. */}
                   {(items.some((i) => i.is_pizza) || items.some((i) => !i.is_pizza)) && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       {items.some((i) => i.is_pizza) && (
                         <button
                           disabled={station !== "all" && station !== "pizza"}
                           onClick={() =>
                             toggleStationReady(order.id, "pizza", !order.station_pizza_ready)
                           }
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-full border disabled:opacity-40 disabled:cursor-not-allowed ${
+                          className={`text-sm font-bold px-5 py-2.5 rounded-full border-2 disabled:opacity-40 disabled:cursor-not-allowed ${
                             order.station_pizza_ready
                               ? "bg-success text-white border-success"
                               : "border-border text-foreground/70"
                           }`}
                         >
-                          🍕 {order.station_pizza_ready ? "Пицата е готова" : "Пицата не е готова"}
+                          🍕 Пицария · Готово
                         </button>
                       )}
                       {items.some((i) => !i.is_pizza) && (
@@ -330,13 +335,13 @@ export function OrdersManager({
                           onClick={() =>
                             toggleStationReady(order.id, "other", !order.station_other_ready)
                           }
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-full border disabled:opacity-40 disabled:cursor-not-allowed ${
+                          className={`text-sm font-bold px-5 py-2.5 rounded-full border-2 disabled:opacity-40 disabled:cursor-not-allowed ${
                             order.station_other_ready
                               ? "bg-success text-white border-success"
                               : "border-border text-foreground/70"
                           }`}
                         >
-                          🍽️ {order.station_other_ready ? "Останалото е готово" : "Останалото не е готово"}
+                          🌯 Дюнери · Готово
                         </button>
                       )}
                     </div>

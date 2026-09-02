@@ -64,6 +64,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [lines, hydrated]);
 
+  // Deliberately does NOT open the cart drawer — adding an item should just
+  // add it (the header's cart badge/count updates as feedback); the
+  // customer opens the drawer themselves, on their own timing, via the cart
+  // icon or the mobile cart bar.
   const addLine = useCallback((line: CartLine) => {
     setLines((prev) => {
       const key = lineKey(line);
@@ -78,7 +82,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, line];
     });
-    setDrawerOpen(true);
   }, []);
 
   const updateQuantity = useCallback((key: string, quantity: number) => {

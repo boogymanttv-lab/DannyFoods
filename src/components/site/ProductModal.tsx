@@ -29,7 +29,7 @@ export function ProductModal({
   // configured in Настройки by picking a whole category.
   suggestions?: ProductWithOptions[];
 }) {
-  const { addLine, openDrawer } = useCart();
+  const { addLine } = useCart();
   const t = useT();
   const defaultSize =
     product.sizes.find((s) => s.is_default) ?? product.sizes[0] ?? null;
@@ -112,7 +112,6 @@ export function ProductModal({
         removedIngredients.size > 0 ? Array.from(removedIngredients) : undefined,
     });
     onClose();
-    openDrawer();
   }
 
   function handleAddSuggestion(suggestion: ProductWithOptions) {
@@ -127,7 +126,6 @@ export function ProductModal({
       quantity: 1,
       extras: [],
     });
-    openDrawer();
   }
 
   return (
