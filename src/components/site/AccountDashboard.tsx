@@ -494,6 +494,19 @@ function PaymentMethodsTab() {
   );
 }
 
+// A short "1x Маргарита, 2x Дюнер Класик" line for the orders list — just
+// enough to jog the customer's memory of what an order actually was
+// without needing to open it. `line-clamp-2` on the caller handles overly
+// long orders, so no truncation logic is needed here.
+function orderItemsSummary(itemsJson: string): string {
+  try {
+    const items: OrderItem[] = JSON.parse(itemsJson);
+    return items.map((i) => `${i.quantity}× ${i.name}`).join(", ");
+  } catch {
+    return "";
+  }
+}
+
 function OrdersTab({ orders }: { orders: Order[] }) {
   const { addLine, openDrawer } = useCart();
   const router = useRouter();
@@ -594,6 +607,11 @@ function OrdersTab({ orders }: { orders: Order[] }) {
                 <span className="text-xs font-semibold text-muted">{STATUS_LABELS[o.status]}</span>
               </div>
             </div>
+            {/* Nobody remembers what was in an order from the number alone —
+                a quick "what did I get" line right in the list, so they
+                don't have to open every card just to recognize which order
+                was which before deciding whether to reorder it. */}
+            <p className="mt-2 text-sm text-muted line-clamp-2">{orderItemsSummary(o.items_json)}</p>
           </Link>
           <button
             type="button"
