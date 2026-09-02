@@ -37,6 +37,8 @@ export const DICT = {
   "product.extras": { bg: "Добавки", en: "Extras" },
   "product.removeSauces": { bg: "Премахни сосове", en: "Remove sauces" },
   "product.removeIngredients": { bg: "Премахни съставки", en: "Remove ingredients" },
+  "product.showMore": { bg: "Покажи още", en: "Show more" },
+  "product.showLess": { bg: "Скрий", en: "Show less" },
   "product.quantity": { bg: "Количество", en: "Quantity" },
   "product.addToCart": { bg: "Добави в количката", en: "Add to cart" },
   "product.pairsWith": { bg: "Често купувано с", en: "Often bought with" },

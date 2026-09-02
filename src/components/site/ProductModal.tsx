@@ -230,6 +230,8 @@ export function ProductModal({
                 removed={removedIngredients}
                 onToggle={toggleIngredient}
                 withoutLabel={t("cart.removedIngredients")}
+                showMoreLabel={(n) => `${t("product.showMore")} (${n})`}
+                showLessLabel={t("product.showLess")}
               />
             </div>
           )}
@@ -242,6 +244,8 @@ export function ProductModal({
                 removed={removedIngredients}
                 onToggle={toggleIngredient}
                 withoutLabel={t("cart.removedIngredients")}
+                showMoreLabel={(n) => `${t("product.showMore")} (${n})`}
+                showLessLabel={t("product.showLess")}
               />
             </div>
           )}
@@ -386,24 +390,36 @@ export function ProductModal({
   );
 }
 
+const INGREDIENTS_COLLAPSED = 3;
+
 // One row per ingredient, checkbox first — each row reads "Без домати" etc.
 // on its own, rather than a generic "Без —" heading over a strip of bare
 // ingredient chips. Shared between the "Сосове" and "Съставки" groups above
-// so both render identically.
+// so both render identically, including the collapse past the first few
+// rows — a long ingredient list otherwise pushes the "Добави в количката"
+// button (and everything else below) far down the modal.
 function IngredientCheckboxList({
   items,
   removed,
   onToggle,
   withoutLabel,
+  showMoreLabel,
+  showLessLabel,
 }: {
   items: string[];
   removed: Set<string>;
   onToggle: (ingredient: string) => void;
   withoutLabel: string;
+  showMoreLabel: (hiddenCount: number) => string;
+  showLessLabel: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleItems = expanded ? items : items.slice(0, INGREDIENTS_COLLAPSED);
+  const hiddenCount = items.length - visibleItems.length;
+
   return (
     <div className="space-y-2">
-      {items.map((ing) => {
+      {visibleItems.map((ing) => {
         const isRemoved = removed.has(ing);
         return (
           <label
@@ -422,6 +438,24 @@ function IngredientCheckboxList({
           </label>
         );
       })}
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="text-brand font-semibold text-xs pt-1"
+        >
+          {showMoreLabel(hiddenCount)}
+        </button>
+      )}
+      {expanded && items.length > INGREDIENTS_COLLAPSED && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="text-brand font-semibold text-xs pt-1"
+        >
+          {showLessLabel}
+        </button>
+      )}
     </div>
   );
 }
