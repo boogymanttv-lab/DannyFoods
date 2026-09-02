@@ -18,14 +18,19 @@ function parseIngredients(description: string): string[] {
     .filter(Boolean);
 }
 
-// Splits the "Без —" list into sauces vs. everything else, purely by
-// whether the name contains the word "сос" ("Барбекю сос", "Чеснов сос",
-// "Дюнер сос"...) — the admin's own naming convention for every sauce in
-// the menu, confirmed directly rather than guessed. No separate field or
-// admin UI to maintain: as long as a sauce's name always includes "сос",
-// it lands in the right group automatically.
+// A few condiments that are sauces in every practical sense but aren't
+// named with the word "сос" itself (e.g. "Кетчуп", "Майонеза") — add more
+// here if another one shows up in the menu that should count as a sauce.
+const SAUCE_KEYWORDS = ["кетчуп", "майонеза"];
+
+// Splits the "Без —" list into sauces vs. everything else: the word "сос"
+// in the name ("Барбекю сос", "Чеснов сос", "Дюнер сос"...) covers most of
+// them — the admin's own naming convention, confirmed directly rather than
+// guessed — plus the small fixed list above for the rest. No separate
+// field or admin UI to maintain for the common case.
 function isSauceName(name: string): boolean {
-  return name.toLowerCase().includes("сос");
+  const lower = name.toLowerCase();
+  return lower.includes("сос") || SAUCE_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 export function ProductModal({
