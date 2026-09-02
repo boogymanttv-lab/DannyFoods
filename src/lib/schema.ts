@@ -203,6 +203,17 @@ CREATE TABLE IF NOT EXISTS orders (
   -- part of an order ready, independent of the overall order status.
   station_pizza_ready INTEGER NOT NULL DEFAULT 0,
   station_other_ready INTEGER NOT NULL DEFAULT 0,
+  -- Each station's own self-picked prep-time estimate (same "5-10"/"15-20"
+  -- codes as the customer-facing delivery estimate — see
+  -- delivery-estimate.ts) plus when it was picked, so the OTHER station
+  -- (and the owner) can see a live countdown of how much longer this part
+  -- will take. Purely internal — never shown to the customer. Re-picking
+  -- restarts the started_at clock; picking is blocked once that station
+  -- has already marked itself ready.
+  station_pizza_prep_estimate TEXT,
+  station_pizza_prep_started_at TEXT,
+  station_other_prep_estimate TEXT,
+  station_other_prep_started_at TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
   updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );

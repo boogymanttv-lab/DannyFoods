@@ -587,6 +587,17 @@ async function runMigrations() {
        ADD COLUMN IF NOT EXISTS station_other_ready INTEGER NOT NULL DEFAULT 0`,
     []
   );
+  // Each station's own self-picked prep-time estimate + when it was picked
+  // (see schema.ts) — internal-only countdown so the two stations can see
+  // how much longer each other will take.
+  await rawQuery(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS station_pizza_prep_estimate TEXT,
+       ADD COLUMN IF NOT EXISTS station_pizza_prep_started_at TEXT,
+       ADD COLUMN IF NOT EXISTS station_other_prep_estimate TEXT,
+       ADD COLUMN IF NOT EXISTS station_other_prep_started_at TEXT`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

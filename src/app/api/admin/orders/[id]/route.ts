@@ -5,6 +5,7 @@ import {
   assignCourierByAdmin,
   updateOrderEstimate,
   setStationReady,
+  setStationPrep,
   countActiveOrders,
 } from "@/lib/repos/orders";
 import {
@@ -27,6 +28,14 @@ const VALID_STATUSES: OrderStatus[] = [
   "cancelled",
 ];
 
+// A station-restricted employee (pizza-only or everything-but-pizza) can
+// accept an incoming order — move it to "new" (re-affirming it's been seen)
+// or "confirmed" — but not push it further into the delivery pipeline
+// (preparing/delivering/delivered/cancelled), assign a courier, or override
+// the delivery-time estimate. Those stay owner/"Всичко"-only, same as
+// before; only the "accept" step was reopened to station staff.
+const STAFF_ALLOWED_STATUSES: OrderStatus[] = ["new", "confirmed"];
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -38,16 +47,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Поръчката не е намерена" }, { status: 404 });
   }
 
-  // Status, courier assignment and the manual delivery-time override all
-  // concern the WHOLE order (one delivery, one customer, one courier) —
-  // a station-restricted employee (pizza-only or everything-but-pizza) only
-  // ever touches their own "Готовност по станция" toggle below, never these.
-  // Without this check, a pizza-station employee moving the order to e.g.
-  // "Приготвя се" would silently change what the doner-station employee
-  // sees too, even though the two answer for separate parts of the kitchen.
-  if (body?.status !== undefined || body?.courier_id !== undefined || body?.estimated_delivery !== undefined) {
-    const session = await getSession();
-    const station = session?.station ?? "all";
+  const session = await getSession();
+  const station = session?.station ?? "all";
+
+  // Courier assignment and the manual delivery-time override concern the
+  // WHOLE order (one delivery, one courier) — owner/"Всичко" only.
+  if (body?.courier_id !== undefined || body?.estimated_delivery !== undefined) {
     if (station !== "all") {
       return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
     }
@@ -57,6 +62,9 @@ export async function PATCH(
     const status = body.status as OrderStatus;
     if (!VALID_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Невалиден статус" }, { status: 400 });
+    }
+    if (station !== "all" && !STAFF_ALLOWED_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
     }
     await updateOrderStatus(order.id, status);
 
@@ -94,8 +102,6 @@ export async function PATCH(
   // mark their OWN station's part ready (an 'all'-station account, which
   // includes every owner-level session, can mark either).
   if (body?.station_pizza_ready !== undefined || body?.station_other_ready !== undefined) {
-    const session = await getSession();
-    const station = session?.station ?? "all";
     if (body.station_pizza_ready !== undefined) {
       if (station !== "all" && station !== "pizza") {
         return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
@@ -107,6 +113,40 @@ export async function PATCH(
         return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
       }
       await setStationReady(order.id, "other", Boolean(body.station_other_ready));
+    }
+  }
+
+  // Each station's own self-picked prep-time estimate — internal-only, so
+  // the other station (and the owner) can see a rough countdown of how much
+  // longer this part will take. Same per-station permission pattern as the
+  // ready toggle above; blocked once that station is already marked ready
+  // (nothing left to time).
+  if (body?.station_pizza_prep_estimate !== undefined || body?.station_other_prep_estimate !== undefined) {
+    if (body.station_pizza_prep_estimate !== undefined) {
+      if (station !== "all" && station !== "pizza") {
+        return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
+      }
+      if (order.station_pizza_ready) {
+        return NextResponse.json({ error: "Пицата вече е отбелязана като готова" }, { status: 400 });
+      }
+      const estimate = body.station_pizza_prep_estimate;
+      if (!DELIVERY_ESTIMATE_OPTIONS.includes(estimate)) {
+        return NextResponse.json({ error: "Невалидно време" }, { status: 400 });
+      }
+      await setStationPrep(order.id, "pizza", estimate);
+    }
+    if (body.station_other_prep_estimate !== undefined) {
+      if (station !== "all" && station !== "other") {
+        return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
+      }
+      if (order.station_other_ready) {
+        return NextResponse.json({ error: "Останалото вече е отбелязано като готово" }, { status: 400 });
+      }
+      const estimate = body.station_other_prep_estimate;
+      if (!DELIVERY_ESTIMATE_OPTIONS.includes(estimate)) {
+        return NextResponse.json({ error: "Невалидно време" }, { status: 400 });
+      }
+      await setStationPrep(order.id, "other", estimate);
     }
   }
 

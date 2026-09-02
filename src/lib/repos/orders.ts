@@ -114,7 +114,8 @@ export async function updateOrderEstimate(id: number, estimate: string | null) {
 
 // Toggled independently by whichever kitchen station's staff finished
 // prepping their part (see AdminUser.station) — separate from the overall
-// order status, which any staff can still move forward regardless.
+// order status (station-restricted staff can only move that to "new" or
+// "confirmed", i.e. accept the order — see the admin PATCH route).
 export async function setStationReady(
   id: number,
   station: "pizza" | "other",
@@ -123,6 +124,22 @@ export async function setStationReady(
   const db = await getDb();
   const column = station === "pizza" ? "station_pizza_ready" : "station_other_ready";
   await db.prepare(`UPDATE orders SET ${column} = ? WHERE id = ?`).run(ready ? 1 : 0, id);
+}
+
+// A station's own self-picked prep-time estimate — purely for the other
+// station (and the owner) to see how much longer this part will take; the
+// customer never sees this. Re-picking always restarts the clock from now.
+export async function setStationPrep(
+  id: number,
+  station: "pizza" | "other",
+  estimate: string
+) {
+  const db = await getDb();
+  const estimateCol = station === "pizza" ? "station_pizza_prep_estimate" : "station_other_prep_estimate";
+  const startedCol = station === "pizza" ? "station_pizza_prep_started_at" : "station_other_prep_started_at";
+  await db
+    .prepare(`UPDATE orders SET ${estimateCol} = ?, ${startedCol} = ${NOW_UTC} WHERE id = ?`)
+    .run(estimate, id);
 }
 
 export async function getOrder(id: number): Promise<Order | undefined> {

@@ -203,6 +203,12 @@ export type Order = {
   // station (see AdminUser.station), independent of the overall status.
   station_pizza_ready: number;
   station_other_ready: number;
+  // Each station's own self-picked prep-time estimate + when picked —
+  // internal-only, shown between the two stations, never to the customer.
+  station_pizza_prep_estimate: string | null;
+  station_pizza_prep_started_at: string | null;
+  station_other_prep_estimate: string | null;
+  station_other_prep_started_at: string | null;
   created_at: string;
   updated_at: string;
 };

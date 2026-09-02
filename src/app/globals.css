@@ -146,6 +146,26 @@ h1, h2, h3, h4, .font-display {
   animation: pulse-glow 1.8s ease-in-out infinite;
 }
 
+/* Gentle attention pulse on the "new order" status pill in the admin panel
+   — just the pill's own glow/opacity, nothing else on the page moves, and
+   it's skipped entirely for anyone who's asked their OS for reduced motion. */
+@keyframes order-pill-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 rgba(220, 38, 38, 0);
+  }
+  50% {
+    opacity: 0.75;
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.35);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .order-pill-pulse {
+    animation: order-pill-pulse 1.6s ease-in-out infinite;
+  }
+}
+
 /* Shimmering gradient sweep across the "Зареждане" splash text */
 @keyframes shimmer {
   0% {

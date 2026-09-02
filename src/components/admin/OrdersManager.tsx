@@ -8,6 +8,7 @@ import {
   DELIVERY_ESTIMATE_OPTIONS,
   combineEstimates,
   estimateLabel,
+  estimateUpperMinutes,
   parseBusyHours,
   suggestByLoad,
   suggestEstimate,
@@ -25,6 +26,24 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as OrderStatus[];
+
+// A station-restricted employee can accept an order — that's as far as
+// "приемат поръчките" goes for them — but not push it further into the
+// pipeline (preparing/delivering/delivered/cancelled), which stays owner-only.
+const STAFF_VISIBLE_STATUSES: OrderStatus[] = ["new", "confirmed"];
+
+// One glance at the order list should say how urgent each row is — a brand
+// new, unconfirmed order (red, gently pulsing so it stands out without
+// being distracting all shift) needs eyes on it now; everything after that
+// just needs a distinct color per stage.
+const STATUS_PILL_STYLES: Record<OrderStatus, string> = {
+  new: "bg-brand/10 text-brand order-pill-pulse",
+  confirmed: "bg-success/10 text-success",
+  preparing: "bg-yellow-100 text-yellow-800",
+  delivering: "bg-blue-100 text-blue-800",
+  delivered: "bg-orange-100 text-orange-800",
+  cancelled: "bg-black/5 text-muted",
+};
 
 export function OrdersManager({
   station,
@@ -142,6 +161,27 @@ export function OrdersManager({
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: ready ? 1 : 0 } : o)));
   }
 
+  // Each station picks its own rough prep time — purely so the OTHER
+  // station (and the owner) can see a live countdown of how much longer
+  // this part will take, never shown to the customer. Picking again just
+  // restarts the clock; the server 400s once that station is already
+  // marked ready (setStationReady above), matching the picker being hidden
+  // in that case below.
+  async function setStationPrepTime(id: number, target: "pizza" | "other", estimate: DeliveryEstimate) {
+    const field = target === "pizza" ? "station_pizza_prep_estimate" : "station_other_prep_estimate";
+    const startedField = target === "pizza" ? "station_pizza_prep_started_at" : "station_other_prep_started_at";
+    const res = await fetch(`/api/admin/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: estimate }),
+    });
+    if (!res.ok) return;
+    const now = new Date().toISOString();
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, [field]: estimate, [startedField]: now } : o))
+    );
+  }
+
   // A station-restricted employee only ever sees orders that actually have
   // something for them to prep — an all-pizza order has nothing in it for
   // the "Всичко без пици" station, and vice versa, so there's no reason to
@@ -228,7 +268,9 @@ export function OrdersManager({
                       🍽️ {order.station_other_ready ? "Готово" : "Не е готово"}
                     </span>
                   )}
-                  <span className="text-xs bg-brand/10 text-brand font-semibold px-2 py-1 rounded-full whitespace-nowrap">
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${STATUS_PILL_STYLES[order.status]}`}
+                  >
                     {STATUS_LABELS[order.status]}
                   </span>
                 </div>
@@ -346,6 +388,94 @@ export function OrdersManager({
                       )}
                     </div>
                   )}
+                  {/* Internal-only prep-time picker + live countdown, per
+                      station — never shown to the customer. Each station
+                      picks its own rough duration so the OTHER station (and
+                      the owner) has a sense of how much longer that part
+                      will take ("за да има разбиране между двете
+                      станции"). Picking is only enabled for the owning
+                      station (or an 'all' session); the other side just
+                      watches the countdown. Once a station marks itself
+                      ready, its picker is replaced with a plain "Готово" —
+                      nothing left to time. */}
+                  {(items.some((i) => i.is_pizza) || items.some((i) => !i.is_pizza)) && (
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {items.some((i) => i.is_pizza) && (
+                        <div className="rounded-xl border border-border p-3 space-y-1.5">
+                          <p className="text-xs font-semibold text-muted">🍕 Пицария · време за приготвяне</p>
+                          {order.station_pizza_ready ? (
+                            <p className="text-sm font-semibold text-success">Готово</p>
+                          ) : (
+                            <>
+                              {order.station_pizza_prep_estimate && order.station_pizza_prep_started_at && (
+                                <p className="text-sm">
+                                  Остава:{" "}
+                                  <PrepTimer
+                                    estimate={order.station_pizza_prep_estimate}
+                                    startedAt={order.station_pizza_prep_started_at}
+                                  />
+                                </p>
+                              )}
+                              {(station === "all" || station === "pizza") && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {DELIVERY_ESTIMATE_OPTIONS.map((opt) => (
+                                    <button
+                                      key={opt}
+                                      onClick={() => setStationPrepTime(order.id, "pizza", opt)}
+                                      className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                                        order.station_pizza_prep_estimate === opt
+                                          ? "bg-brand text-white border-brand"
+                                          : "border-border text-foreground/70"
+                                      }`}
+                                    >
+                                      {estimateLabel(opt)}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {items.some((i) => !i.is_pizza) && (
+                        <div className="rounded-xl border border-border p-3 space-y-1.5">
+                          <p className="text-xs font-semibold text-muted">🌯 Дюнери · време за приготвяне</p>
+                          {order.station_other_ready ? (
+                            <p className="text-sm font-semibold text-success">Готово</p>
+                          ) : (
+                            <>
+                              {order.station_other_prep_estimate && order.station_other_prep_started_at && (
+                                <p className="text-sm">
+                                  Остава:{" "}
+                                  <PrepTimer
+                                    estimate={order.station_other_prep_estimate}
+                                    startedAt={order.station_other_prep_started_at}
+                                  />
+                                </p>
+                              )}
+                              {(station === "all" || station === "other") && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {DELIVERY_ESTIMATE_OPTIONS.map((opt) => (
+                                    <button
+                                      key={opt}
+                                      onClick={() => setStationPrepTime(order.id, "other", opt)}
+                                      className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                                        order.station_other_prep_estimate === opt
+                                          ? "bg-brand text-white border-brand"
+                                          : "border-border text-foreground/70"
+                                      }`}
+                                    >
+                                      {estimateLabel(opt)}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="text-sm grid sm:grid-cols-2 gap-1 text-muted">
                     <p>
                       Тип: {order.order_type === "pickup" ? "🏠 Вземане от място" : "🚴 Доставка"}
@@ -368,13 +498,14 @@ export function OrdersManager({
                     {order.promo_code && <p>Промо код: {order.promo_code}</p>}
                     {order.notes && <p>Бележки: {order.notes}</p>}
                   </div>
-                  {/* Overall status, delivery-time override and courier
-                      assignment all concern the WHOLE order (one delivery,
-                      one customer) — kept owner/"Всичко"-only so a
-                      station-restricted employee can't accidentally change
-                      something that affects the other station too. They
-                      still get their own "Готовност по станция" toggle
-                      above. */}
+                  {/* Delivery-time override and courier assignment concern
+                      the WHOLE order (one delivery, one customer) — kept
+                      owner/"Всичко"-only. Accepting the order ("Приета" /
+                      "Потвърдена") is now open to station-restricted staff
+                      too — that's as far as "приемат поръчките" goes for
+                      them; everything past that (preparing/delivering/
+                      delivered/cancelled) stays owner-only, same as the
+                      server-side check. */}
                   {station === "all" ? (
                     <>
                       <div className="flex flex-wrap gap-2">
@@ -435,9 +566,26 @@ export function OrdersManager({
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-muted">
-                      Статусът на поръчката, времето за доставка и куриерът се управляват от собственика.
-                    </p>
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {STAFF_VISIBLE_STATUSES.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => changeStatus(order.id, s)}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                              order.status === s
+                                ? "bg-brand text-white border-brand"
+                                : "border-border text-foreground/70"
+                            }`}
+                          >
+                            {STATUS_LABELS[s]}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted">
+                        Следващите стъпки (приготвяне, доставка) и куриерът се управляват от собственика.
+                      </p>
+                    </>
                   )}
                 </div>
               )}
@@ -449,6 +597,30 @@ export function OrdersManager({
         )}
       </div>
     </div>
+  );
+}
+
+// Live "how much longer" countdown for one station's self-picked prep time —
+// visible to both stations and the owner, never the customer. Ticks its own
+// `now` locally (same pattern as the customer-facing countdown ring) so no
+// parent re-render is needed just to keep the numbers moving.
+function PrepTimer({ estimate, startedAt }: { estimate: string; startedAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const deadline = new Date(startedAt).getTime() + estimateUpperMinutes(estimate) * 60000;
+  const remainingMs = deadline - now;
+  const overdue = remainingMs <= 0;
+  const totalSeconds = Math.abs(Math.round(remainingMs / 1000));
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = totalSeconds % 60;
+  return (
+    <span className={`font-mono tabular-nums ${overdue ? "text-brand" : "text-foreground"}`}>
+      {overdue ? "+" : ""}
+      {mm}:{ss.toString().padStart(2, "0")}
+    </span>
   );
 }
 
