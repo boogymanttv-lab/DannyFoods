@@ -50,13 +50,17 @@ const STATUS_PILL_STYLES: Record<OrderStatus, string> = {
 // "this one needs attention" at a glance without having to zero in on one
 // small badge. Kept subtle (light tint + matching border) so item text and
 // prices inside stay perfectly readable.
+// Solid pastel backgrounds, not transparent tints — the admin panel has a
+// busy decorative pattern behind everything, and a semi-transparent tint
+// (bg-brand/5 etc.) let it bleed straight through the card, making the text
+// on top hard to read. Solid, opaque colors sit cleanly on top of it.
 const STATUS_ROW_STYLES: Record<OrderStatus, string> = {
-  new: "bg-brand/5 border-brand/30",
-  confirmed: "bg-success/5 border-success/30",
+  new: "bg-rose-50 border-rose-200",
+  confirmed: "bg-emerald-50 border-emerald-200",
   preparing: "bg-yellow-50 border-yellow-200",
   delivering: "bg-blue-50 border-blue-200",
   delivered: "bg-orange-50 border-orange-200",
-  cancelled: "bg-black/5 border-border",
+  cancelled: "bg-gray-100 border-border",
 };
 
 export function OrdersManager({
