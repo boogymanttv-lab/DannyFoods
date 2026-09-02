@@ -35,6 +35,7 @@ export const DICT = {
   // Product modal
   "product.size": { bg: "Размер", en: "Size" },
   "product.extras": { bg: "Добавки", en: "Extras" },
+  "product.removeSauces": { bg: "Премахни сосове", en: "Remove sauces" },
   "product.removeIngredients": { bg: "Премахни съставки", en: "Remove ingredients" },
   "product.quantity": { bg: "Количество", en: "Quantity" },
   "product.addToCart": { bg: "Добави в количката", en: "Add to cart" },

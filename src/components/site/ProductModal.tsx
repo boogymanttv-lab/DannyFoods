@@ -18,6 +18,16 @@ function parseIngredients(description: string): string[] {
     .filter(Boolean);
 }
 
+// Splits the "Без —" list into sauces vs. everything else, purely by
+// whether the name contains the word "сос" ("Барбекю сос", "Чеснов сос",
+// "Дюнер сос"...) — the admin's own naming convention for every sauce in
+// the menu, confirmed directly rather than guessed. No separate field or
+// admin UI to maintain: as long as a sauce's name always includes "сос",
+// it lands in the right group automatically.
+function isSauceName(name: string): boolean {
+  return name.toLowerCase().includes("сос");
+}
+
 export function ProductModal({
   product,
   onClose,
@@ -42,6 +52,11 @@ export function ProductModal({
   const ingredients = useMemo(
     () => parseIngredients(product.description),
     [product.description]
+  );
+  const sauces = useMemo(() => ingredients.filter(isSauceName), [ingredients]);
+  const plainIngredients = useMemo(
+    () => ingredients.filter((ing) => !isSauceName(ing)),
+    [ingredients]
   );
   // Holds ingredients the customer wants LEFT OUT — unchecked by default
   // (nothing removed) since most orders want everything as described.
@@ -202,39 +217,27 @@ export function ProductModal({
             </div>
           )}
 
-          {ingredients.length > 0 && (
+          {sauces.length > 0 && (
+            <div>
+              <p className="font-semibold text-sm mb-2">{t("product.removeSauces")}</p>
+              <IngredientCheckboxList
+                items={sauces}
+                removed={removedIngredients}
+                onToggle={toggleIngredient}
+                withoutLabel={t("cart.removedIngredients")}
+              />
+            </div>
+          )}
+
+          {plainIngredients.length > 0 && (
             <div>
               <p className="font-semibold text-sm mb-2">{t("product.removeIngredients")}</p>
-              {/* One row per ingredient, checkbox first — each row reads
-                  "Без домати" etc. on its own, rather than a generic "Без —"
-                  heading over a strip of bare ingredient chips. */}
-              <div className="space-y-2">
-                {ingredients.map((ing) => {
-                  const isRemoved = removedIngredients.has(ing);
-                  return (
-                    <label
-                      key={ing}
-                      className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isRemoved}
-                        onChange={() => toggleIngredient(ing)}
-                        className="accent-[var(--brand)] h-4 w-4 shrink-0"
-                      />
-                      <span
-                        className={
-                          isRemoved
-                            ? "text-brand font-semibold"
-                            : "text-foreground/80"
-                        }
-                      >
-                        {t("cart.removedIngredients")} {ing}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+              <IngredientCheckboxList
+                items={plainIngredients}
+                removed={removedIngredients}
+                onToggle={toggleIngredient}
+                withoutLabel={t("cart.removedIngredients")}
+              />
             </div>
           )}
 
@@ -374,6 +377,46 @@ export function ProductModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// One row per ingredient, checkbox first — each row reads "Без домати" etc.
+// on its own, rather than a generic "Без —" heading over a strip of bare
+// ingredient chips. Shared between the "Сосове" and "Съставки" groups above
+// so both render identically.
+function IngredientCheckboxList({
+  items,
+  removed,
+  onToggle,
+  withoutLabel,
+}: {
+  items: string[];
+  removed: Set<string>;
+  onToggle: (ingredient: string) => void;
+  withoutLabel: string;
+}) {
+  return (
+    <div className="space-y-2">
+      {items.map((ing) => {
+        const isRemoved = removed.has(ing);
+        return (
+          <label
+            key={ing}
+            className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={isRemoved}
+              onChange={() => onToggle(ing)}
+              className="accent-[var(--brand)] h-4 w-4 shrink-0"
+            />
+            <span className={isRemoved ? "text-brand font-semibold" : "text-foreground/80"}>
+              {withoutLabel} {ing}
+            </span>
+          </label>
+        );
+      })}
     </div>
   );
 }
