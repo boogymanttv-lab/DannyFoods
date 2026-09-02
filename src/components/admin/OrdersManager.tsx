@@ -251,19 +251,28 @@ export function OrdersManager({
                         (station === "pizza" && item.is_pizza) ||
                         (station === "other" && !item.is_pizza);
                       const isDimmed = station !== "all" && !isOwn;
+                      // Once a station presses its own "Готово" toggle below,
+                      // every item belonging to that station turns green
+                      // here too — not just the toggle button — visible to
+                      // everyone looking at the order, regardless of which
+                      // station they're viewing from.
+                      const isReady = item.is_pizza ? Boolean(order.station_pizza_ready) : Boolean(order.station_other_ready);
                       return (
                     <li
                       key={idx}
                       className={`flex flex-col gap-0.5 rounded-lg px-2 py-1 -mx-2 ${
-                        isDimmed
-                          ? "opacity-40"
-                          : station !== "all"
-                            ? "bg-brand/5 font-semibold"
-                            : ""
+                        isReady
+                          ? "bg-success/10 font-semibold"
+                          : isDimmed
+                            ? "opacity-40"
+                            : station !== "all"
+                              ? "bg-brand/5 font-semibold"
+                              : ""
                       }`}
                     >
                         <div className="flex justify-between">
-                          <span className={isDimmed || station === "all" ? "text-muted" : "text-foreground"}>
+                          <span className={isReady ? "text-success" : isDimmed || station === "all" ? "text-muted" : "text-foreground"}>
+                            {isReady && <span className="mr-1">✓</span>}
                             {item.is_pizza && <span className="mr-1">🍕</span>}
                             {item.quantity}× {item.name}
                             {item.sizeLabel ? ` (${item.sizeLabel})` : ""}

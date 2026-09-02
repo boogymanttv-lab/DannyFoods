@@ -781,7 +781,7 @@ export function ProductsManager({
               />
             )}
 
-            <div className="flex gap-4 text-sm">
+            <div className="flex flex-wrap gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -797,6 +797,18 @@ export function ProductsManager({
                   onChange={(e) => setProductForm((f) => ({ ...f, active: e.target.checked }))}
                 />
                 Активен
+              </label>
+              {/* Controls which "kitchen station" this product belongs to in
+                  the admin Поръчки view — a pizza-station employee only acts
+                  on items checked here, everything else counts as
+                  "останалото" for station purposes (see OrdersManager.tsx). */}
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={productForm.is_pizza}
+                  onChange={(e) => setProductForm((f) => ({ ...f, is_pizza: e.target.checked }))}
+                />
+                🍕 Пица (за разделяне по станции в поръчките)
               </label>
             </div>
 
