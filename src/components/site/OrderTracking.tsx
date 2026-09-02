@@ -107,12 +107,67 @@ function DeliveryCountdownRing({
   );
 }
 
+// Plain local components, no timezone conversion — same convention the rest
+// of the app uses for this string (see delivery-slots.ts). Returns null if
+// the string doesn't parse.
+function parseRequestedTime(requestedTime: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(requestedTime);
+  if (!match) return null;
+  const [, y, mo, d, hh, mm] = match;
+  return new Date(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm)).getTime();
+}
+
+// A static, non-ticking ring shown from the moment an order is placed until
+// staff actually opens it and changes its status for the first time —  at
+// that point the real prep-time countdown (DeliveryCountdownRing) takes
+// over. Deliberately doesn't count down anything: there's nothing to count
+// yet, since no one has confirmed the order can even start.
+function PendingConfirmationRing() {
+  const t = useT();
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <div className="flex items-center gap-4">
+      <svg width="100" height="100" viewBox="0 0 100 100" className="shrink-0 -rotate-90">
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border)" strokeWidth="8" />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={0}
+        />
+        <text
+          x="50"
+          y="50"
+          textAnchor="middle"
+          dominantBaseline="central"
+          transform="rotate(90 50 50)"
+          className="fill-foreground"
+          style={{ fontSize: "22px" }}
+        >
+          ⏳
+        </text>
+      </svg>
+      <div>
+        <p className="text-xs text-muted">{t("order.waitingConfirmationLabel")}</p>
+        <p className="font-semibold">{t("order.waitingConfirmationBody")}</p>
+      </div>
+    </div>
+  );
+}
+
 // Shown instead of the prep-time ring for a scheduled ("for later") order
 // whose requested time hasn't arrived yet — a plain live countdown to that
 // moment, deliberately NOT styled like the delivery ring so it doesn't read
 // as "your food is being prepared right now". Once the requested time
-// arrives, the tracking endpoint activates the real estimate itself and
-// this component stops rendering (see OrderTracking below).
+// arrives, this stops rendering and OrderTracking falls back to
+// PendingConfirmationRing until staff actually confirms the order.
 function ScheduledTimeCountdown({ requestedTime }: { requestedTime: string }) {
   const t = useT();
   const [now, setNow] = useState(() => Date.now());
@@ -122,12 +177,8 @@ function ScheduledTimeCountdown({ requestedTime }: { requestedTime: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(requestedTime);
-  if (!match) return null;
-  const [, y, mo, d, hh, mm] = match;
-  // Plain local components, no timezone conversion — same convention the
-  // rest of the app uses for this string (see delivery-slots.ts).
-  const deadline = new Date(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm)).getTime();
+  const deadline = parseRequestedTime(requestedTime);
+  if (deadline === null) return null;
   const remainingMs = Math.max(0, deadline - now);
   if (remainingMs <= 0) return null;
 
@@ -146,6 +197,29 @@ function ScheduledTimeCountdown({ requestedTime }: { requestedTime: string }) {
       <p className="text-xs text-muted">{t("order.scheduledCountdownLabel")}</p>
       <p className="font-semibold text-lg">{parts.join(" ")}</p>
     </div>
+  );
+}
+
+// Picks between the two "no real estimate yet" displays above and re-checks
+// every second on its own (own ticking `now`, rather than reading the clock
+// directly during render) — a scheduled order whose requested time is still
+// ahead gets the countdown-to-that-time; anything else (no requested time,
+// or the requested time already passed but staff still hasn't confirmed)
+// gets the static waiting ring.
+function ScheduledOrPendingRing({ requestedTime }: { requestedTime: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const deadline = requestedTime ? parseRequestedTime(requestedTime) : null;
+  const stillScheduled = deadline !== null && deadline > now;
+
+  return stillScheduled ? (
+    <ScheduledTimeCountdown requestedTime={requestedTime!} />
+  ) : (
+    <PendingConfirmationRing />
   );
 }
 
@@ -205,14 +279,15 @@ export function OrderTracking({
           />
         )}
 
-      {/* A scheduled order gets no prep-time estimate until its requested
-          time actually arrives (see /api/orders and the tracking route) —
-          until then, a plain countdown to that time instead. */}
+      {/* No order gets a prep-time estimate until staff actually opens it and
+          changes its status for the first time (see the admin PATCH route)
+          — until then: a countdown to the requested time for a scheduled
+          order, still in the future, or otherwise a static "waiting for
+          confirmation" ring. */}
       {!tracking.estimatedDelivery &&
-        tracking.requestedTime &&
         tracking.status !== "delivered" &&
         tracking.status !== "cancelled" && (
-          <ScheduledTimeCountdown requestedTime={tracking.requestedTime} />
+          <ScheduledOrPendingRing requestedTime={tracking.requestedTime} />
         )}
 
       {tracking.status === "delivering" && tracking.courierLocation && (

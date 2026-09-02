@@ -6,8 +6,6 @@ import {
   createOrder,
   updateOrderPayment,
   updateOrderDestination,
-  updateOrderEstimate,
-  countActiveOrders,
 } from "@/lib/repos/orders";
 import { getSettings } from "@/lib/repos/settings";
 import { sendOrderConfirmationEmail } from "@/lib/email";
@@ -16,12 +14,6 @@ import { approximateZoneCenter } from "@/lib/varna-geo";
 import { getCustomerSession } from "@/lib/auth";
 import { getOrCreateStripeCustomerId } from "@/lib/stripe-customer";
 import { isValidDeliverySlot } from "@/lib/delivery-slots";
-import {
-  combineEstimates,
-  parseBusyHours,
-  suggestByLoad,
-  suggestEstimate,
-} from "@/lib/delivery-estimate";
 import type { OrderItem } from "@/lib/types";
 import Stripe from "stripe";
 
@@ -289,24 +281,13 @@ export async function POST(req: NextRequest) {
     if (promo) await incrementPromotionUsage(promo.id);
   }
 
-  // Give the customer an estimate — and a running countdown ring — right
-  // away instead of leaving it blank until an admin opens the order and
-  // manually picks one. Uses the same "busy hours" + "current load" signals
-  // the admin panel suggests from; the admin can still override it later,
-  // which re-stamps the countdown from that moment.
-  //
-  // Skipped for a scheduled ("for later") order — a prep-time countdown
-  // makes no sense while the requested time is still hours/days away. The
-  // tracking endpoint activates the real estimate itself, the moment the
-  // requested time actually arrives (see /api/orders/[orderNumber]/tracking).
-  if (!data.requested_time) {
-    const busyRules = parseBusyHours(settings.busy_hours_json);
-    const autoEstimate = combineEstimates(
-      suggestEstimate(busyRules),
-      suggestByLoad(await countActiveOrders())
-    );
-    await updateOrderEstimate(order.id, autoEstimate);
-  }
+  // No delivery-time estimate is set here anymore — the countdown ring only
+  // starts once a member of staff actually opens the order and moves its
+  // status for the first time (see the PATCH handler in
+  // /api/admin/orders/[id]), whether the order is "as soon as possible" or
+  // scheduled for later. Until then the customer sees a static "received,
+  // waiting for confirmation" ring instead of a ticking one — see
+  // OrderTracking.tsx.
 
   // Geocode the delivery address in the background so checkout doesn't wait
   // on an external service — the tracking map picks up the destination pin

@@ -239,16 +239,31 @@ export function OrdersManager({
                   <ul className="text-sm space-y-1">
                     {items.map((item, idx) => {
                       // A station-restricted view (pizza-only or
-                      // everything-but-pizza staff) dims whichever items
-                      // aren't theirs — still visible for context, just not
-                      // what they're responsible for prepping.
-                      const isDimmed =
-                        (station === "pizza" && !item.is_pizza) ||
-                        (station === "other" && item.is_pizza);
+                      // everything-but-pizza staff) actively highlights
+                      // whichever items ARE theirs — bold text on a light
+                      // tinted background — and dims the rest, so it's
+                      // unmistakable at a glance even when their own items
+                      // are a small minority of the order (just dimming the
+                      // others reads as "everything is gray" when there's
+                      // only one relevant line among many).
+                      const isOwn =
+                        station === "all" ||
+                        (station === "pizza" && item.is_pizza) ||
+                        (station === "other" && !item.is_pizza);
+                      const isDimmed = station !== "all" && !isOwn;
                       return (
-                    <li key={idx} className={`flex flex-col gap-0.5 ${isDimmed ? "opacity-40" : ""}`}>
+                    <li
+                      key={idx}
+                      className={`flex flex-col gap-0.5 rounded-lg px-2 py-1 -mx-2 ${
+                        isDimmed
+                          ? "opacity-40"
+                          : station !== "all"
+                            ? "bg-brand/5 font-semibold"
+                            : ""
+                      }`}
+                    >
                         <div className="flex justify-between">
-                          <span className="text-muted">
+                          <span className={isDimmed || station === "all" ? "text-muted" : "text-foreground"}>
                             {item.is_pizza && <span className="mr-1">🍕</span>}
                             {item.quantity}× {item.name}
                             {item.sizeLabel ? ` (${item.sizeLabel})` : ""}
@@ -339,62 +354,77 @@ export function OrdersManager({
                     {order.promo_code && <p>Промо код: {order.promo_code}</p>}
                     {order.notes && <p>Бележки: {order.notes}</p>}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {STATUS_OPTIONS.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => changeStatus(order.id, s)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
-                          order.status === s
-                            ? "bg-brand text-white border-brand"
-                            : "border-border text-foreground/70"
-                        }`}
-                      >
-                        {STATUS_LABELS[s]}
-                      </button>
-                    ))}
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted block mb-1">Време за доставка</label>
-                    <div className="flex flex-wrap gap-2">
-                      {DELIVERY_ESTIMATE_OPTIONS.map((opt) => {
-                        const isSelected =
-                          (order.estimated_delivery ?? suggestedEstimate) === opt;
-                        const isSuggested = !order.estimated_delivery && opt === suggestedEstimate;
-                        return (
+                  {/* Overall status, delivery-time override and courier
+                      assignment all concern the WHOLE order (one delivery,
+                      one customer) — kept owner/"Всичко"-only so a
+                      station-restricted employee can't accidentally change
+                      something that affects the other station too. They
+                      still get their own "Готовност по станция" toggle
+                      above. */}
+                  {station === "all" ? (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {STATUS_OPTIONS.map((s) => (
                           <button
-                            key={opt}
-                            onClick={() => setEstimate(order.id, opt)}
+                            key={s}
+                            onClick={() => changeStatus(order.id, s)}
                             className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
-                              isSelected
-                                ? "bg-success text-white border-success"
+                              order.status === s
+                                ? "bg-brand text-white border-brand"
                                 : "border-border text-foreground/70"
                             }`}
                           >
-                            {estimateLabel(opt)}
-                            {isSuggested ? " (предложено)" : ""}
+                            {STATUS_LABELS[s]}
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted block mb-1">Куриер</label>
-                    <select
-                      value={order.courier_id ?? ""}
-                      onChange={(e) =>
-                        assignCourier(order.id, e.target.value ? Number(e.target.value) : null)
-                      }
-                      className="w-full rounded-xl border border-border px-3 py-2 text-sm"
-                    >
-                      <option value="">Без назначен куриер</option>
-                      {couriers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} {c.active ? "" : "(изключен)"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                        ))}
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted block mb-1">Време за доставка</label>
+                        <div className="flex flex-wrap gap-2">
+                          {DELIVERY_ESTIMATE_OPTIONS.map((opt) => {
+                            const isSelected =
+                              (order.estimated_delivery ?? suggestedEstimate) === opt;
+                            const isSuggested = !order.estimated_delivery && opt === suggestedEstimate;
+                            return (
+                              <button
+                                key={opt}
+                                onClick={() => setEstimate(order.id, opt)}
+                                className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                                  isSelected
+                                    ? "bg-success text-white border-success"
+                                    : "border-border text-foreground/70"
+                                }`}
+                              >
+                                {estimateLabel(opt)}
+                                {isSuggested ? " (предложено)" : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted block mb-1">Куриер</label>
+                        <select
+                          value={order.courier_id ?? ""}
+                          onChange={(e) =>
+                            assignCourier(order.id, e.target.value ? Number(e.target.value) : null)
+                          }
+                          className="w-full rounded-xl border border-border px-3 py-2 text-sm"
+                        >
+                          <option value="">Без назначен куриер</option>
+                          {couriers.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} {c.active ? "" : "(изключен)"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted">
+                      Статусът на поръчката, времето за доставка и куриерът се управляват от собственика.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

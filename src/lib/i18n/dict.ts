@@ -205,6 +205,11 @@ export const DICT = {
   "order.hours": { bg: "ч", en: "h" },
   "order.minutes": { bg: "мин", en: "min" },
   "order.anyMoment": { bg: "Всеки момент", en: "Any moment" },
+  "order.waitingConfirmationLabel": { bg: "Очаква потвърждение", en: "Awaiting confirmation" },
+  "order.waitingConfirmationBody": {
+    bg: "Ще получите очакваното време за доставка съвсем скоро",
+    en: "You'll get an estimated delivery time shortly",
+  },
   "order.courierOnWay": { bg: "е на път към вас — позицията се обновява на живо.", en: "is on the way to you — location updates live." },
   "order.deliveryAddressPin": { bg: "Адрес за доставка", en: "Delivery address" },
   "order.courierNoGps": { bg: "Куриерът е тръгнал към вас — все още изчакваме GPS сигнал.", en: "The courier is on the way — still waiting for a GPS signal." },
