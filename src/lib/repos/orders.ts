@@ -126,9 +126,11 @@ export async function setStationReady(
   await db.prepare(`UPDATE orders SET ${column} = ? WHERE id = ?`).run(ready ? 1 : 0, id);
 }
 
-// A station's own self-picked prep-time estimate — purely for the other
-// station (and the owner) to see how much longer this part will take; the
-// customer never sees this. Re-picking always restarts the clock from now.
+// A station's own self-picked prep-time estimate — the live countdown built
+// from it is purely for the other station (and the owner), never shown to
+// the customer as-is; the PATCH route separately recomputes the customer's
+// own estimated_delivery from the slower of the two stations' picks. Here,
+// re-picking always restarts this station's own clock from now.
 export async function setStationPrep(
   id: number,
   station: "pizza" | "other",

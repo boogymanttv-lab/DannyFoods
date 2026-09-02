@@ -120,8 +120,14 @@ export async function PATCH(
   // the other station (and the owner) can see a rough countdown of how much
   // longer this part will take. Same per-station permission pattern as the
   // ready toggle above; blocked once that station is already marked ready
-  // (nothing left to time).
+  // (nothing left to time). Whichever station is the SLOWER of the two also
+  // drives the customer-facing delivery countdown from here on — a station
+  // picking (or re-picking) its own time re-syncs that customer estimate
+  // to the current worse-case of both, restarting the customer's ring.
   if (body?.station_pizza_prep_estimate !== undefined || body?.station_other_prep_estimate !== undefined) {
+    let pizzaEstimate = order.station_pizza_prep_estimate;
+    let otherEstimate = order.station_other_prep_estimate;
+
     if (body.station_pizza_prep_estimate !== undefined) {
       if (station !== "all" && station !== "pizza") {
         return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
@@ -134,6 +140,7 @@ export async function PATCH(
         return NextResponse.json({ error: "Невалидно време" }, { status: 400 });
       }
       await setStationPrep(order.id, "pizza", estimate);
+      pizzaEstimate = estimate;
     }
     if (body.station_other_prep_estimate !== undefined) {
       if (station !== "all" && station !== "other") {
@@ -147,6 +154,14 @@ export async function PATCH(
         return NextResponse.json({ error: "Невалидно време" }, { status: 400 });
       }
       await setStationPrep(order.id, "other", estimate);
+      otherEstimate = estimate;
+    }
+
+    const relevantEstimates = [pizzaEstimate, otherEstimate].filter(
+      (e): e is (typeof DELIVERY_ESTIMATE_OPTIONS)[number] => e != null
+    );
+    if (relevantEstimates.length > 0) {
+      await updateOrderEstimate(order.id, combineEstimates(...relevantEstimates));
     }
   }
 

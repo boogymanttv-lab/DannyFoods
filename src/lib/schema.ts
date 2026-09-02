@@ -207,9 +207,12 @@ CREATE TABLE IF NOT EXISTS orders (
   -- codes as the customer-facing delivery estimate — see
   -- delivery-estimate.ts) plus when it was picked, so the OTHER station
   -- (and the owner) can see a live countdown of how much longer this part
-  -- will take. Purely internal — never shown to the customer. Re-picking
-  -- restarts the started_at clock; picking is blocked once that station
-  -- has already marked itself ready.
+  -- will take — the live countdown itself is internal-only, never shown to
+  -- the customer, but the slower of the two picks also drives (and
+  -- restarts) the customer-facing estimated_delivery/estimated_delivery_set_at
+  -- below (see the PATCH /api/admin/orders/[id] route). Re-picking restarts
+  -- the started_at clock; picking is blocked once that station has already
+  -- marked itself ready.
   station_pizza_prep_estimate TEXT,
   station_pizza_prep_started_at TEXT,
   station_other_prep_estimate TEXT,

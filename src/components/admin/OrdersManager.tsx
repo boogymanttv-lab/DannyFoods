@@ -161,12 +161,13 @@ export function OrdersManager({
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: ready ? 1 : 0 } : o)));
   }
 
-  // Each station picks its own rough prep time — purely so the OTHER
-  // station (and the owner) can see a live countdown of how much longer
-  // this part will take, never shown to the customer. Picking again just
-  // restarts the clock; the server 400s once that station is already
-  // marked ready (setStationReady above), matching the picker being hidden
-  // in that case below.
+  // Each station picks its own rough prep time — the internal countdown is
+  // purely between the two stations (and the owner), but the SLOWER of the
+  // two also drives the customer-facing delivery estimate from here on (the
+  // server recomputes and restarts that ring on every pick — see the PATCH
+  // route). Picking again just restarts this station's own clock; the
+  // server 400s once that station is already marked ready (setStationReady
+  // above), matching the picker being hidden in that case below.
   async function setStationPrepTime(id: number, target: "pizza" | "other", estimate: DeliveryEstimate) {
     const field = target === "pizza" ? "station_pizza_prep_estimate" : "station_other_prep_estimate";
     const startedField = target === "pizza" ? "station_pizza_prep_started_at" : "station_other_prep_started_at";
@@ -178,7 +179,23 @@ export function OrdersManager({
     if (!res.ok) return;
     const now = new Date().toISOString();
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, [field]: estimate, [startedField]: now } : o))
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        const pizzaEstimate = target === "pizza" ? estimate : o.station_pizza_prep_estimate;
+        const otherEstimate = target === "other" ? estimate : o.station_other_prep_estimate;
+        const relevant = [pizzaEstimate, otherEstimate].filter(
+          (e): e is DeliveryEstimate => e != null
+        );
+        const syncedEstimate =
+          relevant.length > 0 ? combineEstimates(...relevant) : o.estimated_delivery;
+        return {
+          ...o,
+          [field]: estimate,
+          [startedField]: now,
+          estimated_delivery: syncedEstimate,
+          estimated_delivery_set_at: now,
+        };
+      })
     );
   }
 
@@ -388,16 +405,20 @@ export function OrdersManager({
                       )}
                     </div>
                   )}
-                  {/* Internal-only prep-time picker + live countdown, per
-                      station — never shown to the customer. Each station
-                      picks its own rough duration so the OTHER station (and
-                      the owner) has a sense of how much longer that part
-                      will take ("за да има разбиране между двете
-                      станции"). Picking is only enabled for the owning
-                      station (or an 'all' session); the other side just
-                      watches the countdown. Once a station marks itself
-                      ready, its picker is replaced with a plain "Готово" —
-                      nothing left to time. */}
+                  {/* Prep-time picker + live countdown, per station — the
+                      countdown display itself is internal, between the two
+                      stations (and the owner) only, never shown to the
+                      customer as a live clock. Each station picks its own
+                      rough duration so the OTHER station has a sense of how
+                      much longer that part will take ("за да има разбиране
+                      между двете станции"); the slower of the two picks
+                      also becomes the customer's own delivery estimate
+                      (server-side, restarting their ring — see the PATCH
+                      route). Picking is only enabled for the owning station
+                      (or an 'all' session); the other side just watches the
+                      countdown. Once a station marks itself ready, its
+                      picker is replaced with a plain "Готово" — nothing
+                      left to time. */}
                   {(items.some((i) => i.is_pizza) || items.some((i) => !i.is_pizza)) && (
                     <div className="grid sm:grid-cols-2 gap-3">
                       {items.some((i) => i.is_pizza) && (
@@ -610,7 +631,18 @@ function PrepTimer({ estimate, startedAt }: { estimate: string; startedAt: strin
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  const deadline = new Date(startedAt).getTime() + estimateUpperMinutes(estimate) * 60000;
+  // `startedAt` normally comes from Postgres as "YYYY-MM-DD HH:MM:SS" UTC
+  // with no timezone marker — passed straight to `new Date(...)`, browsers
+  // parse that as *local* time, silently shifting the deadline by the
+  // visitor's UTC offset (in Bulgaria's case, hours into the past — hence
+  // the huge bogus "+151:00" overdue readouts). Reinterpret it explicitly
+  // as UTC by switching to ISO form first, same fix as the customer-facing
+  // ring in OrderTracking.tsx. The optimistic client-side update below sets
+  // this from `.toISOString()` instead (already real ISO, already has "T"
+  // and a trailing "Z") — detect that case so it isn't mangled into an
+  // invalid "...Z Z" double suffix.
+  const iso = startedAt.includes("T") ? startedAt : startedAt.replace(" ", "T") + "Z";
+  const deadline = new Date(iso).getTime() + estimateUpperMinutes(estimate) * 60000;
   const remainingMs = deadline - now;
   const overdue = remainingMs <= 0;
   const totalSeconds = Math.abs(Math.round(remainingMs / 1000));
