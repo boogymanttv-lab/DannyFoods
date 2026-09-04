@@ -14,6 +14,8 @@ const INFO_LINKS = [
 
 const ABOUT_LINKS = [{ label: "Кандидатстване за работа", href: "/careers" }];
 
+const PAYMENT_METHODS = ["VISA", "Mastercard", "Stripe"];
+
 export function Footer({
   siteName,
   phone,
@@ -81,7 +83,15 @@ export function Footer({
 
       <div className="border-t border-white/10 py-4 text-center text-xs text-white/40 space-y-0.5">
         <p>
-          © {new Date().getFullYear()} {siteName}. Всички права запазени.
+          © {new Date().getFullYear()} {siteName}. Всички права запазени. Created by:{" "}
+          <a
+            href="https://cfxwebstudio.xyz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white/70 transition-colors"
+          >
+            cfxwebstudio
+          </a>
         </p>
         {(companyLegalName || companyEik) && (
           <p>
@@ -89,6 +99,19 @@ export function Footer({
             {companyEik && <> · ЕИК {companyEik}</>}
           </p>
         )}
+      </div>
+
+      <div className="border-t border-white/10 py-4">
+        <div className="mx-auto max-w-6xl px-4 flex flex-wrap items-center justify-center gap-2">
+          {PAYMENT_METHODS.map((m) => (
+            <span
+              key={m}
+              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white/60"
+            >
+              {m}
+            </span>
+          ))}
+        </div>
       </div>
     </footer>
   );
