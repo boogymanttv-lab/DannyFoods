@@ -14,8 +14,6 @@ const INFO_LINKS = [
 
 const ABOUT_LINKS = [{ label: "Кандидатстване за работа", href: "/careers" }];
 
-const PAYMENT_METHODS = ["VISA", "Mastercard", "Stripe"];
-
 export function Footer({
   siteName,
   phone,
@@ -103,17 +101,86 @@ export function Footer({
 
       <div className="border-t border-white/10 py-4">
         <div className="mx-auto max-w-6xl px-4 flex flex-wrap items-center justify-center gap-2">
-          {PAYMENT_METHODS.map((m) => (
-            <span
-              key={m}
-              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white/60"
-            >
-              {m}
-            </span>
-          ))}
+          <VisaBadge />
+          <MastercardBadge />
+          <StripeBadge />
         </div>
       </div>
     </footer>
+  );
+}
+
+function PaymentBadge({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className="flex h-7 w-12 items-center justify-center rounded-md bg-white px-1.5"
+    >
+      {children}
+    </span>
+  );
+}
+
+function VisaBadge() {
+  return (
+    <PaymentBadge label="Visa">
+      <svg viewBox="0 0 48 16" className="h-3.5 w-auto">
+        <text
+          x="24"
+          y="13"
+          textAnchor="middle"
+          fontFamily="Georgia, 'Times New Roman', serif"
+          fontStyle="italic"
+          fontWeight="bold"
+          fontSize="15"
+          fill="#1434CB"
+        >
+          VISA
+        </text>
+      </svg>
+    </PaymentBadge>
+  );
+}
+
+function MastercardBadge() {
+  return (
+    <PaymentBadge label="Mastercard">
+      <svg viewBox="0 0 32 20" className="h-5 w-auto">
+        <circle cx="12" cy="10" r="8" fill="#EB001B" />
+        <circle cx="20" cy="10" r="8" fill="#F79E1B" />
+        <path
+          d="M16 3.8a8 8 0 0 1 0 12.4 8 8 0 0 1 0-12.4z"
+          fill="#FF5F00"
+        />
+      </svg>
+    </PaymentBadge>
+  );
+}
+
+function StripeBadge() {
+  return (
+    <PaymentBadge label="Stripe">
+      <svg viewBox="0 0 60 16" className="h-3 w-auto">
+        <text
+          x="30"
+          y="13"
+          textAnchor="middle"
+          fontFamily="Arial, Helvetica, sans-serif"
+          fontWeight="700"
+          fontSize="14"
+          fill="#635BFF"
+        >
+          stripe
+        </text>
+      </svg>
+    </PaymentBadge>
   );
 }
 
