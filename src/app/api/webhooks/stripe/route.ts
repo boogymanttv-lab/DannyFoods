@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
     if (webhookSecret && signature) {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } else {
-      // No webhook secret configured (local/dev) — trust the payload as-is.
       event = JSON.parse(body);
     }
   } catch (err) {
@@ -36,8 +35,6 @@ export async function POST(req: NextRequest) {
       const order = await getOrderByNumber(orderNumber);
       if (order) {
         await updateOrderPayment(order.id, { payment_status: "paid" });
-        // Re-fetch so the pizza-split check below sees the just-updated
-        // payment_status/stripe_session_id, not the stale pre-payment row.
         const paidOrder = await getOrderByNumber(orderNumber);
         if (paidOrder) {
           await transferPizzaShareIfNeeded(paidOrder, settings);

@@ -35,11 +35,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Repeating doodle-sketch pattern instead of a flat background — used on
-   <body> (the customer-facing site) and on the few places that set an
-   explicit bg-background utility (e.g. the admin/courier shells). A light
-   cream tint keeps it from competing with menu photos and text, while
-   staying clearly legible as artwork rather than a near-invisible texture. */
 body,
 .bg-background {
   background-color: var(--background);
@@ -101,7 +96,6 @@ h1, h2, h3, h4, .font-display {
   animation: slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Slow-drifting glow blobs behind the splash screen (see SplashScreen.tsx) */
 @keyframes blob-move {
   0%,
   100% {
@@ -118,8 +112,6 @@ h1, h2, h3, h4, .font-display {
   animation: blob-move 12s ease-in-out infinite;
 }
 
-/* Slowly-panning dot grid behind the splash screen (see SplashScreen.tsx) —
-   background-position animates by exactly one tile so the loop is seamless. */
 @keyframes dots-drift {
   0% {
     background-position: 0 0;
@@ -132,7 +124,6 @@ h1, h2, h3, h4, .font-display {
   animation: dots-drift 6s linear infinite;
 }
 
-/* Pulsing glow ring around the splash screen's food-icon card */
 @keyframes pulse-glow {
   0%,
   100% {
@@ -146,9 +137,6 @@ h1, h2, h3, h4, .font-display {
   animation: pulse-glow 1.8s ease-in-out infinite;
 }
 
-/* Gentle attention pulse on the "new order" status pill in the admin panel
-   — just the pill's own glow/opacity, nothing else on the page moves, and
-   it's skipped entirely for anyone who's asked their OS for reduced motion. */
 @keyframes order-pill-pulse {
   0%,
   100% {
@@ -166,7 +154,6 @@ h1, h2, h3, h4, .font-display {
   }
 }
 
-/* Shimmering gradient sweep across the "Зареждане" splash text */
 @keyframes shimmer {
   0% {
     background-position: 0% center;
@@ -196,7 +183,6 @@ h1, h2, h3, h4, .font-display {
   animation: dot-bounce 1s ease-in-out infinite;
 }
 
-/* Intro splash screen (see SplashScreen.tsx) */
 @keyframes splash-fill {
   0% {
     width: 0%;
@@ -222,9 +208,6 @@ h1, h2, h3, h4, .font-display {
   animation: splash-badge-bounce 1.1s ease-in-out infinite;
 }
 
-/* Scrolling promo ticker at the very top of the site (see PromoBanner.tsx) —
-   the track holds the text twice back-to-back and slides left by exactly
-   half its width, so the loop seam is invisible. */
 @keyframes marquee {
   0% {
     transform: translateX(0);

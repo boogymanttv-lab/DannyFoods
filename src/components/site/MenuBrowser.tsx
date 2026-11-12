@@ -14,12 +14,7 @@ export function MenuBrowser({
 }: {
   categories: Category[];
   products: ProductWithOptions[];
-  // Category id (as a string, matching the site_settings store) whose
-  // products should show as "Често купувано с" suggestions in the product
-  // modal — empty string/undefined disables the section entirely.
   suggestedCategoryId?: string;
-  // Precomputed per-product review averages (one query for the whole menu,
-  // rather than one per card) — a product with no reviews just has no entry.
   ratings?: Record<number, { average: number; count: number }>;
 }) {
   const t = useT();
@@ -47,9 +42,6 @@ export function MenuBrowser({
 
   function selectCategory(slug: string) {
     setActiveSlug(slug);
-    // A category switch always starts a fresh grid — jump back to the top
-    // of the menu so the new selection is never confused with leftover
-    // scroll position from a longer previous list.
     document.getElementById("menu")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 

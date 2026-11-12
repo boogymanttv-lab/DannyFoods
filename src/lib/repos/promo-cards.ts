@@ -1,16 +1,12 @@
 import { getDb } from "@/lib/db";
 import type { PromoCard } from "@/lib/types";
 
-// A LEFT JOIN so a card with no linked_product_id still comes back (just
-// with linked_product_price null) — used by both listing functions below.
 const SELECT_WITH_LINKED_PRICE = `
   SELECT pc.*, p.base_price AS linked_product_price
   FROM promo_cards pc
   LEFT JOIN products p ON p.id = pc.linked_product_id
 `;
 
-// All 4 slots always exist (seeded once in runMigrations) — this just
-// returns them in position order, active or not, for the admin panel.
 export async function listPromoCards(): Promise<PromoCard[]> {
   const db = await getDb();
   return db
@@ -18,8 +14,6 @@ export async function listPromoCards(): Promise<PromoCard[]> {
     .all() as Promise<PromoCard[]>;
 }
 
-// Homepage-facing — only the ones an admin has actually turned on, so a
-// slot left blank/unconfigured never shows an empty card.
 export async function listActivePromoCards(): Promise<PromoCard[]> {
   const db = await getDb();
   return db

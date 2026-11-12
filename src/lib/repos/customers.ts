@@ -2,7 +2,7 @@ import { getDb } from "@/lib/db";
 import type { Customer, CustomerPublic, CustomerAddress } from "@/lib/types";
 
 function toPublic(c: Customer): CustomerPublic {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured only to strip it from the returned object
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password_hash, ...rest } = c;
   return rest;
 }
@@ -76,8 +76,6 @@ export async function updateCustomer(
   const setClause = fields.map((f) => `${f} = @${f}`).join(", ");
   await db.prepare(`UPDATE customers SET ${setClause} WHERE id = @id`).run(payload);
 }
-
-// ---------- Saved addresses ----------
 
 export async function listAddresses(customerId: number): Promise<CustomerAddress[]> {
   const db = await getDb();

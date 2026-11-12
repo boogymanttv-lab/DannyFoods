@@ -2,7 +2,7 @@ import { getDb } from "@/lib/db";
 import type { Courier, CourierPublic } from "@/lib/types";
 
 function toPublic(c: Courier): CourierPublic {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured only to strip it from the returned object
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password_hash, ...rest } = c;
   return rest;
 }

@@ -35,10 +35,6 @@ export default async function HomePage() {
   const promoCards = promoCardsRaw.map((c) => localizePromoCard(c, locale));
 
   const openNow = isShopOpenNow(new Date(), settings.opening_time, settings.closing_time);
-  // Combines time-of-day busy hours with the CURRENT number of active
-  // orders — same formula used when an order is actually placed (see
-  // /api/orders), so this badge always matches the estimate a customer
-  // would really get right now, not just a static time-of-day guess.
   const combinedEstimate = combineEstimates(
     suggestEstimate(parseBusyHours(settings.busy_hours_json)),
     suggestByLoad(await countActiveOrders())
@@ -47,10 +43,6 @@ export default async function HomePage() {
   const kitchenTier = kitchenLoadLevel(combinedEstimate).tier;
   const kitchenStatus = { tier: kitchenTier, label: t(`kitchen.${kitchenTier}` as DictKey) };
 
-  // Structured data (schema.org Restaurant) — lets Google show rich local-
-  // search results (opening hours, phone, price range) instead of just a
-  // plain blue link. Kept minimal/accurate to what's actually configurable
-  // in Настройки; no fields are guessed beyond what the admin has entered.
   const domain = settings.site_domain;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -91,8 +83,6 @@ export default async function HomePage() {
       />
       <section className="relative overflow-hidden bg-gradient-to-b from-accent-dark to-[#120d0d] text-white">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/40 via-transparent to-transparent" />
-        {/* Soft drifting glow blobs for depth, matching the splash screen's
-            premium backdrop treatment. */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-24 -left-16 h-80 w-80 rounded-full bg-brand/25 blur-3xl animate-blob" />
           <div
@@ -120,8 +110,6 @@ export default async function HomePage() {
                 ? `${t("hero.openBadge")} ${currentEstimate.toUpperCase()}`
                 : t("hero.closedBadge")}
             </span>
-            {/* Honest, live "how busy is the kitchen right now" signal —
-                most delivery apps hide this; showing it builds trust. */}
             <KitchenStatusBadge
               initial={{
                 openNow,

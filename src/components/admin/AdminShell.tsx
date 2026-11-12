@@ -23,9 +23,6 @@ export function AdminShell({
   children,
 }: {
   adminName: string;
-  // Staff accounts (see Настройки → Служители) only ever get the Поръчки
-  // link — everything else is enforced server-side too (see proxy.ts), this
-  // just keeps the nav from advertising pages they can't open.
   role?: "owner" | "staff";
   children: React.ReactNode;
 }) {

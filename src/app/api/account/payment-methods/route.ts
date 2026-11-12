@@ -5,10 +5,6 @@ import { getCustomer } from "@/lib/repos/customers";
 import { getSettings } from "@/lib/repos/settings";
 import { getOrCreateStripeCustomerId } from "@/lib/stripe-customer";
 
-// Lists this customer's saved cards — empty list (never an error) whenever
-// card payments aren't configured yet, or this customer has never paid by
-// card, so the account page can always render a plain "no saved cards" state
-// instead of a broken one.
 export async function GET() {
   const session = await getCustomerSession();
   if (!session) {
@@ -37,11 +33,6 @@ export async function GET() {
   return NextResponse.json({ cards });
 }
 
-// Starts an "add a card" flow: a Stripe Checkout Session in setup mode
-// (no charge — just collects and attaches a card to this customer). The
-// browser redirects there directly, same pattern as the existing card
-// payment flow at checkout, so no Stripe.js/Elements integration is needed
-// on our own pages.
 export async function POST(req: NextRequest) {
   const session = await getCustomerSession();
   if (!session) {

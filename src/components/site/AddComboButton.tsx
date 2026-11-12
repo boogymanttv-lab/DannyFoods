@@ -2,12 +2,6 @@
 
 import { useCart } from "@/lib/cart-context";
 
-// A promo card built from the combo picker (see PromoCardsManager) skips
-// the usual "click through to /oferti" — this adds its linked product
-// straight to the cart instead, at quantity 1, no size/extras (the combo's
-// price is already final). Renders as a <button> wrapping arbitrary card
-// markup so the whole card (or just a CTA inside it) can be the trigger —
-// a button may contain block content, so this is valid in either position.
 export function AddComboButton({
   productId,
   name,

@@ -7,10 +7,6 @@ import { ProductReviews } from "@/components/site/ProductReviews";
 import { useT } from "@/lib/i18n/LocaleProvider";
 import type { ProductWithOptions } from "@/lib/types";
 
-// The description is written as a comma-separated ingredient list (e.g.
-// "Барбекю сос, Телешка кайма, Дюнер месо, Кис.краставички, Чедър, Пушено
-// сирене, Моцарела") — reused here as the source for "Без —" checkboxes so
-// there's nothing extra for the admin to maintain per product.
 function parseIngredients(description: string): string[] {
   return description
     .split(",")
@@ -18,16 +14,8 @@ function parseIngredients(description: string): string[] {
     .filter(Boolean);
 }
 
-// A few condiments that are sauces in every practical sense but aren't
-// named with the word "сос" itself (e.g. "Кетчуп", "Майонеза") — add more
-// here if another one shows up in the menu that should count as a sauce.
 const SAUCE_KEYWORDS = ["кетчуп", "майонеза"];
 
-// Splits the "Без —" list into sauces vs. everything else: the word "сос"
-// in the name ("Барбекю сос", "Чеснов сос", "Дюнер сос"...) covers most of
-// them — the admin's own naming convention, confirmed directly rather than
-// guessed — plus the small fixed list above for the rest. No separate
-// field or admin UI to maintain for the common case.
 function isSauceName(name: string): boolean {
   const lower = name.toLowerCase();
   return lower.includes("сос") || SAUCE_KEYWORDS.some((kw) => lower.includes(kw));
@@ -40,8 +28,6 @@ export function ProductModal({
 }: {
   product: ProductWithOptions;
   onClose: () => void;
-  // Other products (e.g. drinks) to suggest as "Често купувано с" — admin-
-  // configured in Настройки by picking a whole category.
   suggestions?: ProductWithOptions[];
 }) {
   const { addLine } = useCart();
@@ -49,9 +35,6 @@ export function ProductModal({
   const defaultSize =
     product.sizes.find((s) => s.is_default) ?? product.sizes[0] ?? null;
   const [sizeId, setSizeId] = useState<number | null>(defaultSize?.id ?? null);
-  // Keyed by extra id. Presence of a key means that extra is checked/on;
-  // the value is the chosen ExtraOption id when that extra has variants
-  // (e.g. Шунка 50г/100г/150г/200г), or null for a plain flat-price extra.
   const [selectedExtras, setSelectedExtras] = useState<Record<number, number | null>>({});
   const [quantity, setQuantity] = useState(1);
   const ingredients = useMemo(
@@ -63,8 +46,6 @@ export function ProductModal({
     () => ingredients.filter((ing) => !isSauceName(ing)),
     [ingredients]
   );
-  // Holds ingredients the customer wants LEFT OUT — unchecked by default
-  // (nothing removed) since most orders want everything as described.
   const [removedIngredients, setRemovedIngredients] = useState<Set<string>>(new Set());
 
   const selectedSize = product.sizes.find((s) => s.id === sizeId) ?? null;
@@ -74,8 +55,6 @@ export function ProductModal({
     [product.base_price, selectedSize]
   );
 
-  // Resolves each checked extra to its actual name/price right now — used
-  // both for the running total and for what actually gets added to cart.
   const resolvedExtras = product.extras
     .filter((e) => e.id in selectedExtras)
     .map((e) => {
@@ -332,10 +311,6 @@ export function ProductModal({
           {suggestions.length > 0 && (
             <div>
               <p className="font-semibold text-sm mb-2">{t("product.pairsWith")}</p>
-              {/* A plain vertical list — one row per suggestion, same pattern
-                  as "Добавки" above — rather than a horizontal scroll strip,
-                  so nothing gets cut off at the edge and there's no
-                  scrolling/dragging needed to see every item. */}
               <div className="space-y-2">
                 {suggestions.map((s) => (
                   <div
@@ -392,12 +367,6 @@ export function ProductModal({
 
 const INGREDIENTS_COLLAPSED = 3;
 
-// One row per ingredient, checkbox first — each row reads "Без домати" etc.
-// on its own, rather than a generic "Без —" heading over a strip of bare
-// ingredient chips. Shared between the "Сосове" and "Съставки" groups above
-// so both render identically, including the collapse past the first few
-// rows — a long ingredient list otherwise pushes the "Добави в количката"
-// button (and everything else below) far down the modal.
 function IngredientCheckboxList({
   items,
   removed,

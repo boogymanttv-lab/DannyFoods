@@ -2,8 +2,6 @@ export type Category = {
   id: number;
   slug: string;
   name: string;
-  // Auto-translated (DeepL) — empty means not yet translated; the EN site
-  // falls back to `name` in that case (see src/lib/i18n/content.ts).
   name_en: string;
   icon: string;
   sort_order: number;
@@ -34,14 +32,8 @@ export type Extra = {
   name: string;
   price: number;
   category_id: number | null;
-  // Set to scope this extra to one specific product rather than a whole
-  // category — takes priority over category_id when matching (see
-  // attachOptions() in src/lib/repos/products.ts).
   product_id: number | null;
   active: number;
-  // Weight/quantity variants (e.g. "50г", "100г" — each its own price) for
-  // extras that aren't just a single flat add-on price. Empty for a plain
-  // extra — see extra_options in schema.ts.
   options: ExtraOption[];
 };
 
@@ -50,8 +42,6 @@ export type Product = {
   category_id: number;
   name: string;
   description: string;
-  // Auto-translated (DeepL) — empty means not yet translated; falls back
-  // to the Bulgarian text on the EN site (see src/lib/i18n/content.ts).
   name_en: string;
   description_en: string;
   image: string;
@@ -60,19 +50,11 @@ export type Product = {
   active: number;
   featured: number;
   sort_order: number;
-  // 1 = base_price is computed from combo_items (see ComboItem) minus
-  // combo_discount_percent, rather than typed in directly. Customer-facing
-  // pages never look at this — a combo orders exactly like any other
-  // product.
   is_combo: number;
   combo_discount_percent: number;
   created_at: string;
 };
 
-// One component of a combo product (products.is_combo = 1) — an existing
-// product, optionally at one of its own sizes, and how many of it go into
-// the combo. Admin-only bill of materials, used to compute the combo's
-// price.
 export type ComboItem = {
   id: number;
   combo_product_id: number;
@@ -86,7 +68,6 @@ export type ProductWithOptions = Product & {
   sizes: ProductSize[];
   extras: Extra[];
   category?: Category;
-  // Only populated for combo products — empty for everything else.
   combo_items: ComboItem[];
 };
 
@@ -128,34 +109,18 @@ export type OrderItem = {
   productId: number;
   name: string;
   sizeLabel?: string;
-  // Kept alongside sizeLabel (which is just for display) so "Order again"
-  // can rebuild the exact same cart line without re-matching by label text.
   sizeId?: number;
   unitPrice: number;
   quantity: number;
   extras: {
     name: string;
     price: number;
-    // Same reasoning as sizeId — id/optionId aren't needed for display (the
-    // name+price already show that), only to reconstruct the cart line.
     id?: number;
     optionId?: number;
   }[];
-  // Ingredients (parsed from the product's description) the customer asked
-  // to leave out — e.g. "Без сирене". No price effect, purely a note to the
-  // kitchen/courier.
   removed?: string[];
   lineTotal: number;
-  // Only set when this line is a combo product — a snapshot of its bill of
-  // materials at order time (component product name/size + quantity PER
-  // ONE combo unit), so staff preparing the order can see exactly what to
-  // put together without needing to open the admin menu/showcase to look
-  // it up. Snapshotted rather than looked up live because the combo's own
-  // recipe could change later.
   components?: { name: string; sizeLabel?: string; quantity: number }[];
-  // Snapshot of the product's is_pizza flag at order time — lets the admin
-  // orders panel split/dim items by kitchen station (see station on
-  // admin_users) without needing a live product lookup.
   is_pizza?: boolean;
 };
 
@@ -199,13 +164,8 @@ export type Order = {
   pizza_transfer_amount: number | null;
   pizza_transfer_status: string | null;
   pizza_transfer_error: string | null;
-  // Per-kitchen-station prep tracking — set by staff assigned to that
-  // station (see AdminUser.station), independent of the overall status.
   station_pizza_ready: number;
   station_other_ready: number;
-  // Each station's own self-picked prep-time estimate + when picked — the
-  // live countdown is shown only between the two stations, but the slower
-  // pick drives (and restarts) estimated_delivery below.
   station_pizza_prep_estimate: string | null;
   station_pizza_prep_started_at: string | null;
   station_other_prep_estimate: string | null;
@@ -265,12 +225,7 @@ export type CartLine = {
   sizeId?: number;
   unitPrice: number;
   quantity: number;
-  // `id` is the extra's id; `optionId` is set when the customer picked one
-  // of that extra's weight/quantity variants (see ExtraOption) rather than
-  // its plain flat price.
   extras: { id: number; name: string; price: number; optionId?: number }[];
-  // Ingredients (parsed from the product's description) the customer
-  // unchecked in "Без —" — e.g. ["Сирене"]. No price effect.
   removedIngredients?: string[];
 };
 
@@ -285,11 +240,8 @@ export type ProductReview = {
   updated_at: string;
 };
 
-// Joined in for display — the reviewer's own name, never their contact info.
 export type ProductReviewPublic = ProductReview & { customer_name: string };
 
-// One of the 4 fixed homepage "showcase" slots (see promo_cards table) —
-// position is the row's permanent identity, never reassigned.
 export type PromoCard = {
   id: number;
   position: number;
@@ -298,19 +250,10 @@ export type PromoCard = {
   title: string;
   subtitle: string;
   description: string;
-  // Auto-translated (DeepL) — empty falls back to the Bulgarian text.
   title_en: string;
   description_en: string;
   image: string;
-  // 1 = the image is itself a finished ad (own title/price already baked
-  // in) — no text is overlaid on top and the photo is never cropped.
   full_banner: number;
-  // Set when this card was built via the combo picker in its own form —
-  // points at a hidden, non-listed product (is_combo = 1, active = 0) that
-  // carries the actual components + computed price.
   linked_product_id: number | null;
-  // Populated by a join in listPromoCards/listActivePromoCards — the linked
-  // product's current price, straight from products.base_price. null when
-  // there's no linked product.
   linked_product_price: number | null;
 };

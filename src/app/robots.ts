@@ -15,8 +15,6 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         "/courier",
         "/account",
         "/checkout",
-        // Order confirmation/tracking pages carry a customer's name, phone
-        // and address — must never be indexed or shown in search results.
         "/order",
         "/api",
       ],

@@ -10,9 +10,6 @@ function dayLabel(iso: string) {
   return `${d.getUTCDate()}.${d.getUTCMonth() + 1}`;
 }
 
-// Groups the daily series into ISO-ish weeks (Monday-start, chunked from the
-// oldest day forward) for the "По седмици" view — each bucket just labeled
-// by its first day, since a full date range would crowd the axis.
 function toWeeks(days: DayPoint[]): { label: string; orders: number; revenue: number }[] {
   const weeks: { label: string; orders: number; revenue: number }[] = [];
   for (let i = 0; i < days.length; i += 7) {
@@ -26,10 +23,6 @@ function toWeeks(days: DayPoint[]): { label: string; orders: number; revenue: nu
   return weeks;
 }
 
-// Simple, dependency-free bar chart (inline SVG) — no charting library
-// needed for a single admin widget. Revenue drives bar height; order count
-// shows in the tooltip-like label under the x-axis on hover isn't needed
-// here since both figures fit directly above/below each bar at this scale.
 export function SalesChart({ series }: { series: DayPoint[] }) {
   const [range, setRange] = useState<7 | 14 | 30>(14);
   const [grouping, setGrouping] = useState<"day" | "week">("day");

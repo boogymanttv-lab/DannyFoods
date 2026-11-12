@@ -1,6 +1,3 @@
-// Minimal ambient types for the built-in `node:sqlite` module.
-// Node's own @types/node version bundled here predates node:sqlite's type
-// definitions, so we declare just what this project uses.
 declare module "node:sqlite" {
   export type SQLInputValue = null | number | bigint | string | Uint8Array;
   export type SQLOutputValue = null | number | bigint | string | Uint8Array;

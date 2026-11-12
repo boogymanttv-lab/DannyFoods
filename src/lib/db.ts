@@ -1,27 +1,9 @@
 import { Pool, type PoolClient, types } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 
-// node-postgres returns BIGINT (OID 20) columns — e.g. COUNT(*) — as strings
-// by default, since JS numbers can't safely hold the full bigint range. This
-// app's counts/ids never get remotely close to that, and the repo layer
-// already expects plain numbers (as node:sqlite always returned), so parse
-// them as numbers globally rather than special-casing every COUNT(*) call.
 types.setTypeParser(20, (val: string) => parseInt(val, 10));
 import { SCHEMA_SQL } from "@/lib/schema";
 import { approximateZoneCenter, VARNA_NEW_NEIGHBORHOODS } from "@/lib/varna-geo";
-
-// Postgres (Supabase in production) via node-postgres. This replaced a local
-// node:sqlite file — that only worked for a single long-running dev server;
-// on Vercel every request can land on a different, disposable serverless
-// instance with no shared disk, so the data needs to live in a real
-// database reachable over the network.
-//
-// Because Postgres access is inherently async (network round-trips, unlike
-// a synchronous local file), every repo function that used to call
-// getDb() synchronously now awaits it, and so does everything that calls
-// those repo functions — Server Components, API routes, this file's own
-// migrations. That's the one structural change this migration forces
-// throughout the app; see AGENTS.md/CLAUDE.md if this comment is stale.
 
 function toPlain<T>(row: T): T {
   return row == null ? row : ({ ...(row as object) } as T);
@@ -48,10 +30,6 @@ declare global {
   var __danidunner_ready__: Promise<void> | undefined;
 }
 
-// Holds the dedicated client for the duration of a transaction() call, so
-// that prepare()'d statements run *inside* fn() reuse that same connection
-// (and therefore the same BEGIN/COMMIT) instead of grabbing an unrelated
-// connection from the pool — see transaction() below.
 const txContext = new AsyncLocalStorage<PoolClient>();
 
 function getPool(): Pool {
@@ -64,10 +42,6 @@ function getPool(): Pool {
     }
     global.__danidunner_pool__ = new Pool({
       connectionString,
-      // Supabase's pooled connection requires TLS but uses a certificate
-      // chain Node doesn't have bundled; rejectUnauthorized:false still
-      // encrypts the connection, it just skips CA verification. Local/dev
-      // Postgres (no sslmode in the URL) doesn't use TLS at all.
       ssl: /sslmode=require|supabase\.co/.test(connectionString)
         ? { rejectUnauthorized: false }
         : undefined,
@@ -82,12 +56,6 @@ async function rawQuery(text: string, values: unknown[]) {
   return getPool().query(text, values);
 }
 
-// Translates this codebase's two SQLite-era parameter styles into
-// Postgres's positional $1, $2... style:
-//   - named:     "... WHERE id = @id"        called as .run({ id })
-//   - positional:"... WHERE id = ?"          called as .get(id)
-// Whichever style a given SQL string uses is fixed by the text itself, not
-// by what's passed at call time, so this only needs to look at the SQL.
 function translateSql(sql: string): { text: string; namedKeys: string[] | null } {
   if (/@[A-Za-z_][A-Za-z0-9_]*/.test(sql)) {
     const namedKeys: string[] = [];
@@ -111,16 +79,6 @@ function translateSql(sql: string): { text: string; namedKeys: string[] | null }
   return { text: sql, namedKeys: null };
 }
 
-// node:sqlite's named-parameter binding only ever looked at the keys a
-// query text actually referenced, silently ignoring any other keys (or a
-// whole params object) passed alongside — several repo functions build a
-// params object unconditionally and only populate it when a dynamic WHERE
-// clause needs a value, so a query that ends up with zero placeholders can
-// still be called with a (now-empty) params object. Postgres's positional
-// binding has no such tolerance: it errors if the value count doesn't
-// exactly match the placeholder count in the query. So when a query has no
-// placeholders at all, any params passed are leftover/unused and must be
-// dropped rather than forwarded, to match the old permissive behavior.
 function buildValues(
   params: unknown[],
   namedKeys: string[] | null,
@@ -134,20 +92,11 @@ function buildValues(
   return params;
 }
 
-// site_settings is the one table in the schema keyed by "key" (text) rather
-// than a serial "id" — appending "RETURNING id" to an INSERT against it
-// would fail with "column \"id\" does not exist", so it's excluded from the
-// auto-RETURNING behavior below.
 const TABLES_WITHOUT_ID = new Set(["site_settings"]);
 
 function prepare(sql: string): PlainStatement {
   const { text, namedKeys } = translateSql(sql);
   const placeholderCount = namedKeys ? namedKeys.length : (text.match(/\$\d+/g) ?? []).length;
-  // Every other table here has a serial "id" primary key. Postgres doesn't
-  // hand back a lastInsertRowid the way node:sqlite did, so every INSERT
-  // (that doesn't already have its own RETURNING) gets "RETURNING id"
-  // appended — this lets every existing `.run(...).lastInsertRowid` call
-  // site in the repo files keep working completely unchanged.
   const insertMatch = sql.match(/^\s*INSERT\s+INTO\s+([A-Za-z_][A-Za-z0-9_]*)/i);
   const isInsert =
     insertMatch != null &&
@@ -177,10 +126,6 @@ function prepare(sql: string): PlainStatement {
 }
 
 async function exec(sql: string): Promise<void> {
-  // schema.ts / one-off migration blocks sometimes send several ";"
-  // separated statements in one exec() call, same as node:sqlite's exec()
-  // did — pg's simple query protocol (used when no $ placeholders are
-  // present) supports that natively.
   await rawQuery(sql, []);
 }
 
@@ -203,9 +148,6 @@ function transaction<Args extends unknown[], R>(
   };
 }
 
-// Splits an old combined "address" string into street + house number,
-// best-effort: the last whitespace-separated token that contains a digit is
-// treated as the number, everything before it as the street.
 function splitLegacyAddress(address: string): { street: string; house_number: string } {
   const trimmed = address.trim();
   if (!trimmed) return { street: "", house_number: "" };
@@ -217,8 +159,6 @@ function splitLegacyAddress(address: string): { street: string; house_number: st
   return { street: trimmed, house_number: "" };
 }
 
-// Backfills street/house_number for any row that only has the old combined
-// "address" text (harmless no-op on a fresh database with nothing to fix).
 async function backfillStreetSplit(table: "customer_addresses" | "orders") {
   const rows = (await rawQuery(
     `SELECT id, address FROM ${table} WHERE (street IS NULL OR street = '') AND address <> ''`,
@@ -235,10 +175,6 @@ async function backfillStreetSplit(table: "customer_addresses" | "orders") {
   }
 }
 
-// One-time seed of the real company/legal details gathered directly from the
-// site owner (Густозо 2 ООД) — only inserted the first time each key doesn't
-// exist yet in site_settings, so it never overwrites a value an admin has
-// since edited from Настройки.
 async function seedCompanyLegalInfo() {
   const defaults: Record<string, string> = {
     company_legal_name: "ГУСТОЗО 2 ООД",
@@ -260,9 +196,6 @@ async function seedCompanyLegalInfo() {
   }
 }
 
-// One-time seed of a starter "Напитки" (drinks) category with a handful of
-// sample products, so "Често купувано с" (Настройки → Често купувано с) has
-// something to point at immediately.
 async function seedDrinksCategory() {
   const existing = (await rawQuery("SELECT id FROM categories WHERE slug = 'napitki'", []))
     .rows[0] as { id: number } | undefined;
@@ -307,9 +240,6 @@ async function seedDrinksCategory() {
   await enableSuggestedCategoryIfUnset(categoryId);
 }
 
-// Turns "Често купувано с" on by default, pointing at the given category —
-// only the very first time (i.e. only while the admin has never saved a
-// value for this setting at all, explicit "Изключено" included).
 async function enableSuggestedCategoryIfUnset(categoryId: number) {
   const row = (
     await rawQuery("SELECT value FROM site_settings WHERE key = 'suggested_category_id'", [])
@@ -321,22 +251,12 @@ async function enableSuggestedCategoryIfUnset(categoryId: number) {
   );
 }
 
-// Adds retrofitted defaults/backfills that only matter for a database that
-// already has rows in it — all guarded to be no-ops on a fresh database, so
-// this list is safe to keep growing over time without needing a separate
-// "has this run yet" flag for each one.
 async function runMigrations() {
   await backfillStreetSplit("customer_addresses");
   await backfillStreetSplit("orders");
 
-  // Every delivery zone costs a flat 2.50 € to deliver to, regardless of
-  // neighborhood — re-applied on every startup so it also catches zones an
-  // admin adds later.
   await rawQuery("UPDATE delivery_zones SET delivery_fee = 2.5", []);
 
-  // Make sure every commonly-used Varna quarter exists as a pickable
-  // delivery zone. Zones already present (matched by name, case-
-  // insensitively) are left untouched; this only adds the ones missing.
   const existingZoneNames = new Set(
     (
       (await rawQuery("SELECT name FROM delivery_zones", [])).rows as { name: string }[]
@@ -361,9 +281,6 @@ async function runMigrations() {
     nextSortOrder += 1;
   }
 
-  // Backfill an approximate destination point for any order that doesn't
-  // have one yet (orders placed before geocoding existed, or that failed to
-  // geocode) — otherwise the tracking map would show the courier alone.
   const missing = (
     await rawQuery(
       `SELECT o.id as id, z.name as zone_name
@@ -384,9 +301,6 @@ async function runMigrations() {
   await seedCompanyLegalInfo();
   await seedDrinksCategory();
 
-  // Added for the Stripe Connect pizza payout split — safe no-op on a fresh
-  // database (already in schema.ts's CREATE TABLE), needed here so an
-  // already-deployed database picks up the new columns too.
   await rawQuery(
     `ALTER TABLE orders
        ADD COLUMN IF NOT EXISTS pizza_transfer_id TEXT,
@@ -396,16 +310,11 @@ async function runMigrations() {
     []
   );
 
-  // Free-text serving size / weight, per SIZE row (e.g. "300г") — a product
-  // with Малка/Голяма/Фамилна sizes can label each one's weight separately.
   await rawQuery(
     `ALTER TABLE product_sizes ADD COLUMN IF NOT EXISTS weight_label TEXT DEFAULT ''`,
     []
   );
 
-  // Checkout rework: a free-typed neighborhood field (replacing the old
-  // per-zone dropdown) and a delivery-vs-pickup toggle. Existing rows get
-  // 'delivery' — that's what every order before this change actually was.
   await rawQuery(
     `ALTER TABLE orders
        ADD COLUMN IF NOT EXISTS quarter TEXT DEFAULT '',
@@ -417,13 +326,8 @@ async function runMigrations() {
     []
   );
 
-  // Optional email collected at checkout — powers the Resend order
-  // confirmation (see src/lib/email.ts). Existing orders simply have none.
   await rawQuery(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT DEFAULT ''`, []);
 
-  // Product reviews — safe no-op on a fresh database (already in
-  // schema.ts's CREATE TABLE), needed here so an already-deployed database
-  // picks up the new table too.
   await rawQuery(
     `CREATE TABLE IF NOT EXISTS product_reviews (
        id SERIAL PRIMARY KEY,
@@ -446,11 +350,6 @@ async function runMigrations() {
     []
   );
 
-  // Homepage "showcase" promo cards — 4 fixed slots (already in schema.ts's
-  // CREATE TABLE for a fresh database; needed here too for an
-  // already-deployed one). Seeded once so all 4 rows always exist —
-  // toggling one on/off in admin is then just an UPDATE, never an
-  // INSERT/DELETE that could accidentally change how many slots there are.
   await rawQuery(
     `CREATE TABLE IF NOT EXISTS promo_cards (
        id SERIAL PRIMARY KEY,
@@ -467,10 +366,6 @@ async function runMigrations() {
      ON CONFLICT (position) DO NOTHING`,
     []
   );
-  // "image" went through a drop-then-re-add across two rounds of this
-  // feature (photo upload removed, then brought back) — ADD COLUMN IF NOT
-  // EXISTS is safe regardless of which state an already-deployed database
-  // is in. "badge" (small tag like "ХИТ ОФЕРТА") is new alongside it.
   await rawQuery(
     `ALTER TABLE promo_cards
        ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '',
@@ -479,10 +374,6 @@ async function runMigrations() {
     []
   );
 
-  // Combo products (products.is_combo + combo_discount_percent, plus the
-  // combo_items bill-of-materials table) — safe no-op on a fresh database
-  // (already in schema.ts's CREATE TABLE), needed here so an
-  // already-deployed database picks up the new column/table too.
   await rawQuery(
     `ALTER TABLE products
        ADD COLUMN IF NOT EXISTS is_combo INTEGER NOT NULL DEFAULT 0,
@@ -505,22 +396,12 @@ async function runMigrations() {
     []
   );
 
-  // A promo card can now be built from the same product-picker + discount
-  // combo builder used in Products — this points it at the hidden product
-  // row backing it. Safe no-op on a fresh database (already in schema.ts's
-  // CREATE TABLE), needed here for an already-deployed one.
   await rawQuery(
     `ALTER TABLE promo_cards
        ADD COLUMN IF NOT EXISTS linked_product_id INTEGER REFERENCES products(id) ON DELETE SET NULL`,
     []
   );
 
-  // Shortened the homepage hero tagline — the old one just listed every
-  // category name ("Пица, Дюнери, Бургери, Сандвичи и Джобове с бърза
-  // доставка във Варна"), which read as long and cluttered next to the new
-  // promo cards below it. Only swapped if it's still exactly the old
-  // default — an admin who already customized this field keeps their own
-  // wording untouched.
   await rawQuery(
     `UPDATE site_settings SET value = 'Гладен? Доставяме бързо.'
      WHERE key = 'tagline'
@@ -528,20 +409,11 @@ async function runMigrations() {
     []
   );
 
-  // Tracks whether the automatic post-delivery "how was it?" review
-  // reminder email has already gone out for an order — see
-  // /api/cron/review-reminders. Safe no-op on a fresh database (already in
-  // schema.ts's CREATE TABLE), needed here for an already-deployed one.
   await rawQuery(
     `ALTER TABLE orders ADD COLUMN IF NOT EXISTS review_reminder_sent_at TEXT`,
     []
   );
 
-  // Auto-translated English content for the BG/EN language switcher (see
-  // src/lib/i18n) — empty means "not translated yet", falls back to the
-  // Bulgarian text on the English site. Safe no-op on a fresh database
-  // (already in schema.ts's CREATE TABLE), needed here for an
-  // already-deployed one.
   await rawQuery(
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_en TEXT NOT NULL DEFAULT ''`,
     []
@@ -558,38 +430,26 @@ async function runMigrations() {
        ADD COLUMN IF NOT EXISTS description_en TEXT NOT NULL DEFAULT ''`,
     []
   );
-  // Saved-card support (see src/lib/stripe-customer.ts) — safe no-op on a
-  // fresh database (already in schema.ts's CREATE TABLE).
   await rawQuery(
     `ALTER TABLE customers ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
     []
   );
-  // Lets an extra be scoped to one specific product instead of a whole
-  // category — safe no-op on a fresh database (already in schema.ts).
   await rawQuery(
     `ALTER TABLE extras ADD COLUMN IF NOT EXISTS product_id INTEGER REFERENCES products(id) ON DELETE CASCADE`,
     []
   );
-  // Employee accounts with restricted admin access (see src/lib/auth.ts and
-  // proxy.ts) — safe no-op on a fresh database (already in schema.ts).
-  // Existing rows get DEFAULT 'owner'/'all' applied automatically, so
-  // whoever already had an admin_users login keeps full access.
   await rawQuery(
     `ALTER TABLE admin_users
        ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'owner',
        ADD COLUMN IF NOT EXISTS station TEXT NOT NULL DEFAULT 'all'`,
     []
   );
-  // Per-kitchen-station prep tracking on orders (see the same feature).
   await rawQuery(
     `ALTER TABLE orders
        ADD COLUMN IF NOT EXISTS station_pizza_ready INTEGER NOT NULL DEFAULT 0,
        ADD COLUMN IF NOT EXISTS station_other_ready INTEGER NOT NULL DEFAULT 0`,
     []
   );
-  // Each station's own self-picked prep-time estimate + when it was picked
-  // (see schema.ts) — internal-only countdown so the two stations can see
-  // how much longer each other will take.
   await rawQuery(
     `ALTER TABLE orders
        ADD COLUMN IF NOT EXISTS station_pizza_prep_estimate TEXT,

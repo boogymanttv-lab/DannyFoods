@@ -57,9 +57,6 @@ export function ProductsManager({
     name: "",
     price: "" as string | number,
     category_id: "" as string | number,
-    // Scopes the extra to just one product instead of a whole category —
-    // empty means "not limited to a single product" (category_id, or no
-    // category at all, still decides where it shows).
     product_id: "" as string | number,
     options: [] as ExtraOptionRow[],
   });
@@ -69,7 +66,6 @@ export function ProductsManager({
     router.refresh();
   }
 
-  // ---------- Categories ----------
   async function saveCategory() {
     if (!categoryForm.name || !categoryForm.slug) return;
     if (categoryForm.id) {
@@ -131,9 +127,6 @@ export function ProductsManager({
     setProducts((prev) => prev.filter((p) => p.category_id !== id));
   }
 
-  // Re-numbers every category 0..n-1 in its new order and saves all of
-  // them — simplest way to keep sort_order clean even when everything
-  // started out at the same default value.
   async function moveCategory(id: number, direction: -1 | 1) {
     const idx = categories.findIndex((c) => c.id === id);
     const swapIdx = idx + direction;
@@ -153,7 +146,6 @@ export function ProductsManager({
     );
   }
 
-  // ---------- Products ----------
   function openNewProduct() {
     setProductForm({
       ...emptyProductForm,
@@ -190,7 +182,6 @@ export function ProductsManager({
     setShowProductForm(true);
   }
 
-  // ---------- Combo builder ----------
   function toggleComboItem(product: ProductWithOptions) {
     setProductForm((f) => {
       const exists = f.combo_items.some((ci) => ci.product_id === product.id);
@@ -278,7 +269,6 @@ export function ProductsManager({
     }
     setShowProductForm(false);
     refresh();
-    // re-fetch products list
     const res = await fetch("/api/admin/products");
     const data = await res.json();
     setProducts(data.products ?? []);
@@ -301,9 +291,6 @@ export function ProductsManager({
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
-  // Reorders a product only among the others in the SAME category (that's
-  // the visual group it moves within on the menu) — re-numbers just that
-  // group 0..n-1, leaving every other category's ordering untouched.
   async function moveProduct(id: number, direction: -1 | 1) {
     const product = products.find((p) => p.id === id);
     if (!product) return;
@@ -327,7 +314,6 @@ export function ProductsManager({
     );
   }
 
-  // ---------- Extras ----------
   function addExtraOptionRow() {
     setExtraForm((f) => ({ ...f, options: [...f.options, { label: "", price: 0 }] }));
   }
@@ -625,7 +611,6 @@ export function ProductsManager({
         </div>
       )}
 
-      {/* Product form modal */}
       {showProductForm && (
         <Modal onClose={() => setShowProductForm(false)} title={productForm.id ? "Редакция на продукт" : "Нов продукт"}>
           <div className="space-y-3">
@@ -798,10 +783,6 @@ export function ProductsManager({
                 />
                 Активен
               </label>
-              {/* Controls which "kitchen station" this product belongs to in
-                  the admin Поръчки view — a pizza-station employee only acts
-                  on items checked here, everything else counts as
-                  "останалото" for station purposes (see OrdersManager.tsx). */}
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -870,7 +851,6 @@ export function ProductsManager({
         </Modal>
       )}
 
-      {/* Category form modal */}
       {showCategoryForm && (
         <Modal onClose={() => setShowCategoryForm(false)} title={categoryForm.id ? "Редакция на категория" : "Нова категория"}>
           <div className="space-y-3">
@@ -902,7 +882,6 @@ export function ProductsManager({
         </Modal>
       )}
 
-      {/* Extra form modal */}
       {showExtraForm && (
         <Modal onClose={() => setShowExtraForm(false)} title={extraForm.id ? "Редакция на добавка" : "Нова добавка"}>
           <div className="space-y-3">

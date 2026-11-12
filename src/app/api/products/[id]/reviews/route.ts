@@ -9,10 +9,6 @@ import {
   upsertReview,
 } from "@/lib/repos/reviews";
 
-// Public — anyone can read a product's reviews. Logged-in customers also
-// get whether they're eligible to leave one (ordered it before) and their
-// own existing review, if any, so the product modal can show the right
-// form state without a second round-trip.
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -40,9 +36,6 @@ const schema = z.object({
   comment: z.string().max(500).optional(),
 });
 
-// Logged-in only, and only for a product the customer has actually ordered
-// before (checked against their own order history) — closer to a
-// verified-purchase review than an open one anyone could leave.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

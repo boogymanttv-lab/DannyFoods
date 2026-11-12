@@ -19,24 +19,16 @@ const PAYMENT_LABELS: Record<string, string> = {
   stripe: "Картово плащане онлайн",
 };
 
-// Wraps a CSV cell in quotes and escapes any quotes inside it — needed
-// because product/customer/address text can freely contain commas.
 function csvCell(value: string | number | null | undefined): string {
   const s = value == null ? "" : String(value);
   return `"${s.replace(/"/g, '""')}"`;
 }
 
-// A plain CSV (not a real .xlsx) is deliberate here — it opens directly in
-// Excel/Google Sheets/LibreOffice with zero extra dependencies to install or
-// ship, and a UTF-8 BOM is prepended so Excel renders the Cyrillic text
-// correctly instead of showing mojibake (Excel doesn't assume UTF-8 without
-// it — a "no BOM" CSV of Bulgarian text is the classic reason it shows up as
-// garbled characters when double-clicked).
 const UTF8_BOM = "﻿";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const from = searchParams.get("from") || undefined; // "YYYY-MM-DD"
+  const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
   const status = (searchParams.get("status") as OrderStatus | null) || undefined;
 
@@ -104,11 +96,6 @@ export async function GET(req: NextRequest) {
   const lines = [header, ...rows].map((row) => row.map(csvCell).join(","));
   const csv = UTF8_BOM + lines.join("\r\n");
 
-  // HTTP header values must be plain ASCII (ByteString) — any Cyrillic
-  // character here (even just in a fallback word) throws at the network
-  // layer, not something try/catch inside the route can rescue. Keep this
-  // filename Latin-only; the actual report content (CSV cells) has no such
-  // restriction and stays in Bulgarian.
   const rangeLabel = from || to ? `_${from ?? "start"}_to_${to ?? "today"}` : "";
   const filename = `poruchki${rangeLabel}.csv`;
 

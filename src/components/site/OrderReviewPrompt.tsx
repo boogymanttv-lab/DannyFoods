@@ -26,11 +26,6 @@ function Stars({
   );
 }
 
-// One product's rating widget — a compact version of ProductReviews.tsx's
-// input form, reusing the exact same GET/POST /api/products/[id]/reviews
-// endpoints (which already enforce "logged in + actually ordered this
-// product"), just without the public reviews list underneath — this is
-// the "leave a review" moment, not the "browse reviews" moment.
 function ItemRating({ productId, name }: { productId: number; name: string }) {
   const t = useT();
   const [rating, setRating] = useState(0);
@@ -54,7 +49,6 @@ function ItemRating({ productId, name }: { productId: number; name: string }) {
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   async function submit() {
@@ -72,8 +66,6 @@ function ItemRating({ productId, name }: { productId: number; name: string }) {
     }
   }
 
-  // Not eligible (didn't order it under this account, or some other edge
-  // case) — quietly render nothing rather than an empty/confusing card.
   if (loaded && !canReview) return null;
 
   return (
@@ -102,19 +94,11 @@ function ItemRating({ productId, name }: { productId: number; name: string }) {
   );
 }
 
-// Rendered on the order confirmation/tracking page once an order is
-// delivered — a direct "how was it" prompt right where the customer
-// already is, one star-click away, instead of relying on them to
-// remember to open their account later. Same block also lands whoever
-// clicks the automatic post-delivery reminder email.
 export function OrderReviewPrompt({
   items,
 }: {
   items: { productId: number; name: string }[];
 }) {
-  // A combo's components aren't reviewable products in their own right,
-  // and the same product can appear more than once in an order — dedupe
-  // by id so nothing renders twice.
   const t = useT();
   const seen = new Set<number>();
   const unique = items.filter((i) => {

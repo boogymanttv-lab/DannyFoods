@@ -1,20 +1,12 @@
-// Static UI-chrome translations (buttons, labels, headings) — separate
-// from menu/promo CONTENT translation (see content.ts), which comes from
-// the database's auto-translated _en columns instead. Deliberately scoped
-// to the pages a tourist actually needs to get through: browsing the menu
-// and completing checkout — not every admin/courier/account screen, which
-// stay Bulgarian-only (staff-facing, not tourist-facing).
 export type Locale = "bg" | "en";
 
 export const DICT = {
-  // Header / nav
   "nav.menu": { bg: "Меню", en: "Menu" },
   "nav.offers": { bg: "Оферти", en: "Offers" },
   "nav.login": { bg: "Вход", en: "Log in" },
   "nav.account": { bg: "Профил", en: "Account" },
   "nav.cart": { bg: "Количка", en: "Cart" },
 
-  // Homepage hero
   "hero.deliveryBadge": { bg: "Доставка само в град Варна 🚴", en: "Delivery in Varna only 🚴" },
   "hero.openBadge": { bg: "ОТВОРЕНО · ДОСТАВЯМЕ ДО", en: "OPEN · DELIVERY IN" },
   "hero.closedBadge": { bg: "В МОМЕНТА СМЕ ЗАТВОРЕНИ", en: "CURRENTLY CLOSED" },
@@ -27,12 +19,10 @@ export const DICT = {
   "kitchen.medium": { bg: "Леко натоварени сме", en: "Slightly busy right now" },
   "kitchen.busy": { bg: "Много поръчки в момента", en: "Very busy right now" },
 
-  // Menu browsing
   "menu.empty": { bg: "Няма продукти в тази категория все още.", en: "No products in this category yet." },
   "menu.select": { bg: "Избери", en: "Select" },
   "menu.from": { bg: "от", en: "from" },
 
-  // Product modal
   "product.size": { bg: "Размер", en: "Size" },
   "product.extras": { bg: "Добавки", en: "Extras" },
   "product.removeSauces": { bg: "Премахни сосове", en: "Remove sauces" },
@@ -56,7 +46,6 @@ export const DICT = {
     en: "Log in and order this product to leave a review.",
   },
 
-  // Cart
   "cart.title": { bg: "Вашата количка", en: "Your cart" },
   "cart.empty": { bg: "Количката е празна.", en: "Your cart is empty." },
   "cart.subtotal": { bg: "Междинна сума", en: "Subtotal" },
@@ -67,7 +56,6 @@ export const DICT = {
   "cart.removedIngredients": { bg: "Без", en: "Without" },
   "cart.close": { bg: "Затвори", en: "Close" },
 
-  // Checkout
   "checkout.title": { bg: "Завършване на поръчката", en: "Complete your order" },
   "checkout.delivery": { bg: "Доставка", en: "Delivery" },
   "checkout.pickup": { bg: "Вземане от място", en: "Pickup" },
@@ -167,7 +155,6 @@ export const DICT = {
   },
   "checkout.toMenu": { bg: "Към менюто", en: "To the menu" },
 
-  // Order tracking / confirmation
   "order.thankYou": { bg: "Благодарим Ви за поръчката!", en: "Thank you for your order!" },
   "order.number": { bg: "Номер на поръчка", en: "Order number" },
   "order.products": { bg: "Продукти", en: "Products" },

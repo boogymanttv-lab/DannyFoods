@@ -2,20 +2,10 @@
 
 import { useRef, useState } from "react";
 
-// Vercel's Node.js serverless functions reject any request body over ~4.5MB
-// before our own /api/admin/upload route ever runs — a plain phone photo is
-// routinely 6-15MB, so uploading one as-is fails with a generic, unhelpful
-// error (the platform kills the request before our route's own friendly
-// "too large" message can even fire). Shrinking the image right here in the
-// browser, before it's ever sent, avoids hitting that ceiling regardless of
-// how big the original photo is. The server still re-compresses/resizes to
-// WebP on top of this — this is just to get the upload there safely.
 const CLIENT_MAX_WIDTH = 1600;
 const CLIENT_JPEG_QUALITY = 0.85;
 
 async function compressImageClientSide(file: File): Promise<File> {
-  // Animated GIFs would be flattened to a single static frame by a canvas
-  // round-trip — left untouched, same as the server-side handling.
   if (file.type === "image/gif") return file;
   try {
     const bitmap = await createImageBitmap(file);
@@ -32,9 +22,6 @@ async function compressImageClientSide(file: File): Promise<File> {
       canvas.toBlob(resolve, "image/jpeg", CLIENT_JPEG_QUALITY)
     );
     if (!blob) return file;
-    // Only swap in the compressed version if it's actually smaller — an
-    // already-tiny, already-optimized source image could in theory grow
-    // under JPEG re-encoding; falling back to the original avoids that.
     if (blob.size >= file.size) return file;
     const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
     return new File([blob], newName, { type: "image/jpeg" });
@@ -44,9 +31,6 @@ async function compressImageClientSide(file: File): Promise<File> {
   }
 }
 
-// A "URL text input" + "Качи снимка" file button, side by side — either
-// paste an existing image URL directly, or upload a file from your
-// computer and its Supabase Storage URL gets filled in automatically.
 export function ImageUploadField({
   value,
   onChange,

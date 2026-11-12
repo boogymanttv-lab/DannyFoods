@@ -8,8 +8,6 @@ export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const session = await getCustomerSession();
-  // proxy.ts already guards this route, but stay defensive in case the
-  // session cookie verified there and expired by the time this renders.
   if (!session) redirect("/account/login");
 
   const customer = await getCustomerPublic(session.customerId);

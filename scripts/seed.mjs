@@ -1,4 +1,3 @@
-// Seed script for DaniDunner — run with: npm run seed
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
@@ -15,10 +14,6 @@ db.exec("PRAGMA journal_mode = WAL");
 db.exec("PRAGMA foreign_keys = ON");
 db.exec(fs.readFileSync(path.join(ROOT, "src", "lib", "schema.sql"), "utf-8"));
 
-// Same migration this app runs in src/lib/db.ts — needed here too because
-// this script talks to node:sqlite directly, on a database file that may
-// have been created before the courier feature existed (which added the
-// orders.courier_id / claimed_at / delivered_at columns).
 {
   const orderColumns = db
     .prepare("PRAGMA table_info(orders)")
@@ -75,7 +70,6 @@ function reset() {
     "site_settings",
   ];
   for (const t of tables) db.exec(`DELETE FROM ${t}`);
-  // Reset auto-increment counters so IDs start from 1 again on a fresh seed.
   db.exec(
     `DELETE FROM sqlite_sequence WHERE name IN (${tables.map((t) => `'${t}'`).join(",")})`
   );
@@ -83,7 +77,6 @@ function reset() {
 
 reset();
 
-// ---------- Categories ----------
 const categories = [
   { slug: "pizza", name: "Пици", icon: "🍕", sort_order: 1 },
   { slug: "durum", name: "Дюнери", icon: "🌯", sort_order: 2 },
@@ -101,7 +94,6 @@ for (const c of categories) {
   categoryIds[c.slug] = info.lastInsertRowid;
 }
 
-// ---------- Extras (shared addons) ----------
 const insertExtra = db.prepare(
   "INSERT INTO extras (name, price, category_id) VALUES (@name, @price, @category_id)"
 );
@@ -118,7 +110,6 @@ const commonExtras = [
 ];
 for (const e of commonExtras) insertExtra.run(e);
 
-// ---------- Products ----------
 const insertProduct = db.prepare(
   `INSERT INTO products (category_id, name, description, image, base_price, is_pizza, featured, sort_order)
    VALUES (@category_id, @name, @description, @image, @base_price, @is_pizza, @featured, @sort_order)`
@@ -153,7 +144,6 @@ function addProduct(catSlug, p) {
   return productId;
 }
 
-// Pizzas — two sizes: 32см / 40см
 const pizzaSizes = (base) => [
   { label: "32см", price_delta: 0, is_default: true },
   { label: "40см", price_delta: Math.round(base * 0.55 * 100) / 100 },
@@ -227,7 +217,6 @@ addProduct("pizza", {
   sizes: pizzaSizes(16.9),
 });
 
-// Döner / Дюнери
 addProduct("durum", {
   name: "Дюнер Класик - Пилешко",
   description: "Пилешко месо, зеле, домат, лук, дюнер сос, лаваш",
@@ -273,7 +262,6 @@ addProduct("durum", {
   sort_order: 5,
 });
 
-// Burgers / Бургери
 addProduct("burgers", {
   name: "Чийзбургер",
   description: "150г телешко кюфте, чедър, маруля, домат, кисели краставички",
@@ -307,7 +295,6 @@ addProduct("burgers", {
   sort_order: 5,
 });
 
-// Sandwiches / Сандвичи
 addProduct("sandwiches", {
   name: "Клуб Сандвич",
   description: "Пилешко филе, бекон, яйце, маруля, домат, майонеза, тост хляб",
@@ -334,7 +321,6 @@ addProduct("sandwiches", {
   sort_order: 4,
 });
 
-// Pockets / Джобове
 addProduct("pockets", {
   name: "Джоб с Кайма и Сирене",
   description: "Пикантна кайма, извара сирене, домати, в пухкаво тесто",
@@ -361,7 +347,6 @@ addProduct("pockets", {
   sort_order: 4,
 });
 
-// ---------- Delivery zones (Varna neighborhoods) ----------
 const insertZone = db.prepare(
   `INSERT INTO delivery_zones (name, delivery_fee, min_order, sort_order) VALUES (@name, @delivery_fee, @min_order, @sort_order)`
 );
@@ -379,7 +364,6 @@ const zones = [
 ];
 zones.forEach((z, idx) => insertZone.run({ ...z, sort_order: idx }));
 
-// ---------- Promotions ----------
 const insertPromo = db.prepare(
   `INSERT INTO promotions (code, description, discount_type, discount_value, min_order, usage_limit)
    VALUES (@code, @description, @discount_type, @discount_value, @min_order, @usage_limit)`
@@ -401,7 +385,6 @@ insertPromo.run({
   usage_limit: null,
 });
 
-// ---------- Site settings ----------
 const insertSetting = db.prepare(
   `INSERT INTO site_settings (key, value) VALUES (@key, @value)
    ON CONFLICT(key) DO UPDATE SET value = excluded.value`
@@ -422,14 +405,12 @@ const settings = {
 };
 for (const [key, value] of Object.entries(settings)) insertSetting.run({ key, value });
 
-// ---------- Admin user ----------
 db.prepare("DELETE FROM admin_users WHERE email = ?").run(ADMIN_EMAIL);
 const passwordHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
 db.prepare(
   "INSERT INTO admin_users (email, password_hash, name) VALUES (?, ?, ?)"
 ).run(ADMIN_EMAIL, passwordHash, "Admin");
 
-// ---------- Demo couriers ----------
 const COURIER_PASSWORD = process.env.SEED_COURIER_PASSWORD || "Kurier2026!";
 const courierPasswordHash = bcrypt.hashSync(COURIER_PASSWORD, 10);
 const insertCourier = db.prepare(

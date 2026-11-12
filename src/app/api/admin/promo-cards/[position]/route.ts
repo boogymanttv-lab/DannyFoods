@@ -37,9 +37,6 @@ export async function PATCH(
 
   if (useCombo && comboItems.length > 0) {
     const price = await computeComboPrice(comboItems, discountPercent);
-    // The hidden product needs *some* category — borrow the first
-    // selected component's own category, since this product is never
-    // browsed by category anyway (active = 0 keeps it out of the menu).
     const firstComponent = await getProduct(comboItems[0].product_id);
     const categoryId = firstComponent?.category_id ?? 1;
     const productData = {
@@ -58,14 +55,8 @@ export async function PATCH(
       linkedProductId = await createProduct(productData);
     }
     await setComboItems(linkedProductId, comboItems);
-    // The card's own subtitle becomes the computed price — that's the one
-    // number the customer is meant to see, so it isn't left to whatever
-    // text an admin typed before switching this card into combo mode.
     subtitle = formatPrice(price);
   } else if (linkedProductId) {
-    // Combo mode got turned off (or its item list emptied) — the hidden
-    // product no longer means anything, so remove it rather than leaving
-    // an orphaned, invisible row behind.
     await deleteProduct(linkedProductId);
     linkedProductId = null;
   }

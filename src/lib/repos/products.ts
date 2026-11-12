@@ -40,8 +40,6 @@ async function attachOptions(product: Product): Promise<ProductWithOptions> {
     "options"
   >[];
   const extras = await Promise.all(extrasRaw.map(attachExtraOptions));
-  // combo_items only matters for combo products — skip the query for the
-  // overwhelming majority of plain products.
   const combo_items = product.is_combo
     ? ((await db
         .prepare(
@@ -86,17 +84,12 @@ export async function createProduct(data: {
   category_id: number;
   name: string;
   description?: string;
-  // Auto-translated English text (see src/lib/translate.ts) — optional;
-  // empty just means the EN site falls back to the Bulgarian text.
   name_en?: string;
   description_en?: string;
   image?: string;
   base_price: number;
   is_pizza?: boolean;
   featured?: boolean;
-  // Defaults to true (matches the DB column default) — set false for a
-  // product that shouldn't show up in the normal category menu, e.g. the
-  // hidden product backing a combo-built promo card.
   active?: boolean;
   sort_order?: number;
   is_combo?: boolean;
@@ -156,8 +149,6 @@ export async function updateProduct(
   await db.prepare(`UPDATE products SET ${setClause} WHERE id = @id`).run(payload);
 }
 
-// Replaces a combo product's full bill of materials (delete + re-insert,
-// same pattern as setProductSizes/setExtraOptions).
 export async function setComboItems(
   comboProductId: number,
   items: { product_id: number; size_id: number | null; quantity: number }[]
@@ -182,11 +173,6 @@ export async function setComboItems(
   await tx();
 }
 
-// The combo's price is never trusted from the client — it's always
-// recomputed here from each component's CURRENT base_price/size price_delta
-// (so if a component's own price later changes, the combo's total isn't
-// silently stale next time it's saved), summed and then discounted by
-// combo_discount_percent, rounded to the cent.
 export async function computeComboPrice(
   items: { product_id: number; size_id: number | null; quantity: number }[],
   discountPercent: number
@@ -336,9 +322,6 @@ export async function setExtraOptions(
   await tx();
 }
 
-// Used by the Stripe Connect pizza payout split (src/lib/pizza-split.ts) to
-// figure out, from a placed order's line items, which product ids are
-// pizzas — returns just the subset of `ids` that are pizza products.
 export async function getPizzaProductIds(ids: number[]): Promise<Set<number>> {
   if (ids.length === 0) return new Set();
   const db = await getDb();

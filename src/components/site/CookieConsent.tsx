@@ -3,15 +3,8 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 
-const CONSENT_KEY = "dd_cookie_consent"; // "accepted" | "rejected"
+const CONSENT_KEY = "dd_cookie_consent";
 
-// A single component that both shows the cookie-consent banner (GDPR/
-// ePrivacy — required whenever non-essential cookies like analytics or ad
-// pixels are in play) and conditionally loads Google Analytics / Meta Pixel
-// once the visitor has actually accepted. Login sessions and the cart use
-// only strictly-necessary cookies/localStorage, which don't need consent —
-// so with no gaId/metaPixelId configured, this renders nothing extra at all
-// beyond the banner itself.
 export function CookieConsent({
   gaId,
   metaPixelId,
@@ -27,10 +20,8 @@ export function CookieConsent({
     try {
       stored = localStorage.getItem(CONSENT_KEY);
     } catch {
-      // Private-browsing/blocked storage — treat as "not yet decided" each
-      // visit rather than crashing; the banner will just reappear.
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of a browser API (localStorage) only available client-side, same pattern used elsewhere in this codebase (e.g. SettingsManager's window.location.origin read)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setConsent(stored === "accepted" || stored === "rejected" ? stored : null);
     setReady(true);
   }, []);
@@ -40,7 +31,6 @@ export function CookieConsent({
     try {
       localStorage.setItem(CONSENT_KEY, value);
     } catch {
-      // Ignore — worst case the banner reappears next visit.
     }
   }
 

@@ -1,6 +1,3 @@
-// A thin bar pinned above the header — admin-editable in Настройки ("Промо
-// лента"), including whether it scrolls or sits still ("Вид на лентата").
-// Empty text hides the whole bar instead of showing a blank strip.
 export function PromoBanner({
   text,
   mode = "scroll",

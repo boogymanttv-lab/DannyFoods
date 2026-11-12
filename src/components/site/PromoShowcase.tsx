@@ -3,9 +3,6 @@ import { promoCardStyle } from "@/lib/promo-card-style";
 import { AddComboButton } from "@/components/site/AddComboButton";
 import type { PromoCard } from "@/lib/types";
 
-// Small cart-icon badge for a full-banner card that adds straight to the
-// cart — a corner badge rather than a text bar, so it signals the action
-// without covering much of the banner artwork underneath it.
 function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
   return (
     <span
@@ -20,16 +17,6 @@ function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
   );
 }
 
-// The homepage's 4 fixed "showcase" slots — active ones only (see
-// listActivePromoCards). Two entirely different layouts by breakpoint
-// rather than one responsive card: on phone, a horizontally-scrollable
-// strip of compact dark cards (sized like a menu product card — photo on
-// top, title/description/price below); on desktop, a wide 3-across grid of
-// banner cards (colored background, eyebrow badge, big price, text CTA).
-// A plain card links through to /oferti (the one page listing every active
-// card with its fuller description); a card built from the combo picker
-// (see PromoCardsManager) instead adds its linked product straight to the
-// cart — no click-through needed, since there's nothing more to read.
 export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
   if (cards.length === 0) return null;
 
@@ -42,24 +29,14 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
         </Link>
       </div>
 
-      {/* Phone: compact scroll-right strip */}
       <div className="sm:hidden flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 pb-1">
         {cards.map((card) => {
           const style = promoCardStyle(card.position);
           const orderable = Boolean(card.linked_product_id);
 
-          // Full-banner cards: the image is a finished ad with its own
-          // title/price already baked in, so it's the whole card — no text
-          // pasted on top, and never cropped (object-contain), wider than
-          // the regular card so it stays legible instead of squeezed into a
-          // small square.
           if (card.full_banner && card.image) {
             const content = (
               <div className="relative aspect-[3/2] overflow-hidden">
-                {/* Blurred, zoomed-in copy of the same image fills the
-                    letterboxed sides object-contain leaves bare — reads as
-                    a soft glow around the banner instead of flat black
-                    bars. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
@@ -73,9 +50,6 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   alt={card.title}
                   className="relative z-10 h-full w-full object-contain"
                 />
-                {/* The banner has no CTA of its own baked in, so tapping it
-                    silently adding to the cart would give no warning that's
-                    what's about to happen — this badge is the only signal. */}
                 {orderable && <CartBadge />}
               </div>
             );
@@ -161,9 +135,6 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
         })}
       </div>
 
-      {/* Desktop/tablet: wide banner grid — column count adapts to how many
-          cards are actually active, so a lone 4th card never gets stranded
-          alone on its own row. */}
       <div
         className={`hidden sm:grid mx-auto max-w-6xl px-4 gap-4 ${
           cards.length === 1
@@ -179,14 +150,9 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
           const style = promoCardStyle(card.position);
           const orderable = Boolean(card.linked_product_id);
 
-          // Full-banner cards here too: just the finished ad image,
-          // untouched and never cropped, on a black ground so no colored
-          // letterboxing shows through — no badge/title/subtitle/CTA on top.
           if (card.full_banner && card.image) {
             const content = (
               <>
-                {/* Same blurred-backdrop trick as the mobile card — softens
-                    the letterboxed sides instead of leaving flat black. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
@@ -200,9 +166,6 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   alt={card.title}
                   className="absolute inset-0 z-10 h-full w-full object-contain"
                 />
-                {/* The banner has no CTA of its own baked in, so clicking it
-                    silently adding to the cart would give no warning that's
-                    what's about to happen — this badge is the only signal. */}
                 {orderable && <CartBadge size="h-10 w-10" />}
               </>
             );
@@ -237,8 +200,6 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                     aria-hidden
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  {/* Scrim over the full photo so the title/price stay
-                      readable regardless of what's in the picture. */}
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
                 </>
               ) : (

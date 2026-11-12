@@ -29,7 +29,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Невалидни данни" }, { status: 400 });
   }
   const payload: Parameters<typeof updateAddress>[2] = { ...parsed.data };
-  // Keep the combined display string in sync whenever either part changes.
   if (parsed.data.street !== undefined || parsed.data.house_number !== undefined) {
     const street = parsed.data.street?.trim() ?? "";
     const houseNumber = parsed.data.house_number?.trim() ?? "";

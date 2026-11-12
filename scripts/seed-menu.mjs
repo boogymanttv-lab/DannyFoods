@@ -1,18 +1,3 @@
-// Adds the full demo menu (categories/products/extras/promotions/couriers)
-// to an existing Postgres database — run with: DATABASE_URL=... node scripts/seed-menu.mjs
-//
-// This is the Postgres-era replacement for the old scripts/seed.mjs (which
-// talked to a local node:sqlite file and reset the whole database on every
-// run). This script is additive and idempotent instead: it's meant to be run
-// once against a live Supabase database that the app's own migrations have
-// already set up (schema + the "Напитки" category/products + delivery
-// zones + site_settings), so it never touches those, never deletes
-// anything, and skips anything that already exists (safe to re-run).
-//
-// Prices below are converted from the app's original leva-era demo prices
-// to EUR at the historical BGN peg (1 EUR = 1.95583 BGN), then rounded to a
-// sensible price ending — NOT a 1:1 digit copy of the old leva figures
-// (which would be roughly double the real price in EUR).
 import pg from "pg";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -129,8 +114,6 @@ async function main() {
   await addExtraIfMissing("Чеснов сос", 0.4, null);
   await addExtraIfMissing("Люти чушки", 0.3, null);
 
-  // Pizzas — two sizes: 32см / 40см (40cm priced the same +55% ratio as the
-  // original demo used, computed off the new EUR base price)
   const pizzaSizes = (base) => [
     { label: "32см", price_delta: 0, is_default: true },
     { label: "40см", price_delta: Math.round(base * 0.55 * 100) / 100 },

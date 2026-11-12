@@ -9,10 +9,6 @@ export type MapMarker = {
   lng: number;
   label?: string;
   color?: string;
-  // "courier" renders a rotating direction puck (like Google Maps' live
-  // location marker) that points the way the courier is moving.
-  // "destination" renders a static pin. Omit for the plain colored dot used
-  // elsewhere (e.g. the admin all-couriers overview map).
   kind?: "courier" | "destination";
 };
 
@@ -23,7 +19,6 @@ function toDeg(rad: number) {
   return (rad * 180) / Math.PI;
 }
 
-// Great-circle bearing from point 1 to point 2, in degrees (0 = north).
 function bearingBetween(lat1: number, lng1: number, lat2: number, lng2: number) {
   const φ1 = toRad(lat1);
   const φ2 = toRad(lat2);
@@ -33,8 +28,6 @@ function bearingBetween(lat1: number, lng1: number, lat2: number, lng2: number) 
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-// Distance in meters (haversine) — used to ignore GPS jitter so the puck
-// doesn't spin in place while the courier is stationary.
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
   const φ1 = toRad(lat1);
@@ -82,8 +75,6 @@ export function MapView({
   center?: [number, number];
   zoom?: number;
   height?: number;
-  // When a "courier" marker and a "destination" marker are both present,
-  // draw a route line between them (like a live Google Maps ETA line).
   showRoute?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -95,7 +86,6 @@ export function MapView({
   const routeReqIdRef = useRef(0);
   const lastRouteFromRef = useRef<{ lat: number; lng: number } | null>(null);
 
-  // Varna city center as a sensible default.
   const fallbackCenter: [number, number] = [43.2141, 27.9147];
 
   const renderMarkers = useCallback(
@@ -155,8 +145,6 @@ export function MapView({
         return;
       }
 
-      // Avoid refetching on every tiny GPS jitter — only when the courier
-      // has actually moved a meaningful distance, or we have no route yet.
       const last = lastRouteFromRef.current;
       if (last && distanceMeters(last.lat, last.lng, courier.lat, courier.lng) < 15) {
         return;
@@ -190,8 +178,6 @@ export function MapView({
         if (!coords || coords.length === 0) throw new Error("no route geometry");
         drawLine(coords, false);
       } catch {
-        // Routing service unreachable/rate-limited — fall back to a simple
-        // straight dashed line so the customer still sees a direction.
         drawLine(
           [
             [courier.lat, courier.lng],
@@ -226,7 +212,6 @@ export function MapView({
       }).addTo(map);
 
       mapRef.current = map;
-      // Route line goes underneath the markers layer.
       routeLayerRef.current = L.layerGroup().addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       renderMarkers(L, map);
@@ -240,7 +225,7 @@ export function MapView({
       layerRef.current = null;
       routeLayerRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- set up once; marker/route updates handled by the effects below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

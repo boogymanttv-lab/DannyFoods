@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-const VISIBLE_MS = 2600; // matches the .animate-splash-fill duration in globals.css
+const VISIBLE_MS = 2600;
 const FADE_MS = 450;
 
-// Cycles through a few of the menu's categories while the splash is up —
-// more fun to look at than a plain spinner, and doubles as a little teaser
-// of what's on the menu.
 const FOOD_STEPS = [
   { emoji: "🍕", label: "Пица" },
   { emoji: "🌯", label: "Дюнер" },
@@ -23,10 +20,6 @@ export function SplashScreen({
   logoUrl?: string;
   children: React.ReactNode;
 }) {
-  // "visible" -> "fading" -> "done". Only ever runs once per real page load
-  // (this component lives in the root layout, which doesn't remount on
-  // client-side navigation between pages) — so it greets a visitor once,
-  // not every time they click around the site.
   const [phase, setPhase] = useState<"visible" | "fading" | "done">("visible");
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -65,9 +58,6 @@ export function SplashScreen({
             transitionDuration: `${FADE_MS}ms`,
           }}
         >
-          {/* Animated backdrop: a slowly-panning dot grid (the "running
-              dots") plus a couple of slow-drifting color blobs, instead of
-              a flat color. */}
           <div className="pointer-events-none absolute inset-0">
             <div
               className="absolute inset-0 opacity-40 animate-dots"
@@ -87,8 +77,6 @@ export function SplashScreen({
             />
           </div>
 
-          {/* Cycling food icon — glowing card with a pop/rotate transition
-              between categories. */}
           <div className="relative z-10 h-28 w-28 rounded-3xl bg-gradient-to-br from-white/15 to-white/5 border border-white/10 grid place-items-center animate-pulse-glow">
             <span key={stepIndex} className="text-6xl animate-splash-food">
               {step.emoji}
@@ -101,7 +89,6 @@ export function SplashScreen({
             {step.label}
           </p>
 
-          {/* Shimmering premium "Зареждане" label with a bouncing ellipsis */}
           <div className="relative z-10 mt-6 flex items-center gap-1.5">
             <span className="bg-gradient-to-r from-gold via-white to-gold bg-clip-text text-transparent font-display font-extrabold text-base tracking-wide animate-shimmer">
               Зареждане

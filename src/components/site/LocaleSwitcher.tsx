@@ -2,8 +2,6 @@
 
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
-// Compact BG/EN toggle for the header — a single pill with two letters
-// rather than a dropdown, since there are only ever two languages.
 export function LocaleSwitcher() {
   const { locale, setLocale } = useLocale();
 

@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProduct } from "@/lib/repos/products";
 
-// Public — a single product's current, live data (image, price, sizes,
-// extras). Used by "Поръчай отново" (see AccountDashboard.tsx) to refresh a
-// past order's line with the product's current photo and to confirm it's
-// still orderable, without needing the full menu payload. Only ever
-// returns active products — a deleted or hidden (e.g. combo-backing)
-// product simply 404s, same as if it didn't exist for this purpose.
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

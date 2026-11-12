@@ -9,9 +9,6 @@ export default async function AdminShowcasePage() {
   const cards = await listPromoCards();
   const products = await listProducts({ activeOnly: false });
 
-  // For any card already built from the combo picker, pull its hidden
-  // product's current bill of materials + discount so the form reopens
-  // exactly as it was left, instead of looking freshly empty.
   const initialCombos: Record<number, { discountPercent: number; items: ComboItemRow[] }> = {};
   for (const card of cards) {
     if (!card.linked_product_id) continue;

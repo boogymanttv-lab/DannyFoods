@@ -20,10 +20,6 @@ export default function CourierDashboardPage() {
   const [delivered, setDelivered] = useState<OrderWithZone[]>([]);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState("");
-  // Only "available" orders get a chime — a new entry there means a fresh
-  // delivery order just came in for any courier to grab. Null until the
-  // first load resolves, so opening the app never sounds off for orders
-  // that were already sitting in the pool.
   const seenAvailableIdsRef = useRef<Set<number> | null>(null);
 
   async function load() {
@@ -48,7 +44,7 @@ export default function CourierDashboardPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: initial fetch + polling refresh
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);

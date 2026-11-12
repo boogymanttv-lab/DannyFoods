@@ -31,9 +31,6 @@ export async function POST(req: NextRequest) {
   if (!isCombo && body.base_price == null) {
     return NextResponse.json({ error: "Базова цена е задължителна" }, { status: 400 });
   }
-  // A combo's price is never taken from the client — it's always computed
-  // here from its components' live prices, so it can't be tampered with
-  // and never drifts out of sync with what the components actually cost.
   const basePrice = isCombo
     ? await computeComboPrice(comboItems, discountPercent)
     : Number(body.base_price);

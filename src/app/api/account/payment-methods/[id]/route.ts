@@ -23,10 +23,6 @@ export async function DELETE(
   }
   try {
     const stripe = new Stripe(settings.stripe_secret_key);
-    // Confirm this payment method actually belongs to THIS customer before
-    // detaching it — the id in the URL is just a Stripe payment method id,
-    // so without this check one logged-in customer could remove another's
-    // saved card by guessing/reusing an id.
     const pm = await stripe.paymentMethods.retrieve(id);
     const owner = typeof pm.customer === "string" ? pm.customer : pm.customer?.id;
     if (owner !== customer.stripe_customer_id) {

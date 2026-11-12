@@ -47,10 +47,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage on mount
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setLines(JSON.parse(raw));
     } catch {
-      // ignore corrupt storage
     }
     setHydrated(true);
   }, []);
@@ -60,14 +59,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
     } catch {
-      // storage full/unavailable — ignore
     }
   }, [lines, hydrated]);
 
-  // Deliberately does NOT open the cart drawer — adding an item should just
-  // add it (the header's cart badge/count updates as feedback); the
-  // customer opens the drawer themselves, on their own timing, via the cart
-  // icon or the mobile cart bar.
   const addLine = useCallback((line: CartLine) => {
     setLines((prev) => {
       const key = lineKey(line);

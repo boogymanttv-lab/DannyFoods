@@ -28,8 +28,6 @@ export async function getRatingSummary(
   return { average: row?.average ?? 0, count: row?.count ?? 0 };
 }
 
-// Summaries for every product in one query — used by the menu grid so
-// showing a star rating per card doesn't mean one query per card.
 export async function getRatingSummaries(): Promise<
   Record<number, { average: number; count: number }>
 > {
@@ -45,10 +43,6 @@ export async function getRatingSummaries(): Promise<
   return map;
 }
 
-// A customer may review a product only if it actually appears in one of
-// their own past orders — checked against the stored items_json rather
-// than a separate "purchases" table, since that's already the source of
-// truth for what was ordered.
 export async function customerHasOrderedProduct(
   customerId: number,
   productId: number
@@ -64,7 +58,6 @@ export async function customerHasOrderedProduct(
         return { ordered: true, orderId: row.id };
       }
     } catch {
-      // malformed items_json on some ancient row — skip it rather than fail
     }
   }
   return { ordered: false, orderId: null };

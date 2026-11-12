@@ -13,10 +13,6 @@ type ComboCardState = {
   items: ComboItemRow[];
 };
 
-// The 4 slots always exist as rows (seeded once in a migration) — editing
-// here is always an UPDATE against an existing position, never a
-// create/delete, so the homepage layout never has to handle "3 cards" or
-// "5 cards", only "some subset of these 4 are active".
 export function PromoCardsManager({
   initialCards,
   initialProducts,
@@ -109,9 +105,6 @@ export function PromoCardsManager({
       }),
     });
     const data = await res.json().catch(() => ({}));
-    // The server may have created/updated the hidden linked product and
-    // computed a fresh subtitle (the price text) — reflect that back into
-    // this card's local state so the preview and next save stay in sync.
     updateLocal(card.position, {
       linked_product_id: data.linked_product_id ?? null,
       subtitle: data.subtitle ?? card.subtitle,
@@ -156,9 +149,6 @@ export function PromoCardsManager({
                 </label>
               </div>
 
-              {/* Live preview — square-photo/gradient-icon + badge treatment
-                  as the phone card, or (when "Готов банер" is on) just the
-                  raw image, untouched, on black. */}
               {card.full_banner ? (
                 <div className="relative aspect-[3/2] w-52 rounded-xl overflow-hidden bg-black">
                   {card.image ? (

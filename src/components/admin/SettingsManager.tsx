@@ -65,7 +65,7 @@ export function SettingsManager({
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading window.location is only possible client-side, one-time on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin);
   }, []);
 

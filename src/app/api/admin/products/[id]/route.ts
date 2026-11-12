@@ -19,25 +19,16 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}));
   const { sizes, combo_items, ...rest } = body;
 
-  // Only the full product-form save sends `is_combo` at all — a plain
-  // active/sort_order toggle never touches combo pricing or membership.
   if ("is_combo" in rest) {
     if (rest.is_combo) {
       const items = Array.isArray(combo_items) ? combo_items : [];
       const discountPercent = Number(rest.combo_discount_percent) || 0;
-      // Recomputed here too, from components' current live prices, rather
-      // than trusting whatever number the client displayed.
       rest.base_price = await computeComboPrice(items, discountPercent);
     } else {
-      // Switched off combo mode — its old bill of materials no longer means
-      // anything, so drop it rather than leaving stale rows behind.
       await setComboItems(productId, []);
     }
   }
 
-  // Only the full product-form save touches name/description at all — a
-  // plain active/sort_order toggle shouldn't burn a DeepL call re-translating
-  // text that hasn't changed.
   if ("name" in rest || "description" in rest) {
     const existing = await getProduct(productId);
     const settings = await getSettings();

@@ -5,28 +5,18 @@ export const DEFAULT_SETTINGS = {
   site_name: "DannyFoods",
   tagline: "Гладен? Доставяме бързо.",
   phone: "052 000 000",
-  // Public-facing address shown on the Contact page, the footer, and (as
-  // the legal texts note) where an order can be picked up in person.
   address: "гр. Варна",
   working_hours: "Всеки ден: 09:00 - 00:00",
   opening_time: "09:00",
   closing_time: "00:00",
-  // One flat minimum for every order, regardless of neighborhood — replaced
-  // the old per-zone minimums (which used to vary, e.g. 15 € for Тракия).
   min_order_global: "10",
   free_delivery_over: "25",
-  // Flat delivery fee charged on every delivery order under the free-
-  // delivery threshold above — replaced the old per-neighborhood zone fees
-  // (they'd all been set to the same value anyway; see the checkout rework).
   delivery_fee_flat: "2.50",
   primary_color: "#e11d2e",
   accent_color: "#1a1a1a",
   facebook_url: "",
   instagram_url: "",
   banner_text: "🚚 Безплатна доставка при поръчка над 25 € · 🔥 Пресни продукти всеки ден",
-  // "scroll" (default, matches the original always-moving ticker) or
-  // "static" — a fixed, centered, non-animated bar. Purely cosmetic; the
-  // banner still hides entirely when banner_text is empty either way.
   banner_scroll_mode: "scroll",
   stripe_publishable_key: "",
   stripe_secret_key: "",
@@ -35,65 +25,25 @@ export const DEFAULT_SETTINGS = {
   google_client_secret: "",
   busy_hours_json: JSON.stringify(DEFAULT_BUSY_HOURS),
 
-  // --- Company / legal identity (used on the Privacy Policy, Terms of Use,
-  // and site footer — required disclosures under Bulgarian e-commerce law
-  // (ЗЕТ) and GDPR/ЗЗЛД for a publicly-operating online trader). ---
   contact_email: "",
   site_domain: "",
   company_legal_name: "",
   company_eik: "",
   company_vat: "",
-  // The registered seat/office on file with the Commercial Register — can
-  // differ from the public "address" above (e.g. a home address used only
-  // for registration vs. an actual kitchen/pickup location).
   company_registered_address: "",
 
-  // --- Analytics / advertising (optional — left blank = not used). Loaded
-  // client-side only after the visitor accepts non-essential cookies via
-  // the cookie-consent banner, per GDPR/ePrivacy. ---
   ga_measurement_id: "",
   meta_pixel_id: "",
 
-  // --- Upsell: which category's products show as "Често купувано с"
-  // suggestions inside every product's detail modal (e.g. pick the
-  // "Напитки" category so drinks are suggested under every product).
-  // Empty string = feature off. Stored as the category id (as a string,
-  // matching this key/value settings table). ---
   suggested_category_id: "",
 
-  // --- Access: which email automatically gets admin access after a normal
-  // customer login/registration (password or Google) — no separate admin
-  // credentials needed day-to-day. Empty = feature off (the dedicated
-  // /admin/login form with its own admin_users table still works as a
-  // fallback either way). Compared case-insensitively. ---
   admin_email: "",
 
-  // --- Automatic payout split: when a customer pays by card and the order
-  // contains pizza items, that portion of the payment is automatically
-  // transferred (via Stripe Connect) to this connected account's Stripe ID
-  // (e.g. "acct_1AbCdEfGhIjKlMnO"), leaving everything else (other items +
-  // the full delivery fee) in the main Stripe account. Empty = feature off.
-  // The connected account is created/onboarded separately in the Stripe
-  // Dashboard (Connect) — this setting just tells the app which one to pay
-  // out to. Stripe's own transfer fee is absorbed by the main account (the
-  // pizza account receives the full pizza-item amount, net of any
-  // proportional discount, before Stripe's cut). ---
   pizza_stripe_account_id: "",
 
-  // --- Order confirmation email (Resend). Empty API key = feature off —
-  // checkout still works exactly the same, it just skips sending the email.
-  // "From" defaults to a plausible address on the site's own domain; it
-  // must be on a domain verified in the Resend account or sending will
-  // fail, so double-check it in Resend's dashboard before relying on it. ---
   resend_api_key: "",
   notification_from_email: "DannyFoods <поръчки@cfxwebstudio.xyz>",
 
-  // --- BG/EN language switcher: auto-translates product/category/promo
-  // card names & descriptions via DeepL when an admin saves them. Empty =
-  // feature off — the switcher still shows and works, it just falls back
-  // to showing the Bulgarian text on the English site until this is set.
-  // A free DeepL API key (ends in ":fx") is enough for a single menu's
-  // worth of text. ---
   deepl_api_key: "",
 };
 

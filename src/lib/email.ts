@@ -2,11 +2,6 @@ import { Resend } from "resend";
 import type { Order, OrderItem } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
 
-// Order confirmation email via Resend — entirely optional. Both the API key
-// and the "from" address live in site_settings (configured in Настройки),
-// same pattern as the Stripe keys: an empty key means the feature is off
-// and checkout proceeds exactly the same either way. Never throws — a
-// failed or skipped send should never take down order creation.
 export async function sendOrderConfirmationEmail(
   order: Order,
   settings: { resend_api_key: string; notification_from_email: string; site_name: string }
@@ -59,18 +54,10 @@ export async function sendOrderConfirmationEmail(
       html,
     });
   } catch (err) {
-    // Never let a failed email (bad key, unverified domain, network issue)
-    // affect the order itself — it's already been created successfully.
     console.error("Failed to send order confirmation email", err);
   }
 }
 
-// Sent once per order by the /api/cron/review-reminders job, a while after
-// the order is marked "Доставена" — a direct nudge with a link straight to
-// the order's own review prompt (see OrderReviewPrompt.tsx), instead of
-// relying on the customer to remember to open their account later. Scoped
-// to account holders only (guest checkouts have no review-eligibility
-// record to check against) — same as the "1-click review" feature itself.
 export async function sendReviewReminderEmail(
   order: Order,
   settings: { resend_api_key: string; notification_from_email: string; site_name: string },

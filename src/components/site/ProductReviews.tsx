@@ -11,8 +11,6 @@ function Stars({
 }: {
   value: number;
   size?: string;
-  // Present only for the input version (picking a rating); omit for
-  // read-only display.
   onPick?: (n: number) => void;
 }) {
   return (
@@ -31,17 +29,13 @@ function Stars({
   );
 }
 
-// Star rating + reviews for one product — public read, but leaving a review
-// requires being logged in AND having actually ordered this product before
-// (enforced server-side; this UI just reflects what the API already told
-// it via `canReview`).
 export function ProductReviews({ productId }: { productId: number }) {
   const t = useT();
   const [reviews, setReviews] = useState<ProductReviewPublic[]>([]);
   const [average, setAverage] = useState(0);
   const [count, setCount] = useState(0);
   const [canReview, setCanReview] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(true); // assume yes until the fetch says otherwise, so no login prompt flashes for a logged-in customer
+  const [loggedIn, setLoggedIn] = useState(true);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);

@@ -8,10 +8,6 @@ const SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || "danidunner-dev-secret-change-me-in-prod"
 );
 
-// Customer account endpoints that must stay reachable without an existing
-// session — the login/register forms themselves, the Google OAuth
-// redirect+callback, and a lightweight "am I logged in?" check used by the
-// checkout page (which works fine for guests too).
 const PUBLIC_ACCOUNT_PATHS = [
   "/account/login",
   "/account/register",
@@ -51,12 +47,6 @@ export async function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Employee ("staff") admin accounts are restricted to the Поръчки page and
-// the handful of API endpoints that page needs — everything else in
-// /admin and /api/admin is reserved for the owner (see
-// src/components/admin/ProductsManager.tsx's sibling pages, Настройки →
-// Служители). A token with no role at all (signed before this feature
-// existed) is treated as a full-access owner, same as before.
 const STAFF_ALLOWED_API_PREFIXES = ["/api/admin/orders"];
 const STAFF_ALLOWED_API_GET_ONLY = ["/api/admin/couriers", "/api/admin/settings"];
 
@@ -84,7 +74,6 @@ async function guardAdmin(req: NextRequest) {
 
   if (payload.role !== "staff") return NextResponse.next();
 
-  // Staff account — confined to Поръчки.
   if (isApi) {
     if (staffApiAllowed(pathname, req.method)) return NextResponse.next();
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });

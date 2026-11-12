@@ -5,11 +5,6 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Зони за доставка" };
 
-// One flat delivery rule for the whole city now (see the checkout rework —
-// every neighborhood used to carry its own fee/minimum, which had all
-// converged on the same numbers anyway, so the per-quarter breakdown here
-// was just confusing). This page now simply states that flat rule instead
-// of a per-zone table.
 export default async function ZonesPage() {
   const settings = await getSettings();
   const deliveryFee = Number(settings.delivery_fee_flat || "0");

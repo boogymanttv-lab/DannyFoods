@@ -37,15 +37,11 @@ export function AccountDashboard({
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
 
-  // Returning here from the "add a card" Stripe redirect (?tab=payment)
-  // should land straight back on that tab instead of the default Profile
-  // one — read directly from the URL rather than useSearchParams so this
-  // component doesn't need a Suspense boundary just for this.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("tab");
     if (requested === "payment" || requested === "addresses" || requested === "orders") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from the URL on mount, not a render loop
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTab(requested);
     }
   }, []);
@@ -386,11 +382,6 @@ const CARD_BRAND_LABELS: Record<string, string> = {
   unionpay: "UnionPay",
 };
 
-// Saved cards live entirely in Stripe (see src/lib/stripe-customer.ts) — this
-// tab never handles raw card numbers itself. "Добави карта" redirects to a
-// Stripe-hosted setup form (same pattern as the checkout card-payment
-// redirect) and lands back here; a card also gets saved automatically the
-// first time this customer pays by card at checkout.
 function PaymentMethodsTab() {
   const [cards, setCards] = useState<SavedCard[] | null>(null);
   const [error, setError] = useState("");
@@ -408,7 +399,7 @@ function PaymentMethodsTab() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch on mount, same pattern as other tabs' data loads
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
   }, []);
 
@@ -494,8 +485,6 @@ function PaymentMethodsTab() {
   );
 }
 
-// One "1x Маргарита" line per item — just enough to jog the customer's
-// memory of what an order actually was without needing to open it.
 function orderItemLines(itemsJson: string): string[] {
   try {
     const items: OrderItem[] = JSON.parse(itemsJson);
@@ -512,20 +501,8 @@ function OrdersTab({ orders }: { orders: Order[] }) {
   const router = useRouter();
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [skipped, setSkipped] = useState<{ orderId: number; names: string[] } | null>(null);
-  // Which orders' item lists are expanded past the first few lines — kept
-  // outside the Link below so the toggle button doesn't double as a
-  // navigation link (nesting a <button> inside an <a> is invalid HTML).
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
 
-  // Rebuilds the exact cart lines from a past order's stored items_json —
-  // relies on sizeId/extras[].id/optionId (added alongside quick-reorder)
-  // rather than re-matching by display name/label text, which could break
-  // if a product's wording changed since the order was placed. Each line's
-  // product is re-fetched live (GET /api/products/[id]) so the cart shows
-  // the product's CURRENT photo (the order snapshot never stored one) and
-  // so a product/size/extra removed from the menu since this order was
-  // placed is quietly dropped instead of silently added with stale data —
-  // the customer sees which items didn't make it back into the cart.
   async function reorder(o: Order): Promise<boolean> {
     let items: OrderItem[];
     try {
@@ -536,8 +513,6 @@ function OrdersTab({ orders }: { orders: Order[] }) {
     setReorderingId(o.id);
     setSkipped(null);
     const skippedNames: string[] = [];
-    // Cache product lookups — a repeated item in the same order (or the
-    // same product across a couple of orders) shouldn't refetch.
     const cache = new Map<number, ProductWithOptions | null>();
     for (const item of items) {
       let product = cache.get(item.productId);
@@ -553,9 +528,6 @@ function OrdersTab({ orders }: { orders: Order[] }) {
         skippedNames.push(item.name);
         continue;
       }
-      // If the size this line was ordered at no longer exists, fall back to
-      // the product's current default size rather than dropping the whole
-      // line — still orderable, just possibly a different size than before.
       const size = item.sizeId ? product.sizes.find((s) => s.id === item.sizeId) : undefined;
       const fallbackSize = !size && item.sizeId ? product.sizes.find((s) => s.is_default) ?? product.sizes[0] : undefined;
       const resolvedSize = size ?? fallbackSize;
@@ -612,13 +584,6 @@ function OrdersTab({ orders }: { orders: Order[] }) {
               </div>
             </div>
           </Link>
-          {/* Nobody remembers what was in an order from the number alone —
-              a quick "what did I get" list right in the card, one item per
-              line, so they don't have to open every order just to
-              recognize which one was which before deciding whether to
-              reorder it. Kept outside the Link above so the "покажи още"
-              toggle can be its own button rather than a link nested inside
-              a link. */}
           {(() => {
             const lines = orderItemLines(o.items_json);
             if (lines.length === 0) return null;

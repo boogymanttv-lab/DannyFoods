@@ -29,10 +29,6 @@ type Tracking = {
   requestedTime: string | null;
 };
 
-// A circular countdown ring, counting down from when the admin gave the
-// estimate ("estimatedDeliverySetAt") to that estimate's upper bound (e.g.
-// "20-30" -> 30 minutes out). Ticks every second on its own — independent
-// of the 6s tracking poll — so it feels alive between polls.
 function DeliveryCountdownRing({
   estimate,
   setAt,
@@ -50,13 +46,6 @@ function DeliveryCountdownRing({
   }, []);
 
   const totalMs = estimateUpperMinutes(estimate) * 60 * 1000;
-  // `setAt` comes from SQLite's datetime('now'), which is UTC but formatted
-  // as "YYYY-MM-DD HH:MM:SS" with no timezone marker. Passed straight to
-  // `new Date(...)`, browsers parse that space-separated form as *local*
-  // time, not UTC — silently shifting the deadline by the visitor's UTC
-  // offset (in Bulgaria's case, into the past), which is why the ring used
-  // to show "Всеки момент" immediately instead of counting down. Reinterpret
-  // it explicitly as UTC by switching to ISO form before parsing.
   const deadline = new Date(setAt.replace(" ", "T") + "Z").getTime() + totalMs;
   const remainingMs = Math.max(0, deadline - now);
   const fraction = totalMs > 0 ? Math.min(1, Math.max(0, remainingMs / totalMs)) : 0;
@@ -107,9 +96,6 @@ function DeliveryCountdownRing({
   );
 }
 
-// Plain local components, no timezone conversion — same convention the rest
-// of the app uses for this string (see delivery-slots.ts). Returns null if
-// the string doesn't parse.
 function parseRequestedTime(requestedTime: string): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(requestedTime);
   if (!match) return null;
@@ -117,11 +103,6 @@ function parseRequestedTime(requestedTime: string): number | null {
   return new Date(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm)).getTime();
 }
 
-// A static, non-ticking ring shown from the moment an order is placed until
-// staff actually opens it and changes its status for the first time —  at
-// that point the real prep-time countdown (DeliveryCountdownRing) takes
-// over. Deliberately doesn't count down anything: there's nothing to count
-// yet, since no one has confirmed the order can even start.
 function PendingConfirmationRing() {
   const t = useT();
   const radius = 42;
@@ -162,12 +143,6 @@ function PendingConfirmationRing() {
   );
 }
 
-// Shown instead of the prep-time ring for a scheduled ("for later") order
-// whose requested time hasn't arrived yet — a plain live countdown to that
-// moment, deliberately NOT styled like the delivery ring so it doesn't read
-// as "your food is being prepared right now". Once the requested time
-// arrives, this stops rendering and OrderTracking falls back to
-// PendingConfirmationRing until staff actually confirms the order.
 function ScheduledTimeCountdown({ requestedTime }: { requestedTime: string }) {
   const t = useT();
   const [now, setNow] = useState(() => Date.now());
@@ -200,12 +175,6 @@ function ScheduledTimeCountdown({ requestedTime }: { requestedTime: string }) {
   );
 }
 
-// Picks between the two "no real estimate yet" displays above and re-checks
-// every second on its own (own ticking `now`, rather than reading the clock
-// directly during render) — a scheduled order whose requested time is still
-// ahead gets the countdown-to-that-time; anything else (no requested time,
-// or the requested time already passed but staff still hasn't confirmed)
-// gets the static waiting ring.
 function ScheduledOrPendingRing({ requestedTime }: { requestedTime: string | null }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -249,7 +218,6 @@ export function OrderTracking({
         const data = await res.json();
         if (!cancelled) setTracking(data);
       } catch {
-        // ignore transient network errors — next poll will retry
       }
     }
     poll();
@@ -279,11 +247,6 @@ export function OrderTracking({
           />
         )}
 
-      {/* No order gets a prep-time estimate until staff actually opens it and
-          changes its status for the first time (see the admin PATCH route)
-          — until then: a countdown to the requested time for a scheduled
-          order, still in the future, or otherwise a static "waiting for
-          confirmation" ring. */}
       {!tracking.estimatedDelivery &&
         tracking.status !== "delivered" &&
         tracking.status !== "cancelled" && (

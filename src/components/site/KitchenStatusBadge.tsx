@@ -18,11 +18,6 @@ const TIER_DOT: Record<KitchenLoadTier, string> = {
   busy: "bg-brand",
 };
 
-// A small, honest "how busy is the kitchen right now" signal next to the
-// existing "ОТВОРЕНО · ДОСТАВЯМЕ ДО..." pill — most delivery apps hide this
-// on purpose; showing it builds trust instead ("we're upfront about how
-// slow it might be"). Refreshes itself every 60s so it stays live while
-// someone browses the menu, without needing a page reload.
 export function KitchenStatusBadge({ initial }: { initial: Status }) {
   const [status, setStatus] = useState(initial);
   const t = useT();
@@ -36,8 +31,6 @@ export function KitchenStatusBadge({ initial }: { initial: Status }) {
         const data: Status = await res.json();
         if (!cancelled) setStatus(data);
       } catch {
-        // A failed poll just keeps showing the last known status — never
-        // worth surfacing an error for a purely informational badge.
       }
     }
     const id = setInterval(poll, 60_000);

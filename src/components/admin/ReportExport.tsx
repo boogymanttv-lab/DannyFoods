@@ -2,12 +2,6 @@
 
 import { useState } from "react";
 
-// Small client-side control for the admin report export — the customer
-// deliverable is a CSV (opens directly in Excel/Google Sheets/LibreOffice,
-// no extra library to install), the actual generation happens server-side
-// in /api/admin/orders/export. Clicking the download link just navigates
-// there with the chosen date range as query params; the browser handles the
-// file download itself because of the response's Content-Disposition header.
 export function ReportExport() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(todayStr);

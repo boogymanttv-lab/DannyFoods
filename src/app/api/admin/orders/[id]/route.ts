@@ -28,12 +28,6 @@ const VALID_STATUSES: OrderStatus[] = [
   "cancelled",
 ];
 
-// A station-restricted employee (pizza-only or everything-but-pizza) can
-// accept an incoming order — move it to "new" (re-affirming it's been seen)
-// or "confirmed" — but not push it further into the delivery pipeline
-// (preparing/delivering/delivered/cancelled), assign a courier, or override
-// the delivery-time estimate. Those stay owner/"Всичко"-only, same as
-// before; only the "accept" step was reopened to station staff.
 const STAFF_ALLOWED_STATUSES: OrderStatus[] = ["new", "confirmed"];
 
 export async function PATCH(
@@ -50,8 +44,6 @@ export async function PATCH(
   const session = await getSession();
   const station = session?.station ?? "all";
 
-  // Courier assignment and the manual delivery-time override concern the
-  // WHOLE order (one delivery, one courier) — owner/"Всичко" only.
   if (body?.courier_id !== undefined || body?.estimated_delivery !== undefined) {
     if (station !== "all") {
       return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 403 });
@@ -68,13 +60,6 @@ export async function PATCH(
     }
     await updateOrderStatus(order.id, status);
 
-    // The delivery-time countdown only ever starts from an explicit staff
-    // action — the very first status change on this order — rather than
-    // the moment the order was placed. Covers both ASAP orders (previously
-    // got an immediate, possibly premature, countdown) and scheduled ones
-    // (previously activated purely by the clock, even before anyone had
-    // actually looked at the order). A later manual pick via
-    // `estimated_delivery` below still overrides it same as before.
     if (!order.estimated_delivery) {
       const settings = await getSettings();
       const busyRules = parseBusyHours(settings.busy_hours_json);
@@ -98,9 +83,6 @@ export async function PATCH(
     await updateOrderEstimate(order.id, estimate);
   }
 
-  // Per-kitchen-station prep flags — a station-restricted employee can only
-  // mark their OWN station's part ready (an 'all'-station account, which
-  // includes every owner-level session, can mark either).
   if (body?.station_pizza_ready !== undefined || body?.station_other_ready !== undefined) {
     if (body.station_pizza_ready !== undefined) {
       if (station !== "all" && station !== "pizza") {
@@ -116,14 +98,6 @@ export async function PATCH(
     }
   }
 
-  // Each station's own self-picked prep-time estimate — internal-only, so
-  // the other station (and the owner) can see a rough countdown of how much
-  // longer this part will take. Same per-station permission pattern as the
-  // ready toggle above; blocked once that station is already marked ready
-  // (nothing left to time). Whichever station is the SLOWER of the two also
-  // drives the customer-facing delivery countdown from here on — a station
-  // picking (or re-picking) its own time re-syncs that customer estimate
-  // to the current worse-case of both, restarting the customer's ring.
   if (body?.station_pizza_prep_estimate !== undefined || body?.station_other_prep_estimate !== undefined) {
     let pizzaEstimate = order.station_pizza_prep_estimate;
     let otherEstimate = order.station_other_prep_estimate;

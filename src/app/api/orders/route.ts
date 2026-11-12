@@ -19,24 +19,11 @@ import Stripe from "stripe";
 
 const checkoutSchema = z
   .object({
-    // Only phone is truly required to get an order to someone — a name is
-    // nice to have (and used to greet the customer) but not essential, so
-    // it falls back to a placeholder when left blank.
     customer_name: z.string().max(100).optional(),
     phone: z.string().min(6).max(30),
-    // Optional — powers the Resend order confirmation email when present.
-    // No email at all (a guest who left it blank) just means no email gets
-    // sent; everything else about the order works the same.
     email: z.string().email().max(200).optional().or(z.literal("")),
-    // "delivery" needs the address fields below; "pickup" needs none of
-    // them — the customer collects the order in person.
     order_type: z.enum(["delivery", "pickup"]).default("delivery"),
-    // Free-typed neighborhood name — replaces the old zone_id dropdown.
-    // Only meaningful (and required) for delivery orders.
     quarter: z.string().max(100).optional(),
-    // Split so the geocoder only ever sees a clean "street + number" — no
-    // floor/apartment/intercom text mixed in, which used to sometimes end up
-    // inside the old single free-text "address" field and confuse the map.
     street: z.string().max(150).optional(),
     house_number: z.string().max(20).optional(),
     intercom: z.string().max(60).optional(),
@@ -44,8 +31,6 @@ const checkoutSchema = z
     notes: z.string().max(300).optional(),
     promo_code: z.string().max(40).optional(),
     payment_method: z.enum(["cash", "card_on_delivery", "stripe"]),
-    // "YYYY-MM-DD HH:MM" — a specific slot the customer picked at checkout;
-    // omitted entirely means "as soon as possible".
     requested_time: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):[0-5]\d$/)
@@ -59,16 +44,10 @@ const checkoutSchema = z
             .array(
               z.object({
                 id: z.number().int().positive(),
-                // Set when the customer picked one of that extra's weight/
-                // quantity variants (see ExtraOption) instead of its plain
-                // flat price.
                 optionId: z.number().int().positive().optional(),
               })
             )
             .default([]),
-          // Ingredients (parsed client-side from the product's description)
-          // the customer unchecked in "Без —" — purely a kitchen/courier
-          // note, no effect on price.
           removed: z.array(z.string().max(80)).max(30).optional(),
           quantity: z.number().int().min(1).max(30),
         })
@@ -99,17 +78,10 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  // Recompute prices server-side from the DB — never trust client-sent prices.
   const orderItems: OrderItem[] = [];
   let subtotal = 0;
   for (const item of data.items) {
     const product = await getProduct(item.productId);
-    // Combo products created from a promo card are intentionally
-    // `active = 0` — that's what keeps them out of the normal
-    // category-browsed menu — but a customer can still have one in
-    // their cart via the card's own "add to cart" button, so an
-    // inactive combo must still be allowed through here. Only a
-    // genuinely inactive, non-combo product gets rejected.
     if (!product || (!product.active && !product.is_combo)) {
       return NextResponse.json(
         { error: `Продукт с ID ${item.productId} не е наличен` },
@@ -126,14 +98,6 @@ export async function POST(req: NextRequest) {
       unitPrice += size.price_delta;
       sizeLabel = size.label;
     }
-    // Recompute each selected extra's price server-side too — for one with
-    // weight/quantity variants (options), the picked option's own price is
-    // what counts, never the extra's plain base price or anything sent by
-    // the client. Anything that doesn't resolve (unknown extra/option id)
-    // is silently dropped, same permissive behavior as before this feature.
-    // id/optionId are kept alongside name/price (not just for display) so
-    // "Поръчай отново" can later rebuild this exact cart line without
-    // re-matching extras by their display name text.
     const extras: { name: string; price: number; id?: number; optionId?: number }[] = [];
     for (const sel of item.extras) {
       const extra = product.extras.find((e) => e.id === sel.id);
@@ -150,11 +114,6 @@ export async function POST(req: NextRequest) {
     const lineTotal = (unitPrice + extrasTotal) * item.quantity;
     subtotal += lineTotal;
 
-    // Snapshot the combo's bill of materials so the admin orders panel can
-    // show staff exactly what to prepare (e.g. "Дюнер Класик + Айрян")
-    // instead of just the combo's own name — resolved from live product
-    // data now, at order time, same as the price above, since the combo's
-    // recipe could change later.
     let components: OrderItem["components"];
     if (product.is_combo && product.combo_items.length > 0) {
       components = [];
@@ -206,8 +165,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Flat delivery fee under the free-delivery threshold, waived above it —
-  // no delivery fee at all for pickup orders, obviously.
   const freeDeliveryOver = Number(settings.free_delivery_over || "0");
   const flatDeliveryFee = Number(settings.delivery_fee_flat || "0");
   let deliveryFee = 0;
@@ -229,16 +186,8 @@ export async function POST(req: NextRequest) {
 
   const total = Math.max(0, Math.round((subtotal + deliveryFee - discount) * 100) / 100);
 
-  // Attach the order to the customer's account when they're logged in
-  // (guests — the vast majority of the checkout flow — just get null here,
-  // exactly as before) so it shows up in their order history.
   const customerSession = await getCustomerSession();
 
-  // "address" stays as one combined human-readable string for display (order
-  // confirmation, admin panel, courier app) — but it's always built from just
-  // street + number, never from address_notes/intercom, so what shows up
-  // there matches what gets geocoded below. Pickup orders have no delivery
-  // address at all — the customer collects the order in person.
   const isDelivery = data.order_type === "delivery";
   const combinedAddress = isDelivery
     ? `${data.street!.trim()} ${data.house_number!.trim()}`.trim()
@@ -269,9 +218,6 @@ export async function POST(req: NextRequest) {
     email: data.email ?? "",
   });
 
-  // Fire-and-forget — a slow or failing email provider should never delay
-  // or break the checkout response; sendOrderConfirmationEmail already
-  // no-ops silently when there's no address or no Resend key configured.
   sendOrderConfirmationEmail(order, settings).catch((err) => {
     console.error("Order confirmation email failed", err);
   });
@@ -281,30 +227,11 @@ export async function POST(req: NextRequest) {
     if (promo) await incrementPromotionUsage(promo.id);
   }
 
-  // No delivery-time estimate is set here anymore — the countdown ring only
-  // starts once a member of staff actually opens the order and moves its
-  // status for the first time (see the PATCH handler in
-  // /api/admin/orders/[id]), whether the order is "as soon as possible" or
-  // scheduled for later. Until then the customer sees a static "received,
-  // waiting for confirmation" ring instead of a ticking one — see
-  // OrderTracking.tsx.
-
-  // Geocode the delivery address in the background so checkout doesn't wait
-  // on an external service — the tracking map picks up the destination pin
-  // as soon as it resolves (usually within a second or two). If the address
-  // can't be geocoded (bad/unusual address text, or the server has no
-  // outbound internet access to the free geocoding service), fall back to
-  // an approximate center point for the neighborhood instead of leaving the
-  // destination blank — the tracking map should always show a destination,
-  // even if it's only approximate. Pickup orders have nowhere to deliver to,
-  // so there's nothing to geocode.
   if (isDelivery) {
     const quarterName = data.quarter?.trim() ?? "";
     geocodeAddress(combinedAddress, quarterName, data.street!.trim())
       .then((geo) => geo ?? approximateZoneCenter(quarterName))
       .then((coords) => updateOrderDestination(order.id, coords.lat, coords.lng))
-      // updateOrderDestination is async — its promise is returned and chained above,
-      // so the outer .catch still captures any rejection from it.
       .catch((err) => {
         console.error("Failed to set order destination point", err);
       });
@@ -323,12 +250,6 @@ export async function POST(req: NextRequest) {
     try {
       const stripe = new Stripe(settings.stripe_secret_key);
       const origin = req.nextUrl.origin;
-      // A logged-in customer gets their card saved to their own Stripe
-      // Customer object (setup_future_usage) — Stripe's hosted Checkout page
-      // then automatically offers any previously-saved cards for that same
-      // customer as one-click options, alongside the "enter a new card"
-      // form. Guests (no account) get a plain one-off card form, same as
-      // before — nothing is saved since there's no account to attach it to.
       const stripeCustomerId = customerSession
         ? await getOrCreateStripeCustomerId(stripe, customerSession.customerId)
         : undefined;

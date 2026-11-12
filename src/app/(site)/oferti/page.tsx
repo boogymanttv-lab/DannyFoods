@@ -11,9 +11,6 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Оферти" };
 
-// Everything the homepage's 4 showcase cards link through to — same cards,
-// just with room for the fuller description instead of the homepage's
-// title+subtitle-only teaser.
 export default async function OffersPage() {
   const locale = await getLocale();
   const t = (key: DictKey) => translate(locale, key);
@@ -38,10 +35,6 @@ export default async function OffersPage() {
           {cards.map((card) => {
             const style = promoCardStyle(card.position);
 
-            // Full-banner cards: the image is a finished ad with its own
-            // text already baked in — show just the picture, intact
-            // (object-contain) on a black ground, no title/description
-            // underneath.
             if (card.full_banner && card.image) {
               return (
                 <div
@@ -49,8 +42,6 @@ export default async function OffersPage() {
                   className="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm"
                 >
                   <div className="relative aspect-[16/10] bg-black overflow-hidden">
-                    {/* Blurred, zoomed-in copy of the same image fills the
-                        letterboxed sides object-contain leaves bare. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={card.image}
@@ -67,10 +58,6 @@ export default async function OffersPage() {
                       className="absolute inset-0 z-10 h-full w-full object-contain"
                     />
                   </div>
-                  {/* A padded footer below the (black) image, rather than
-                      the button sitting flush against it — reads as a
-                      clearly separate action, not part of the banner
-                      artwork itself. */}
                   {card.linked_product_id && (
                     <div className="p-4">
                       <AddComboButton

@@ -64,9 +64,6 @@ export async function GET(req: NextRequest) {
     const tokenData = (await tokenRes.json()) as { id_token?: string };
     if (!tokenData.id_token) return fail("google_failed");
 
-    // Verifying via Google's tokeninfo endpoint (rather than checking the
-    // JWT signature ourselves) keeps this simple and still confirms the
-    // token is genuinely Google's and issued for our client ID.
     const infoRes = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`
     );
@@ -80,8 +77,6 @@ export async function GET(req: NextRequest) {
     if (!customer) {
       const byEmail = await getCustomerByEmail(info.email);
       if (byEmail) {
-        // Same person already has a password account with this email —
-        // link Google to it instead of creating a duplicate.
         await updateCustomer(byEmail.id, {
           google_id: info.sub,
           avatar_url: info.picture ?? byEmail.avatar_url,
@@ -115,9 +110,6 @@ export async function GET(req: NextRequest) {
     });
     await setCustomerSessionCookie(token);
 
-    // If this Google account's email matches the configured admin email,
-    // also grant admin access and land them in /admin instead of wherever
-    // the normal customer flow was headed.
     const isAdmin = await maybeGrantAdminAccess(customer.email, customer.name, customer.id);
     const res = NextResponse.redirect(new URL(isAdmin ? "/admin" : safeRedirect, req.url));
     res.cookies.delete(NONCE_COOKIE);

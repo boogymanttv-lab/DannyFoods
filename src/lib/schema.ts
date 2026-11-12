@@ -1,26 +1,8 @@
-// Postgres schema, as one SQL string executed on every cold start (each
-// statement is idempotent — CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT
-// EXISTS — so re-running it against an already-set-up database is a no-op).
-//
-// This used to be a separate schema.sql file loaded via fs.readFileSync, but
-// on Vercel's serverless functions an arbitrary file read at runtime isn't
-// guaranteed to be included in the deployment bundle (Next.js only traces
-// files it can see imported/required in code). Inlining the SQL as a plain
-// string constant sidesteps that entirely.
-//
-// All the columns that used to be added later via ALTER TABLE (courier_id,
-// dest_lat/lng, customer_id, estimated_delivery, street/house_number/
-// intercom, ...) are included directly here, since this schema targets a
-// fresh Postgres database (Supabase) with no pre-existing SQLite history to
-// carry forward column-by-column.
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  -- Auto-translated (DeepL, when configured) on save from name — empty
-  -- means "not translated yet", in which case the English site just falls
-  -- back to showing the Bulgarian name rather than nothing at all.
   name_en TEXT NOT NULL DEFAULT '',
   icon TEXT DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0,
@@ -32,8 +14,6 @@ CREATE TABLE IF NOT EXISTS products (
   category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
-  -- Auto-translated English name/description (see categories.name_en above
-  -- for the fallback behavior — same convention here).
   name_en TEXT NOT NULL DEFAULT '',
   description_en TEXT NOT NULL DEFAULT '',
   image TEXT DEFAULT '',
@@ -42,17 +22,11 @@ CREATE TABLE IF NOT EXISTS products (
   active INTEGER NOT NULL DEFAULT 1,
   featured INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  -- 1 = this product's price isn't typed in directly — it's computed from
-  -- the rows in combo_items (a chosen product+size+quantity of each) minus
-  -- combo_discount_percent. The customer never sees any of that: a combo
-  -- product looks and orders exactly like any other menu item, just with a
-  -- price that happens to be a bundle deal.
   is_combo INTEGER NOT NULL DEFAULT 0,
   combo_discount_percent REAL NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
 
--- Sizes per product (e.g. pizza 32cm/40cm, or a single default size for burgers)
 CREATE TABLE IF NOT EXISTS product_sizes (
   id SERIAL PRIMARY KEY,
   product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -60,29 +34,18 @@ CREATE TABLE IF NOT EXISTS product_sizes (
   price_delta REAL NOT NULL DEFAULT 0,
   is_default INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  -- Free-text serving size / weight for THIS size (e.g. "300г", "1.2кг",
-  -- "2 броя") — each size (Малка/Голяма/Фамилна...) can have its own,
-  -- purely informational, doesn't affect pricing.
   weight_label TEXT DEFAULT ''
 );
 
--- Extras / addons, shared pool, linked to categories they apply to
 CREATE TABLE IF NOT EXISTS extras (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   price REAL NOT NULL DEFAULT 0,
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-  -- Set to scope this extra to ONE specific product instead of a whole
-  -- category (e.g. an addon that only makes sense on a single dish). When
-  -- set, category_id is ignored for matching — see attachOptions() in
-  -- src/lib/repos/products.ts.
   product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
   active INTEGER NOT NULL DEFAULT 1
 );
 
--- Variants of one extra (e.g. "Шунка" offered as 50г/100г/150г/200г, each
--- with its own price) — an extra with no rows here is just a single flat
--- price/click, exactly as before; one with rows here shows a picker instead.
 CREATE TABLE IF NOT EXISTS extra_options (
   id SERIAL PRIMARY KEY,
   extra_id INTEGER NOT NULL REFERENCES extras(id) ON DELETE CASCADE,
@@ -136,9 +99,6 @@ CREATE TABLE IF NOT EXISTS customers (
   password_hash TEXT,
   google_id TEXT UNIQUE,
   avatar_url TEXT DEFAULT '',
-  -- Set the first time this customer pays by card online — lets a saved
-  -- card be reused/managed later without asking Stripe to look one up by
-  -- email (see src/lib/stripe-customer.ts).
   stripe_customer_id TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
@@ -148,19 +108,9 @@ CREATE TABLE IF NOT EXISTS orders (
   order_number TEXT UNIQUE NOT NULL,
   customer_name TEXT NOT NULL,
   phone TEXT NOT NULL,
-  -- Optional — collected at checkout (guests can type one in; logged-in
-  -- customers get their account email prefilled) so the confirmation email
-  -- has somewhere to go. Empty means the order simply doesn't get one.
   email TEXT DEFAULT '',
   zone_id INTEGER REFERENCES delivery_zones(id),
-  -- Free-typed neighborhood name (replaced the old zone dropdown — every
-  -- zone ended up with the same flat delivery fee anyway, so the dropdown's
-  -- per-zone price/minimum text was just confusing). Still used to bias the
-  -- geocoder toward the right part of Varna, same as zone.name used to be.
   quarter TEXT DEFAULT '',
-  -- 'pickup' orders skip the whole delivery address section — the customer
-  -- collects the food themselves, so there's nothing to geocode or hand to
-  -- a courier for these.
   order_type TEXT NOT NULL DEFAULT 'delivery' CHECK (order_type IN ('delivery','pickup')),
   address TEXT NOT NULL,
   street TEXT DEFAULT '',
@@ -187,32 +137,13 @@ CREATE TABLE IF NOT EXISTS orders (
   estimated_delivery_set_at TEXT,
   requested_time TEXT,
   notes TEXT DEFAULT '',
-  -- Automatic split-payout tracking (pizza items' share of a card payment,
-  -- transferred via Stripe Connect to a second connected account — see
-  -- src/lib/pizza-split.ts). NULL/'' means "not applicable or not yet run".
   pizza_transfer_id TEXT,
   pizza_transfer_amount REAL,
   pizza_transfer_status TEXT,
   pizza_transfer_error TEXT,
-  -- Set once the automatic post-delivery "how was it?" review reminder
-  -- email has actually been sent for this order — the cron job's own
-  -- de-duplication guard (see /api/cron/review-reminders), NULL until then.
   review_reminder_sent_at TEXT,
-  -- Separate kitchen-station prep tracking (see "station" on admin_users
-  -- below) — lets pizza staff and everyone-else staff each mark their own
-  -- part of an order ready, independent of the overall order status.
   station_pizza_ready INTEGER NOT NULL DEFAULT 0,
   station_other_ready INTEGER NOT NULL DEFAULT 0,
-  -- Each station's own self-picked prep-time estimate (same "5-10"/"15-20"
-  -- codes as the customer-facing delivery estimate — see
-  -- delivery-estimate.ts) plus when it was picked, so the OTHER station
-  -- (and the owner) can see a live countdown of how much longer this part
-  -- will take — the live countdown itself is internal-only, never shown to
-  -- the customer, but the slower of the two picks also drives (and
-  -- restarts) the customer-facing estimated_delivery/estimated_delivery_set_at
-  -- below (see the PATCH /api/admin/orders/[id] route). Re-picking restarts
-  -- the started_at clock; picking is blocked once that station has already
-  -- marked itself ready.
   station_pizza_prep_estimate TEXT,
   station_pizza_prep_started_at TEXT,
   station_other_prep_estimate TEXT,
@@ -241,15 +172,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   name TEXT NOT NULL DEFAULT 'Admin',
-  -- 'owner' sees the whole admin panel; 'staff' is restricted to the
-  -- Поръчки page only (see proxy.ts and AdminShell.tsx).
   role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner','staff')),
-  -- Only meaningful for role='staff' — which part of each order this
-  -- employee's kitchen station is responsible for. 'all' (owners always
-  -- behave as 'all' regardless of this column) sees and can mark ready
-  -- both parts; 'pizza' and 'other' each see the other part dimmed and can
-  -- only mark their own part ready (see station_pizza_ready/
-  -- station_other_ready on orders).
   station TEXT NOT NULL DEFAULT 'all' CHECK (station IN ('all','pizza','other')),
   created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
@@ -259,11 +182,6 @@ CREATE TABLE IF NOT EXISTS site_settings (
   value TEXT NOT NULL
 );
 
--- One review per (customer, product) — enforced by the unique index below,
--- so submitting again just updates the existing review instead of piling
--- up duplicates. Restricted to customers who actually ordered the product
--- (checked in the API against their own order history), so this is closer
--- to a verified-purchase review than an open one.
 CREATE TABLE IF NOT EXISTS product_reviews (
   id SERIAL PRIMARY KEY,
   product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -275,50 +193,21 @@ CREATE TABLE IF NOT EXISTS product_reviews (
   updated_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
 );
 
--- Exactly 4 promo "showcase" cards shown on the homepage right under the
--- hero CTA (e.g. "Пица + Дюнер комбо", "Фамилен пакет") — a fixed slot count
--- rather than an open-ended list, so the homepage layout never has to
--- reflow around a variable number of them. Position is the row's identity
--- (1-4); an admin edits one in place rather than creating/deleting rows.
--- Each links through to /oferti, the dedicated page listing every currently
--- active card with its longer description. "image" is optional — a card
--- with none falls back to a built-in per-position gradient + icon (see
--- PROMO_CARD_STYLES) rather than showing a blank photo area.
 CREATE TABLE IF NOT EXISTS promo_cards (
   id SERIAL PRIMARY KEY,
   position INTEGER NOT NULL UNIQUE CHECK (position BETWEEN 1 AND 4),
   active INTEGER NOT NULL DEFAULT 0,
-  -- Small tag shown above the title (e.g. "ХИТ ОФЕРТА", "НОВО") — optional,
-  -- blank just omits it.
   badge TEXT NOT NULL DEFAULT '',
   title TEXT NOT NULL DEFAULT '',
   subtitle TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
-  -- Auto-translated English text (see products.name_en) — falls back to
-  -- the Bulgarian text when empty.
   title_en TEXT NOT NULL DEFAULT '',
   description_en TEXT NOT NULL DEFAULT '',
   image TEXT NOT NULL DEFAULT '',
-  -- When the uploaded image is itself a finished ad (its own title/price/
-  -- crown graphics already baked in, not a plain product photo), the card
-  -- shows nothing but that image — no badge/title/subtitle/CTA pasted on
-  -- top, and the whole picture is kept intact (never cropped) instead of
-  -- being cover-cropped to the card's shape.
   full_banner INTEGER NOT NULL DEFAULT 0,
-  -- Set when this card was built from the "Комбо от продукти" picker in its
-  -- own admin form rather than plain free-text — points at a hidden
-  -- products row (is_combo = 1, active = 0, so it never shows up in the
-  -- normal category menu) that carries the actual bill of materials and
-  -- computed price. When set, the card shows a real "add to cart" button
-  -- instead of just linking through to /oferti.
   linked_product_id INTEGER REFERENCES products(id) ON DELETE SET NULL
 );
 
--- The components of a combo product (products.is_combo = 1) — which
--- existing menu product, at which of its own sizes, and how many of it,
--- go into the combo. Purely an admin-side bill of materials used to
--- compute the combo's price; the customer only ever sees the parent
--- product in the menu, never these rows.
 CREATE TABLE IF NOT EXISTS combo_items (
   id SERIAL PRIMARY KEY,
   combo_product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,

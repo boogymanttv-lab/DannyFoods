@@ -1,10 +1,6 @@
 import { getDb } from "@/lib/db";
 import type { Order, OrderItem, OrderStatus, PaymentMethod } from "@/lib/types";
 
-// Reusable SQL fragment for "now, as UTC text" — matches the format
-// created_at/updated_at columns are stored in (see schema.ts), so plain
-// text comparisons/ordering keep working the same way they did with
-// SQLite's datetime('now').
 const NOW_UTC = `to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')`;
 
 function generateOrderNumber(): string {
@@ -84,9 +80,6 @@ export async function listOrdersForCustomer(customerId: number, limit = 50): Pro
     .all({ customerId, limit }) as Promise<Order[]>;
 }
 
-// Filled in shortly after order creation, once the delivery address has
-// been geocoded (see src/lib/geocode.ts) — used to draw a destination pin
-// and route line on the customer's live tracking map.
 export async function updateOrderDestination(id: number, lat: number, lng: number) {
   const db = await getDb();
   await db.prepare("UPDATE orders SET dest_lat = @lat, dest_lng = @lng WHERE id = @id").run({
@@ -96,11 +89,6 @@ export async function updateOrderDestination(id: number, lat: number, lng: numbe
   });
 }
 
-// Set by the admin when confirming an order — a short human-readable range
-// like "15-20" (minutes). Null clears it back to "not set yet". The
-// timestamp is (re)stamped whenever a non-null estimate is set, since the
-// customer's countdown ring counts down from "when this estimate was given",
-// not from when the order was first placed.
 export async function updateOrderEstimate(id: number, estimate: string | null) {
   const db = await getDb();
   await db
@@ -112,10 +100,6 @@ export async function updateOrderEstimate(id: number, estimate: string | null) {
     .run({ id, estimate });
 }
 
-// Toggled independently by whichever kitchen station's staff finished
-// prepping their part (see AdminUser.station) — separate from the overall
-// order status (station-restricted staff can only move that to "new" or
-// "confirmed", i.e. accept the order — see the admin PATCH route).
 export async function setStationReady(
   id: number,
   station: "pizza" | "other",
@@ -126,11 +110,6 @@ export async function setStationReady(
   await db.prepare(`UPDATE orders SET ${column} = ? WHERE id = ?`).run(ready ? 1 : 0, id);
 }
 
-// A station's own self-picked prep-time estimate — the live countdown built
-// from it is purely for the other station (and the owner), never shown to
-// the customer as-is; the PATCH route separately recomputes the customer's
-// own estimated_delivery from the slower of the two stations' picks. Here,
-// re-picking always restarts this station's own clock from now.
 export async function setStationPrep(
   id: number,
   station: "pizza" | "other",
@@ -156,14 +135,6 @@ export async function getOrderByNumber(orderNumber: string): Promise<Order | und
   >;
 }
 
-// Delivered orders that (a) belong to a customer account with an email on
-// file — a guest checkout has no account to check a review against, so
-// it's out of scope by design — and (b) haven't had the reminder sent yet.
-// No upper bound on how long ago it was delivered: whether the cron job
-// this feeds runs every few minutes or, on a plan that only allows daily
-// crons, once a day, everything still eventually gets exactly one email —
-// review_reminder_sent_at is what prevents a duplicate, not the query
-// window. Capped at 200/run as a sane batch-size safety net.
 export async function listOrdersNeedingReviewReminder(
   minMinutesSinceDelivery: number
 ): Promise<Order[]> {
@@ -193,9 +164,6 @@ export async function markReviewReminderSent(orderId: number) {
 export async function listOrders(opts?: {
   status?: OrderStatus;
   limit?: number;
-  // Inclusive "YYYY-MM-DD" bounds, compared against the date portion of
-  // created_at (stored as UTC text "YYYY-MM-DD HH:MM:SS") — used for the
-  // admin report export's date-range picker.
   dateFrom?: string;
   dateTo?: string;
 }): Promise<Order[]> {
@@ -221,9 +189,6 @@ export async function listOrders(opts?: {
     .all(params) as Promise<Order[]>;
 }
 
-// Orders currently "in the pipeline" — placed but not yet delivered or
-// cancelled. Used to auto-suggest a longer delivery-time estimate when the
-// kitchen/couriers are busy, regardless of time of day.
 export async function countActiveOrders(): Promise<number> {
   const db = await getDb();
   const row = (await db
@@ -241,10 +206,6 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
     .run({ id, status });
 }
 
-// Orders ready to be picked up by a courier: prepared, unclaimed, and
-// actually needing delivery — 'pickup' orders (customer collects in person)
-// never need a courier, so they're excluded here rather than showing up as
-// unclaimable clutter in the courier queue.
 export async function listAvailableOrdersForCourier(): Promise<Order[]> {
   const db = await getDb();
   return db
@@ -275,8 +236,6 @@ export async function listDeliveredOrdersForCourier(
     .all({ courierId, limit }) as Promise<Order[]>;
 }
 
-// Atomic claim: only succeeds if the order is still unclaimed, so two
-// couriers tapping "claim" on the same order at the same moment can't both win.
 export async function claimOrder(orderId: number, courierId: number): Promise<boolean> {
   const db = await getDb();
   const info = await db
@@ -299,7 +258,6 @@ export async function releaseOrder(orderId: number, courierId: number): Promise<
   return Number(info.changes) > 0;
 }
 
-// Couriers can only move their own orders through delivering -> delivered.
 export async function updateOrderStatusByCourier(
   orderId: number,
   courierId: number,
@@ -376,7 +334,6 @@ export async function getOrderStats() {
         productCounts.set(item.name, (productCounts.get(item.name) ?? 0) + item.quantity);
       }
     } catch {
-      // ignore malformed rows
     }
   }
   const top = Array.from(productCounts.entries())
@@ -393,19 +350,10 @@ export async function getOrderStats() {
   };
 }
 
-// One row per calendar day for the last `days` days (oldest first, always
-// including today even if it has no orders yet) — powers the admin
-// dashboard's sales chart. Grouped by the UTC calendar day stored in
-// created_at; cancelled orders don't count toward revenue or the order
-// count, same convention as getOrderStats' "today" figures above.
 export async function getDailySales(
   days: number
 ): Promise<{ date: string; orders: number; revenue: number }[]> {
   const db = await getDb();
-  // created_at is stored as TEXT ("YYYY-MM-DD HH24:MI:SS", see schema.ts),
-  // not a real timestamp column, so the cutoff is computed as the same
-  // "YYYY-MM-DD" text form and compared lexicographically — that sorts
-  // identically to chronological order for this fixed-width format.
   const cutoffDate = new Date();
   cutoffDate.setUTCDate(cutoffDate.getUTCDate() - (days - 1));
   const cutoff = cutoffDate.toISOString().slice(0, 10);
@@ -420,8 +368,6 @@ export async function getDailySales(
     .all({ cutoff })) as { day: string; cnt: number; revenue: number }[];
   const byDay = new Map(rows.map((r) => [r.day, { orders: Number(r.cnt), revenue: Number(r.revenue) }]));
 
-  // Fill in every day in the range, even ones with zero orders, so the
-  // chart's x-axis is a continuous timeline rather than skipping gaps.
   const series: { date: string; orders: number; revenue: number }[] = [];
   const today = new Date();
   for (let i = days - 1; i >= 0; i--) {

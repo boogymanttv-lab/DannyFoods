@@ -28,11 +28,6 @@ export default async function OrderConfirmationPage({
   const isPickup = order.order_type === "pickup";
   const settings = isPickup ? await getSettings() : null;
 
-  // The review prompt only makes sense once the order actually arrived,
-  // and only for the customer it belongs to — a guest order (no
-  // customer_id) has no account to check a review against, so it's
-  // simply not offered here (matches the "account holders only" scope of
-  // the automatic post-delivery reminder email).
   const session = order.customer_id ? await getCustomerSession() : null;
   const isOwnAccount = Boolean(order.customer_id && session?.customerId === order.customer_id);
   const showReviewPrompt = order.status === "delivered" && order.customer_id != null;

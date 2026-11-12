@@ -1,17 +1,7 @@
-// Generates the list of selectable delivery time slots for "schedule for
-// later" checkout — 5-minute increments from the next available moment
-// through closing time, rolling over to tomorrow once today has none left.
-// Pure functions (no DB access) so this can be imported from a client
-// component (the checkout page) as well as the server-side order API route,
-// which recomputes the same list to validate whatever the client submitted.
-
 export type DeliverySlot = {
-  // "YYYY-MM-DD", in the server's local calendar day — paired with `time`
-  // this uniquely identifies a slot even across a midnight rollover, so
-  // "09:15" tonight and "09:15" tomorrow are never confused with each other.
   date: string;
-  time: string; // "HH:MM"
-  label: string; // e.g. "Днес, 09:15 ч." / "Утре, 09:15 ч."
+  time: string;
+  label: string;
 };
 
 function toMinutes(hhmm: string): number {
@@ -39,25 +29,16 @@ function addDays(d: Date, n: number): Date {
   return r;
 }
 
-// "00:00" as a closing time means "open until midnight" (end of day), i.e.
-// effectively minute 1440 for the purposes of generating same-day slots.
 function closingMinutes(closingTime: string): number {
   const m = toMinutes(closingTime);
   return m === 0 ? 24 * 60 : m;
 }
 
-// Whether the shop is open for business *right now* — used to decide
-// whether "Възможно най-скоро" (ASAP) may be selected at all.
 export function isShopOpenNow(now: Date, openingTime: string, closingTime: string): boolean {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   return nowMinutes >= toMinutes(openingTime) && nowMinutes < closingMinutes(closingTime);
 }
 
-// Returns the available slots ("HH:MM", 5-minute steps, each tagged with its
-// calendar date) starting at the next 5-minute mark after `now` (so at 10:10
-// the first option is 10:15) through closing time. If today has no slots
-// left (already past closing, or too close to it), rolls over to tomorrow's
-// full opening-to-closing window instead of returning nothing.
 export function generateDeliverySlots(
   now: Date,
   openingTime: string,
@@ -100,10 +81,6 @@ export function isValidDeliverySlot(
   );
 }
 
-// Formats a stored "YYYY-MM-DD HH:MM" requested_time value for display,
-// e.g. "28.08.2026, 14:30 ч." Falls back to the raw value if it's not in
-// the expected shape (defensive — should never happen for values this app
-// wrote itself).
 export function formatRequestedTime(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(value);
   if (!match) return value;

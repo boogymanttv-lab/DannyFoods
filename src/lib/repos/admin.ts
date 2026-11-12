@@ -58,8 +58,6 @@ export async function updateAdminPassword(id: number, password_hash: string) {
   await db.prepare("UPDATE admin_users SET password_hash = ? WHERE id = ?").run(password_hash, id);
 }
 
-// Employee accounts (role='staff') the owner has set up in Настройки →
-// Служители — password_hash left out, this is only ever rendered in a list.
 export async function listStaff(): Promise<AdminUserPublic[]> {
   const db = await getDb();
   const rows = (await db
@@ -70,15 +68,11 @@ export async function listStaff(): Promise<AdminUserPublic[]> {
   return rows;
 }
 
-// Scoped to role = 'staff' so this can never delete an owner account by
-// accident (e.g. a stray/guessed id) — owners aren't managed from this UI.
 export async function deleteStaff(id: number) {
   const db = await getDb();
   await db.prepare("DELETE FROM admin_users WHERE id = ? AND role = 'staff'").run(id);
 }
 
-// Same role='staff' guard as deleteStaff — an owner's own name/station
-// can't be touched from this endpoint.
 export async function updateStaff(
   id: number,
   data: Partial<{ name: string; station: AdminStation }>

@@ -20,8 +20,6 @@ export default function CheckoutPage() {
 
   const [orderType, setOrderType] = useState<OrderType>("delivery");
   const [quarter, setQuarter] = useState("");
-  // Flat checkout pricing rules, loaded from /api/delivery-slots (see the
-  // effect below) — configurable in Настройки rather than per-neighborhood.
   const [deliveryFeeFlat, setDeliveryFeeFlat] = useState(2.5);
   const [freeDeliveryOver, setFreeDeliveryOver] = useState(0);
   const [minOrderGlobal, setMinOrderGlobal] = useState(0);
@@ -48,15 +46,6 @@ export default function CheckoutPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | "new">("new");
-  // Guards against a real race: the "load my saved addresses" request is
-  // async and can resolve AFTER the customer has already picked "+ Нов
-  // адрес" and started typing a different address. Without this, that late
-  // response would silently reset selectedAddressId/street/houseNumber back
-  // to the saved default — the customer sees and submits a form that looks
-  // like it has their typed address, but the default gets applied under it
-  // moments later and wins, so the order goes out to the OLD saved address
-  // instead. Any explicit address action (picking a saved one, switching to
-  // "new") flips this so the slow response is ignored once it arrives.
   const addressTouchedRef = useRef(false);
 
   const [deliveryTiming, setDeliveryTiming] = useState<"asap" | "scheduled">("asap");
@@ -71,10 +60,6 @@ export default function CheckoutPage() {
         const slots: DeliverySlot[] = d.slots ?? [];
         setAvailableSlots(slots);
         if (slots.length) setSelectedSlotKey(slotKey(slots[0]));
-        // The shop is currently closed — ASAP isn't a real option (there's
-        // no one to prepare the order right now), so force "pick a time"
-        // and default it to the earliest slot, which will already be
-        // tomorrow's opening if today has nothing left.
         if (!d.isOpenNow) setDeliveryTiming("scheduled");
         setShopOpenNow(Boolean(d.isOpenNow));
         if (typeof d.deliveryFeeFlat === "number") setDeliveryFeeFlat(d.deliveryFeeFlat);
@@ -86,9 +71,6 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    // Guests get { loggedIn: false } here — this endpoint is public on
-    // purpose so checkout works exactly the same whether or not the
-    // shopper has an account.
     fetch("/api/account/session")
       .then((r) => r.json())
       .then((d) => {
@@ -99,9 +81,6 @@ export default function CheckoutPage() {
         setEmail(d.customer.email ?? "");
         const addresses: CustomerAddress[] = d.addresses ?? [];
         setSavedAddresses(addresses);
-        // If the customer already made an explicit address choice while
-        // this request was in flight, respect that instead of overwriting
-        // it with the default — see addressTouchedRef above.
         if (addressTouchedRef.current) return;
         const defaultAddr = addresses.find((a) => a.is_default === 1) ?? addresses[0];
         if (defaultAddr) {
@@ -114,7 +93,6 @@ export default function CheckoutPage() {
         }
       })
       .catch(() => {
-        // not logged in / request failed — checkout just proceeds as guest
       });
   }, []);
 
@@ -139,16 +117,6 @@ export default function CheckoutPage() {
     }
   }
 
-  // While a saved address is picked, its street/number/notes/intercom are
-  // shown read-only instead of as editable inputs — makes it visually clear
-  // there's exactly one address in play (the one that gets submitted and
-  // geocoded), not a separate "saved" one and a separate "typed" one.
-  // Guarded by street/houseNumber actually having values: an address saved
-  // before street/house_number existed as separate fields would otherwise
-  // collapse into a summary showing a blank "Адрес:" and silently fail the
-  // required-fields check with no visible reason — falling through to the
-  // editable inputs instead (pre-filled with whatever IS there) always
-  // leaves the customer able to see and fix what's missing.
   const usingSavedAddress =
     orderType === "delivery" &&
     selectedAddressId !== "new" &&

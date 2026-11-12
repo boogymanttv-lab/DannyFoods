@@ -11,7 +11,7 @@ export function useCourierLocationBroadcast() {
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time capability check on mount
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("unsupported");
       return;
     }
@@ -34,7 +34,6 @@ export function useCourierLocationBroadcast() {
             lng: pos.coords.longitude,
           }),
         }).catch(() => {
-          // best-effort — a missed location ping isn't worth surfacing to the courier
         });
       },
       () => {

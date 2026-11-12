@@ -24,7 +24,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  // Scoped to role='staff' inside the repo — can never delete an owner.
   await deleteStaff(Number(id));
   return NextResponse.json({ ok: true });
 }
