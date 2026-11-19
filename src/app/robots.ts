@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getSettings } from "@/lib/repos/settings";
 
+export const dynamic = "force-dynamic";
+
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const settings = await getSettings();
   const domain = settings.site_domain;
@@ -15,6 +17,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         "/courier",
         "/account",
         "/checkout",
+        // Order confirmation/tracking pages carry a customer's name, phone
+        // and address — must never be indexed or shown in search results.
         "/order",
         "/api",
       ],

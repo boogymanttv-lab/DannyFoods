@@ -15,6 +15,8 @@ const PUBLIC_PATHS: { path: string; priority: number; changeFrequency: MetadataR
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getSettings();
   const domain = settings.site_domain;
