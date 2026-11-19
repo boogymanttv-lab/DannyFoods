@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { CartLine } from "@/lib/types";
 
-const STORAGE_KEY = "danidunner_cart_v1";
+export const STORAGE_KEY = "danidunner_cart_v1";
 
 function lineKey(
   line: Pick<CartLine, "productId" | "sizeId" | "extras" | "removedIngredients">
