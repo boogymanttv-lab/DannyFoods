@@ -501,6 +501,11 @@ export function OrdersManager({
                     </span>
                   )}
                   <span
+                    className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${paymentPill(order).style}`}
+                  >
+                    {paymentPill(order).label}
+                  </span>
+                  <span
                     className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${STATUS_PILL_STYLES[order.status]}`}
                   >
                     {STATUS_LABELS[order.status]}
@@ -721,7 +726,12 @@ export function OrdersManager({
                     {order.quarter && <p>Квартал: {order.quarter}</p>}
                     {order.address_notes && <p>Етаж/апартамент: {order.address_notes}</p>}
                     {order.intercom && <p>Звънец: {order.intercom}</p>}
-                    <p>Плащане: {paymentLabel(order.payment_method)}</p>
+                    <p>
+                      Плащане: {paymentLabel(order.payment_method)}
+                      {order.payment_method === "stripe" && (
+                        <span className="font-semibold"> — {paymentStatusLabel(order.payment_status)}</span>
+                      )}
+                    </p>
                     <p>
                       Заявено време:{" "}
                       {order.requested_time ? (
@@ -870,6 +880,28 @@ function PrepTimer({ estimate, startedAt }: { estimate: string; startedAt: strin
       {mm}:{ss.toString().padStart(2, "0")}
     </span>
   );
+}
+
+function paymentStatusLabel(status: string) {
+  if (status === "paid") return "платена";
+  if (status === "failed") return "плащането е неуспешно";
+  return "чака плащане";
+}
+
+function paymentPill(order: Order): { label: string; style: string } {
+  if (order.payment_method === "stripe") {
+    if (order.payment_status === "paid") {
+      return { label: "💳 Платена с карта", style: "bg-emerald-600 text-white" };
+    }
+    if (order.payment_status === "failed") {
+      return { label: "⚠️ Неуспешно плащане", style: "bg-red-100 text-red-700" };
+    }
+    return { label: "⏳ Чака плащане", style: "bg-amber-100 text-amber-800" };
+  }
+  if (order.payment_method === "card_on_delivery") {
+    return { label: "💳 Карта на куриера", style: "bg-black/5 text-foreground/70" };
+  }
+  return { label: "💵 В брой", style: "bg-black/5 text-foreground/70" };
 }
 
 function paymentLabel(method: string) {
