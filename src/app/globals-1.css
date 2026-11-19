@@ -197,6 +197,9 @@ h1, h2, h3, h4, .font-display {
 
 .sp-root {
   background:
+    radial-gradient(ellipse at center, transparent 45%, rgba(8, 3, 3, 0.7) 100%),
+    radial-gradient(rgba(245, 166, 35, 0.16) 1px, transparent 1.4px) 0 0 / 30px 30px,
+    radial-gradient(30% 36% at 78% 38%, rgba(255, 110, 40, 0.16), transparent 70%),
     radial-gradient(60% 50% at 12% 8%, rgba(225, 29, 46, 0.3), transparent 70%),
     radial-gradient(60% 50% at 90% 96%, rgba(245, 166, 35, 0.22), transparent 70%),
     radial-gradient(120% 90% at 50% 0%, #3a0f12 0%, #1f090b 55%, #120708 100%);
@@ -205,46 +208,6 @@ h1, h2, h3, h4, .font-display {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  will-change: transform;
-}
-.sp-dots {
-  inset: -40px;
-  background-image: radial-gradient(rgba(245, 166, 35, 0.5) 1px, transparent 1.4px);
-  background-size: 30px 30px;
-  opacity: 0.32;
-}
-.sp-glow {
-  position: absolute;
-  border-radius: 9999px;
-  pointer-events: none;
-}
-.sp-glow-c {
-  top: 24%;
-  right: 8%;
-  width: 38vmax;
-  height: 38vmax;
-  background: radial-gradient(circle, rgba(255, 110, 40, 0.2), transparent 64%);
-}
-.sp-beam {
-  position: absolute;
-  top: -30%;
-  left: -40%;
-  width: 36%;
-  height: 160%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 214, 150, 0.09),
-    transparent
-  );
-  transform: rotate(18deg);
-  pointer-events: none;
-}
-.sp-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 45%, rgba(8, 3, 3, 0.7) 100%);
 }
 .sp-particle {
   position: absolute;
@@ -337,19 +300,9 @@ h1, h2, h3, h4, .font-display {
 }
 .sp-spin {
   will-change: transform;
-  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .sp-dots {
-    animation: sp-dots 70s linear infinite;
-  }
-  .sp-glow-c {
-    animation: sp-glow-c 20s ease-in-out infinite;
-  }
-  .sp-beam {
-    animation: sp-beam 9s ease-in-out infinite;
-  }
   .sp-particle {
     animation: sp-particle var(--d, 14s) ease-in-out var(--delay, 0s) infinite;
   }
@@ -386,36 +339,6 @@ h1, h2, h3, h4, .font-display {
   }
 }
 
-@keyframes sp-dots {
-  to {
-    transform: translate3d(-30px, -30px, 0);
-  }
-}
-@keyframes sp-glow-c {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translate3d(-10%, 12%, 0);
-    opacity: 1;
-  }
-}
-@keyframes sp-beam {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(18deg);
-    opacity: 0;
-  }
-  30%,
-  70% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(420%, 0, 0) rotate(18deg);
-    opacity: 0;
-  }
-}
 @keyframes sp-particle {
   0% {
     transform: translate3d(0, 0, 0) scale(0.6);

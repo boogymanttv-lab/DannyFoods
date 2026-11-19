@@ -202,11 +202,6 @@ export function SplashScreen({
             transitionDuration: `${FADE_MS}ms`,
           }}
         >
-          <div className="sp-layer sp-dots" />
-          <div className="sp-glow sp-glow-c hidden md:block" />
-          <div className="sp-layer overflow-hidden">
-            <div className="sp-beam" />
-          </div>
           <div className="sp-layer overflow-hidden">
             {PARTICLES.map((p, i) => (
               <span
@@ -228,7 +223,6 @@ export function SplashScreen({
               />
             ))}
           </div>
-          <div className="sp-vignette" />
 
           <div className="relative z-10 flex h-full flex-col items-center justify-center gap-6 px-6 py-6 md:gap-10">
             <div className="sp-intro flex items-center gap-2.5 md:gap-3">

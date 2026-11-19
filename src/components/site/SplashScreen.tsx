@@ -46,7 +46,7 @@ const ITEMS: Item[] = [
   { kind: "basil", style: { right: "-18%", bottom: "8%" }, size: 10, d: 12, delay: -5, vars: [-8, 10, 10, -10, -10, 12, 18, -8], desktopOnly: true, blur: 1.2 },
 ];
 
-const PARTICLES = Array.from({ length: 22 }, (_, i) => {
+const PARTICLES = Array.from({ length: 14 }, (_, i) => {
   const seed = (i * 9301 + 49297) % 233280;
   const r1 = seed / 233280;
   const r2 = ((seed * 7 + 13) % 1000) / 1000;
@@ -60,7 +60,7 @@ const PARTICLES = Array.from({ length: 22 }, (_, i) => {
     o: (0.35 + r3 * 0.5).toFixed(2),
     dx: Math.round((r1 - 0.5) * 40),
     dy: -Math.round(60 + r2 * 90),
-    desktopOnly: i % 3 === 0,
+    desktopOnly: i % 2 === 0,
   };
 });
 
@@ -93,6 +93,7 @@ export function SplashScreen({
   const [stage, setStage] = useState(0);
   const fillRef = useRef<HTMLDivElement>(null);
   const sparkRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const percentRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -103,6 +104,12 @@ export function SplashScreen({
     let last = start;
     let frame = 0;
     let currentStage = 0;
+    let lastPercent = -1;
+    let barWidth = barRef.current?.clientWidth ?? 0;
+    const onResize = () => {
+      barWidth = barRef.current?.clientWidth ?? 0;
+    };
+    window.addEventListener("resize", onResize);
     let finished = false;
     let fadeTimer: ReturnType<typeof setTimeout> | undefined;
     let doneTimer: ReturnType<typeof setTimeout> | undefined;
@@ -124,8 +131,12 @@ export function SplashScreen({
     const paint = (value: number) => {
       const clamped = Math.min(100, Math.max(0, value));
       if (fillRef.current) fillRef.current.style.transform = `scaleX(${clamped / 100})`;
-      if (sparkRef.current) sparkRef.current.style.left = `${clamped}%`;
-      if (percentRef.current) percentRef.current.textContent = `${Math.round(clamped)}%`;
+      if (sparkRef.current) sparkRef.current.style.transform = `translate3d(${(barWidth * clamped) / 100}px, 0, 0)`;
+      const rounded = Math.round(clamped);
+      if (rounded !== lastPercent) {
+        lastPercent = rounded;
+        if (percentRef.current) percentRef.current.textContent = `${rounded}%`;
+      }
       const nextStage = clamped >= 94 ? 3 : clamped >= 62 ? 2 : clamped >= 28 ? 1 : 0;
       if (nextStage !== currentStage) {
         currentStage = nextStage;
@@ -162,6 +173,7 @@ export function SplashScreen({
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("load", onLoad);
+      window.removeEventListener("resize", onResize);
       if (fadeTimer) clearTimeout(fadeTimer);
       if (doneTimer) clearTimeout(doneTimer);
     };
@@ -191,9 +203,7 @@ export function SplashScreen({
           }}
         >
           <div className="sp-layer sp-dots" />
-          <div className="sp-glow sp-glow-a" />
-          <div className="sp-glow sp-glow-b" />
-          <div className="sp-glow sp-glow-c" />
+          <div className="sp-glow sp-glow-c hidden md:block" />
           <div className="sp-layer overflow-hidden">
             <div className="sp-beam" />
           </div>
@@ -273,11 +283,13 @@ export function SplashScreen({
                   0%
                 </span>
               </div>
-              <div className="sp-bar">
+              <div ref={barRef} className="sp-bar">
                 <div ref={fillRef} className="sp-bar-fill">
                   <div className="sp-bar-shine" />
                 </div>
-                <div ref={sparkRef} className="sp-bar-spark" style={{ left: "0%" }} />
+                <div ref={sparkRef} className="absolute left-0 top-0 h-full will-change-transform">
+                  <div className="sp-bar-spark" />
+                </div>
               </div>
               <div className="relative mt-3 h-6 text-center md:mt-4 md:h-7">
                 <p
@@ -306,7 +318,6 @@ function ItemView({ item }: { item: Item }) {
           ...item.style,
           width: `${item.size}%`,
           aspectRatio: "1",
-          filter: item.blur ? `blur(${item.blur}px)` : undefined,
           "--d": `${item.d}s`,
           "--delay": `${item.delay}s`,
           "--x1": `${x1}px`,
