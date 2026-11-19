@@ -10,6 +10,30 @@ import { useT } from "@/lib/i18n/LocaleProvider";
 import type { DeliverySlot } from "@/lib/delivery-slots";
 import type { CustomerAddress, OrderType } from "@/lib/types";
 
+const GUEST_KEY = "dd_guest_details";
+
+type GuestDetails = {
+  name: string;
+  phone: string;
+  email: string;
+  quarter: string;
+  street: string;
+  houseNumber: string;
+  intercom: string;
+  addressNotes: string;
+};
+
+function readGuestDetails(): GuestDetails | null {
+  try {
+    const raw = localStorage.getItem(GUEST_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return d && typeof d === "object" ? (d as GuestDetails) : null;
+  } catch {
+    return null;
+  }
+}
+
 function slotKey(s: DeliverySlot): string {
   return `${s.date}|${s.time}`;
 }
@@ -45,6 +69,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [loggedIn, setLoggedIn] = useState(false);
+  const [hasSavedGuest, setHasSavedGuest] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | "new">("new");
   const addressTouchedRef = useRef(false);
@@ -83,7 +108,21 @@ export default function CheckoutPage() {
     fetch("/api/account/session")
       .then((r) => r.json())
       .then((d) => {
-        if (!d.loggedIn) return;
+        if (!d.loggedIn) {
+          const saved = readGuestDetails();
+          if (saved) {
+            setHasSavedGuest(true);
+            setName(saved.name ?? "");
+            setPhone(saved.phone ?? "");
+            setEmail(saved.email ?? "");
+            setQuarter(saved.quarter ?? "");
+            setStreet(saved.street ?? "");
+            setHouseNumber(saved.houseNumber ?? "");
+            setIntercom(saved.intercom ?? "");
+            setAddressNotes(saved.addressNotes ?? "");
+          }
+          return;
+        }
         setLoggedIn(true);
         setName(d.customer.name);
         setPhone(d.customer.phone ?? "");
@@ -104,6 +143,22 @@ export default function CheckoutPage() {
       .catch(() => {
       });
   }, []);
+
+  function clearGuestDetails() {
+    try {
+      localStorage.removeItem(GUEST_KEY);
+    } catch {
+    }
+    setHasSavedGuest(false);
+    setName("");
+    setPhone("");
+    setEmail("");
+    setQuarter("");
+    setStreet("");
+    setHouseNumber("");
+    setIntercom("");
+    setAddressNotes("");
+  }
 
   function pickSavedAddress(id: number | "new") {
     addressTouchedRef.current = true;
@@ -212,6 +267,22 @@ export default function CheckoutPage() {
         setSubmitting(false);
         return;
       }
+      if (!loggedIn) {
+        try {
+          const details: GuestDetails = {
+            name,
+            phone,
+            email,
+            quarter,
+            street,
+            houseNumber,
+            intercom,
+            addressNotes,
+          };
+          localStorage.setItem(GUEST_KEY, JSON.stringify(details));
+        } catch {
+        }
+      }
       if (/^https?:\/\//.test(data.redirectUrl)) {
         window.location.assign(data.redirectUrl);
         return;
@@ -305,23 +376,39 @@ export default function CheckoutPage() {
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
               placeholder={t("checkout.nameOptional")}
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
               placeholder={t("checkout.phoneRequired")}
+              type="tel"
+              autoComplete="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
             <input
               type="email"
+              autoComplete="email"
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm sm:col-span-2"
               placeholder={t("checkout.emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          {hasSavedGuest && !loggedIn && (
+            <p className="text-xs text-muted">
+              {t("checkout.savedOnDevice")}{" "}
+              <button
+                type="button"
+                onClick={clearGuestDetails}
+                className="font-semibold text-brand underline"
+              >
+                {t("checkout.clearSaved")}
+              </button>
+            </p>
+          )}
 
           {orderType === "pickup" ? (
             pickupAddress && (
@@ -368,6 +455,7 @@ export default function CheckoutPage() {
                   className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
                   placeholder={t("checkout.streetRequired")}
                   value={street}
+                  autoComplete="address-line1"
                   onChange={(e) => setStreet(e.target.value)}
                 />
                 <input
