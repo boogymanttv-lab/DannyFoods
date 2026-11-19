@@ -297,6 +297,9 @@ export const DICT = {
   "auth.error.google_not_configured": { bg: "Вход с Google все още не е настроен за този сайт.", en: "Google sign-in is not set up for this site yet." },
   "auth.error.google_failed": { bg: "Възникна грешка при вход с Google. Опитайте отново.", en: "Something went wrong with Google sign-in. Please try again." },
   "auth.error.google_email": { bg: "Google акаунтът трябва да има потвърден имейл.", en: "The Google account must have a verified email." },
+  "cart.added": { bg: "Вие добавихте", en: "You added" },
+  "cart.viewCart": { bg: "Количка", en: "View cart" },
+  "promo.add": { bg: "Добави", en: "Add" },
 } as const satisfies Record<string, Record<Locale, string>>;
 
 export type DictKey = keyof typeof DICT;

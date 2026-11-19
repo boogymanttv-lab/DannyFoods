@@ -9,6 +9,7 @@ import { MobileCartBar } from "@/components/site/MobileCartBar";
 import { SplashScreen } from "@/components/site/SplashScreen";
 import { CookieConsent } from "@/components/site/CookieConsent";
 import { PromoBanner } from "@/components/site/PromoBanner";
+import { CartToast } from "@/components/site/CartToast";
 import { localizeFields } from "@/lib/i18n/content";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         />
         <CartDrawer />
         <MobileCartBar />
+        <CartToast />
         <CookieConsent gaId={settings.ga_measurement_id} metaPixelId={settings.meta_pixel_id} />
       </SplashScreen>
     </LocaleProvider>

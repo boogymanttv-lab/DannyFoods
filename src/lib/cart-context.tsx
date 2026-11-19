@@ -32,6 +32,7 @@ type CartContextValue = {
   keyOf: typeof lineKey;
   subtotal: number;
   itemCount: number;
+  lastAdded: { id: number; name: string } | null;
   isDrawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
@@ -43,6 +44,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [lastAdded, setLastAdded] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -63,6 +65,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [lines, hydrated]);
 
   const addLine = useCallback((line: CartLine) => {
+    setLastAdded((prev) => ({ id: (prev?.id ?? 0) + 1, name: line.name }));
     setLines((prev) => {
       const key = lineKey(line);
       const existingIdx = prev.findIndex((l) => lineKey(l) === key);
@@ -116,6 +119,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     keyOf: lineKey,
     subtotal,
     itemCount,
+    lastAdded,
     isDrawerOpen,
     openDrawer: () => setDrawerOpen(true),
     closeDrawer: () => setDrawerOpen(false),

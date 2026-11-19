@@ -5,16 +5,15 @@ import type { PromoCard } from "@/lib/types";
 import { getLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/dict";
 
-function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
+function CartBadge({ label }: { label: string }) {
   return (
-    <span
-      className={`absolute z-20 bottom-2 right-2 ${size} rounded-full bg-brand text-white grid place-items-center shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <span className="absolute z-20 bottom-2.5 right-2.5 flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-white text-xs sm:text-sm font-extrabold shadow-[0_6px_16px_rgba(0,0,0,0.55)] ring-2 ring-white">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
         <circle cx="9" cy="21" r="1" />
         <circle cx="20" cy="21" r="1" />
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
       </svg>
+      {label}
     </span>
   );
 }
@@ -54,7 +53,7 @@ export async function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   alt={card.title}
                   className="relative z-10 h-full w-full object-contain"
                 />
-                {orderable && <CartBadge />}
+                {orderable && <CartBadge label={t("promo.add")} />}
               </div>
             );
             const className =
@@ -170,7 +169,7 @@ export async function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   alt={card.title}
                   className="absolute inset-0 z-10 h-full w-full object-contain"
                 />
-                {orderable && <CartBadge size="h-10 w-10" />}
+                {orderable && <CartBadge label={t("promo.add")} />}
               </>
             );
             const className =
