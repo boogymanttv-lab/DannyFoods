@@ -5,23 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
+import { useLocale, useT } from "@/lib/i18n/LocaleProvider";
+import type { DictKey } from "@/lib/i18n/dict";
 import type {
   CustomerPublic,
   CustomerAddress,
   Order,
   OrderItem,
-  OrderStatus,
   ProductWithOptions,
 } from "@/lib/types";
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  new: "Приета",
-  confirmed: "Потвърдена",
-  preparing: "Приготвя се",
-  delivering: "На път е",
-  delivered: "Доставена",
-  cancelled: "Отказана",
-};
 
 type Tab = "profile" | "addresses" | "payment" | "orders";
 
@@ -29,12 +21,15 @@ export function AccountDashboard({
   customer,
   addresses: initialAddresses,
   orders,
+  translations = {},
 }: {
+  translations?: Record<string, string>;
   customer: CustomerPublic;
   addresses: CustomerAddress[];
   orders: Order[];
 }) {
   const router = useRouter();
+  const t = useT();
   const [tab, setTab] = useState<Tab>("profile");
 
   useEffect(() => {
@@ -68,23 +63,23 @@ export function AccountDashboard({
 
       <div className="flex gap-2">
         <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>
-          Профил
+          {t("acc.tab.profile")}
         </TabButton>
         <TabButton active={tab === "addresses"} onClick={() => setTab("addresses")}>
-          Адреси
+          {t("acc.tab.addresses")}
         </TabButton>
         <TabButton active={tab === "payment"} onClick={() => setTab("payment")}>
-          Карти
+          {t("acc.tab.cards")}
         </TabButton>
         <TabButton active={tab === "orders"} onClick={() => setTab("orders")}>
-          Поръчки
+          {t("acc.tab.orders")}
         </TabButton>
       </div>
 
       {tab === "profile" && <ProfileTab customer={customer} onSaved={() => router.refresh()} />}
       {tab === "addresses" && <AddressesTab addresses={initialAddresses} />}
       {tab === "payment" && <PaymentMethodsTab />}
-      {tab === "orders" && <OrdersTab orders={orders} />}
+      {tab === "orders" && <OrdersTab orders={orders} translations={translations} />}
     </div>
   );
 }
@@ -112,6 +107,7 @@ function TabButton({
 
 function LogoutButton() {
   const router = useRouter();
+  const t = useT();
   async function logout() {
     await fetch("/api/account/logout", { method: "POST" });
     router.push("/");
@@ -122,7 +118,7 @@ function LogoutButton() {
       onClick={logout}
       className="rounded-xl border border-border bg-black/5 px-4 py-2 text-sm font-semibold text-foreground hover:bg-black/10 transition-colors"
     >
-      Изход
+      {t("acc.logout")}
     </button>
   );
 }
@@ -134,6 +130,7 @@ function ProfileTab({
   customer: CustomerPublic;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone);
   const [saving, setSaving] = useState(false);
@@ -155,7 +152,7 @@ function ProfileTab({
   return (
     <div className="bg-surface rounded-2xl border border-border p-5 space-y-3 max-w-md">
       <label className="block space-y-1">
-        <span className="text-xs text-muted">Име и фамилия</span>
+        <span className="text-xs text-muted">{t("acc.fullName")}</span>
         <input
           className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
           value={name}
@@ -163,7 +160,7 @@ function ProfileTab({
         />
       </label>
       <label className="block space-y-1">
-        <span className="text-xs text-muted">Телефон</span>
+        <span className="text-xs text-muted">{t("acc.phone")}</span>
         <input
           className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
           value={phone}
@@ -171,7 +168,7 @@ function ProfileTab({
         />
       </label>
       <label className="block space-y-1">
-        <span className="text-xs text-muted">Имейл</span>
+        <span className="text-xs text-muted">{t("acc.email")}</span>
         <input
           disabled
           className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm bg-black/5 text-muted"
@@ -183,9 +180,9 @@ function ProfileTab({
         disabled={saving}
         className="bg-brand text-white rounded-xl px-5 py-2.5 font-bold text-sm disabled:opacity-60"
       >
-        {saving ? "Запазване..." : "Запази промените"}
+        {saving ? t("acc.saving") : t("acc.saveChanges")}
       </button>
-      {saved && <p className="text-success text-sm font-semibold">Запазено ✔</p>}
+      {saved && <p className="text-success text-sm font-semibold">{t("acc.saved")}</p>}
     </div>
   );
 }
@@ -195,9 +192,10 @@ function AddressesTab({
 }: {
   addresses: CustomerAddress[];
 }) {
+  const t = useT();
   const [addresses, setAddresses] = useState(initial);
   const [adding, setAdding] = useState(false);
-  const [label, setLabel] = useState("Домашен адрес");
+  const [label, setLabel] = useState(t("acc.homeAddress"));
   const [quarter, setQuarter] = useState("");
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
@@ -214,7 +212,7 @@ function AddressesTab({
   async function addAddress() {
     setError("");
     if (!label.trim() || !quarter.trim() || !street.trim() || !houseNumber.trim()) {
-      setError("Моля, попълнете всички задължителни полета.");
+      setError(t("acc.fillRequired"));
       return;
     }
     const res = await fetch("/api/account/addresses", {
@@ -232,10 +230,10 @@ function AddressesTab({
     });
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Грешка");
+      setError(data.error ?? t("acc.error"));
       return;
     }
-    setLabel("Домашен адрес");
+    setLabel(t("acc.homeAddress"));
     setQuarter("");
     setStreet("");
     setHouseNumber("");
@@ -268,14 +266,14 @@ function AddressesTab({
               <p className="font-semibold">{a.label}</p>
               {a.is_default === 1 && (
                 <span className="text-[10px] font-bold bg-gold/20 text-gold px-2 py-0.5 rounded-full">
-                  По подразбиране
+                  {t("acc.default")}
                 </span>
               )}
             </div>
             <p className="text-sm text-muted">{a.address}</p>
             {a.quarter && <p className="text-xs text-muted">{a.quarter}</p>}
             {a.address_notes && <p className="text-xs text-muted">{a.address_notes}</p>}
-            {a.intercom && <p className="text-xs text-muted">Звънец: {a.intercom}</p>}
+            {a.intercom && <p className="text-xs text-muted">{t("acc.intercom")}: {a.intercom}</p>}
           </div>
           <div className="flex flex-col gap-1.5 shrink-0">
             {a.is_default !== 1 && (
@@ -283,72 +281,72 @@ function AddressesTab({
                 onClick={() => makeDefault(a.id)}
                 className="text-xs font-semibold text-brand"
               >
-                По подразбиране
+                {t("acc.default")}
               </button>
             )}
             <button
               onClick={() => removeAddress(a.id)}
               className="text-xs font-semibold text-muted"
             >
-              Изтрий
+              {t("acc.delete")}
             </button>
           </div>
         </div>
       ))}
       {addresses.length === 0 && !adding && (
-        <p className="text-muted text-sm text-center py-8">Нямаш запазени адреси.</p>
+        <p className="text-muted text-sm text-center py-8">{t("acc.noAddresses")}</p>
       )}
 
       {adding ? (
         <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
           <input
             className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            placeholder="Име на адреса (напр. Вкъщи, Офис)"
+            placeholder={t("acc.addrLabelPh")}
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
           <input
             className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            placeholder="Квартал"
+            placeholder={t("acc.quarter")}
             value={quarter}
             onChange={(e) => setQuarter(e.target.value)}
           />
           <div className="grid sm:grid-cols-[1fr_140px] gap-3">
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Улица"
+              placeholder={t("acc.street")}
               value={street}
               onChange={(e) => setStreet(e.target.value)}
             />
             <input
               className="rounded-xl border border-border px-3.5 py-2.5 text-sm"
-              placeholder="Номер"
+              placeholder={t("acc.number")}
               value={houseNumber}
               onChange={(e) => setHouseNumber(e.target.value)}
             />
           </div>
           <input
             className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            placeholder="Етаж, блок, апартамент (по желание)"
+            placeholder={t("acc.floorPh")}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
           <input
             className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
-            placeholder="Звънец — име/номер на табло (по желание)"
+            placeholder={t("acc.intercomPh")}
             value={intercom}
             onChange={(e) => setIntercom(e.target.value)}
           />
           {error && <p className="text-sm text-brand font-semibold">{error}</p>}
           <div className="flex gap-2">
             <button onClick={addAddress} className="bg-brand text-white rounded-xl px-5 py-2.5 font-bold text-sm">
-              Запази адреса
+              {t("acc.saveAddress")}
             </button>
             <button
               onClick={() => setAdding(false)}
               className="rounded-xl border border-border px-5 py-2.5 font-semibold text-sm"
             >
-              Отказ
+              {t("acc.cancel")}
             </button>
           </div>
         </div>
@@ -357,7 +355,7 @@ function AddressesTab({
           onClick={() => setAdding(true)}
           className="w-full border-2 border-dashed border-border rounded-2xl py-4 text-sm font-semibold text-muted hover:border-brand hover:text-brand transition-colors"
         >
-          + Добави адрес
+          {t("acc.addAddress")}
         </button>
       )}
     </div>
@@ -383,6 +381,7 @@ const CARD_BRAND_LABELS: Record<string, string> = {
 };
 
 function PaymentMethodsTab() {
+  const t = useT();
   const [cards, setCards] = useState<SavedCard[] | null>(null);
   const [error, setError] = useState("");
   const [addingCard, setAddingCard] = useState(false);
@@ -410,13 +409,13 @@ function PaymentMethodsTab() {
       const res = await fetch("/api/account/payment-methods", { method: "POST" });
       const data = await res.json();
       if (!res.ok || !data.url) {
-        setError(data.error ?? "Грешка при добавяне на картата.");
+        setError(data.error ?? t("acc.cardAddError"));
         setAddingCard(false);
         return;
       }
       window.location.href = data.url;
     } catch {
-      setError("Грешка при връзката със сървъра.");
+      setError(t("acc.connError"));
       setAddingCard(false);
     }
   }
@@ -427,7 +426,7 @@ function PaymentMethodsTab() {
     const res = await fetch(`/api/account/payment-methods/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Грешка при премахване на картата.");
+      setError(data.error ?? t("acc.cardRemoveError"));
     }
     setRemovingId(null);
     refresh();
@@ -436,9 +435,9 @@ function PaymentMethodsTab() {
   return (
     <div className="space-y-3">
       {cards === null ? (
-        <p className="text-muted text-sm text-center py-8">Зареждане...</p>
+        <p className="text-muted text-sm text-center py-8">{t("acc.loading")}</p>
       ) : cards.length === 0 ? (
-        <p className="text-muted text-sm text-center py-8">Нямаш запазени карти.</p>
+        <p className="text-muted text-sm text-center py-8">{t("acc.noCards")}</p>
       ) : (
         cards.map((c) => (
           <div
@@ -454,7 +453,7 @@ function PaymentMethodsTab() {
                   {CARD_BRAND_LABELS[c.brand] ?? c.brand} •••• {c.last4}
                 </p>
                 <p className="text-xs text-muted">
-                  Валидна до {String(c.expMonth).padStart(2, "0")}/{c.expYear}
+                  {t("acc.validUntil")} {String(c.expMonth).padStart(2, "0")}/{c.expYear}
                 </p>
               </div>
             </div>
@@ -463,7 +462,7 @@ function PaymentMethodsTab() {
               disabled={removingId === c.id}
               className="text-xs font-semibold text-muted disabled:opacity-50 shrink-0"
             >
-              {removingId === c.id ? "Премахване..." : "Изтрий"}
+              {removingId === c.id ? t("acc.removing") : t("acc.delete")}
             </button>
           </div>
         ))
@@ -476,19 +475,19 @@ function PaymentMethodsTab() {
         disabled={addingCard}
         className="w-full border-2 border-dashed border-border rounded-2xl py-4 text-sm font-semibold text-muted hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
       >
-        {addingCard ? "Отваряне..." : "+ Добави карта"}
+        {addingCard ? t("acc.opening") : t("acc.addCard")}
       </button>
       <p className="text-xs text-muted text-center">
-        Данните на картата се въвеждат директно при Stripe — никога не минават през нашия сървър.
+        {t("acc.cardNote")}
       </p>
     </div>
   );
 }
 
-function orderItemLines(itemsJson: string): string[] {
+function orderItemLines(itemsJson: string, tx: (s: string) => string): string[] {
   try {
     const items: OrderItem[] = JSON.parse(itemsJson);
-    return items.map((i) => `${i.quantity}× ${i.name}`);
+    return items.map((i) => `${i.quantity}× ${tx(i.name)}`);
   } catch {
     return [];
   }
@@ -496,12 +495,40 @@ function orderItemLines(itemsJson: string): string[] {
 
 const ITEM_LINES_COLLAPSED = 3;
 
-function OrdersTab({ orders }: { orders: Order[] }) {
+function OrdersTab({
+  orders,
+  translations,
+}: {
+  orders: Order[];
+  translations: Record<string, string>;
+}) {
+  const t = useT();
+  const { locale } = useLocale();
+  const tx = (text: string) => translations[text.trim()] ?? text;
   const { addLine, openDrawer } = useCart();
   const router = useRouter();
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [skipped, setSkipped] = useState<{ orderId: number; names: string[] } | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  function splitList(text: string): string[] {
+    return text
+      .split(",")
+      .map((x) => x.trim().replace(/\.$/, ""))
+      .filter(Boolean);
+  }
+
+  function localRemoved(product: ProductWithOptions, removed: string[]): string[] {
+    const bg = splitList(product.description_bg ?? "");
+    const local = splitList(product.description);
+    if (bg.length > 0 && bg.length === local.length) {
+      return removed.map((x) => {
+        const i = bg.indexOf(x);
+        return i >= 0 ? local[i] : tx(x);
+      });
+    }
+    return removed.map(tx);
+  }
 
   async function reorder(o: Order): Promise<boolean> {
     let items: OrderItem[];
@@ -525,7 +552,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
         cache.set(item.productId, product);
       }
       if (!product) {
-        skippedNames.push(item.name);
+        skippedNames.push(tx(item.name));
         continue;
       }
       const size = item.sizeId ? product.sizes.find((s) => s.id === item.sizeId) : undefined;
@@ -541,8 +568,8 @@ function OrdersTab({ orders }: { orders: Order[] }) {
         quantity: item.quantity,
         extras: item.extras
           .filter((e) => e.id != null && product!.extras.some((pe) => pe.id === e.id))
-          .map((e) => ({ id: e.id!, name: e.name, price: e.price, optionId: e.optionId })),
-        removedIngredients: item.removed,
+          .map((e) => ({ id: e.id!, name: tx(e.name), price: e.price, optionId: e.optionId })),
+        removedIngredients: item.removed ? localRemoved(product, item.removed) : undefined,
       });
     }
     setReorderingId(null);
@@ -557,7 +584,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
   }
 
   if (orders.length === 0) {
-    return <p className="text-muted text-sm text-center py-10">Нямаш направени поръчки все още.</p>;
+    return <p className="text-muted text-sm text-center py-10">{t("acc.noOrders")}</p>;
   }
   return (
     <div className="space-y-3">
@@ -571,7 +598,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
               <div>
                 <p className="font-semibold">{o.order_number}</p>
                 <p className="text-xs text-muted">
-                  {new Date(o.created_at).toLocaleDateString("bg-BG", {
+                  {new Date(o.created_at).toLocaleDateString(locale === "en" ? "en-GB" : "bg-BG", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -580,12 +607,12 @@ function OrdersTab({ orders }: { orders: Order[] }) {
               </div>
               <div className="text-right">
                 <span className="font-bold text-brand block">{formatPrice(o.total)}</span>
-                <span className="text-xs font-semibold text-muted">{STATUS_LABELS[o.status]}</span>
+                <span className="text-xs font-semibold text-muted">{t(`order.status.${o.status}` as DictKey)}</span>
               </div>
             </div>
           </Link>
           {(() => {
-            const lines = orderItemLines(o.items_json);
+            const lines = orderItemLines(o.items_json, tx);
             if (lines.length === 0) return null;
             const isExpanded = expandedItems.has(o.id);
             const visibleLines = isExpanded ? lines : lines.slice(0, ITEM_LINES_COLLAPSED);
@@ -607,7 +634,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
                     }
                     className="text-brand font-semibold text-xs pt-0.5"
                   >
-                    Покажи още ({hiddenCount})
+                    {t("acc.showMore")} ({hiddenCount})
                   </button>
                 )}
                 {isExpanded && lines.length > ITEM_LINES_COLLAPSED && (
@@ -622,7 +649,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
                     }
                     className="text-brand font-semibold text-xs pt-0.5"
                   >
-                    Скрий
+                    {t("acc.hide")}
                   </button>
                 )}
               </div>
@@ -638,12 +665,11 @@ function OrdersTab({ orders }: { orders: Order[] }) {
             }}
             className="mt-3 w-full rounded-xl border border-brand text-brand font-semibold text-sm py-2 hover:bg-brand/5 transition-colors disabled:opacity-60"
           >
-            {reorderingId === o.id ? "Зареждане..." : "🔁 Поръчай отново"}
+            {reorderingId === o.id ? t("acc.loading") : t("acc.reorder")}
           </button>
           {skipped?.orderId === o.id && (
             <p className="mt-2 text-xs text-muted">
-              {skipped.names.join(", ")} вече {skipped.names.length === 1 ? "не е наличен" : "не са налични"} и не{" "}
-              {skipped.names.length === 1 ? "беше добавен" : "бяха добавени"} в количката.
+              {t(skipped.names.length === 1 ? "acc.skippedOne" : "acc.skippedMany").replace("{names}", skipped.names.join(", "))}
             </p>
           )}
         </div>

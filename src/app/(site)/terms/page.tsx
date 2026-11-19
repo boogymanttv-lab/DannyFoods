@@ -1,10 +1,15 @@
+import { getLocale } from "@/lib/i18n/locale";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
 import { getSettings } from "@/lib/repos/settings";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Условия за ползване" };
+export async function generateMetadata() {
+  return localizedTitle("Условия за ползване");
+}
 
-export default async function TermsPage() {
+async function TermsPageBody() {
   const settings = await getSettings();
   const legalName = settings.company_legal_name || settings.site_name;
   const email = settings.contact_email;
@@ -145,4 +150,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div>{children}</div>
     </div>
   );
+}
+
+export default async function TermsPage() {
+  const locale = await getLocale();
+  return localizeTree(await TermsPageBody(), locale);
 }

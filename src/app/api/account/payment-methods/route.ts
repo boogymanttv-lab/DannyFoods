@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson } from "@/lib/i18n/api";
 import Stripe from "stripe";
 import { getCustomerSession } from "@/lib/auth";
 import { getCustomer } from "@/lib/repos/customers";
@@ -8,7 +9,7 @@ import { getOrCreateStripeCustomerId } from "@/lib/stripe-customer";
 export async function GET() {
   const session = await getCustomerSession();
   if (!session) {
-    return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
+    return await errJson("Неоторизиран достъп", 401);
   }
   const settings = await getSettings();
   if (!settings.stripe_secret_key) {
@@ -36,14 +37,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getCustomerSession();
   if (!session) {
-    return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
+    return await errJson("Неоторизиран достъп", 401);
   }
   const settings = await getSettings();
   if (!settings.stripe_secret_key) {
-    return NextResponse.json(
-      { error: "Картовите плащания все още не са конфигурирани." },
-      { status: 400 }
-    );
+    return await errJson("Картовите плащания все още не са конфигурирани.", 400);
   }
   try {
     const stripe = new Stripe(settings.stripe_secret_key);
@@ -59,9 +57,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: setupSession.url });
   } catch (err) {
     console.error("Stripe setup session error", err);
-    return NextResponse.json(
-      { error: "Грешка при добавяне на картата. Опитайте отново." },
-      { status: 500 }
-    );
+    return await errJson("Грешка при добавяне на картата. Опитайте отново.", 500);
   }
 }

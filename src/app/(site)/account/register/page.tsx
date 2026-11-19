@@ -2,6 +2,13 @@ import Link from "next/link";
 import { getSettings } from "@/lib/repos/settings";
 import { AccountRegisterForm } from "@/components/site/AccountRegisterForm";
 import { GoogleButton } from "@/components/site/GoogleButton";
+import { getLocale } from "@/lib/i18n/locale";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
+
+export async function generateMetadata() {
+  return localizedTitle("Регистрация");
+}
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +21,8 @@ export default async function AccountRegisterPage({
   const { redirect } = await searchParams;
   const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/account";
 
-  return (
+  const locale = await getLocale();
+  return localizeTree(
     <div className="mx-auto max-w-sm px-4 py-16">
       <div className="text-center mb-6">
         <h1 className="font-display font-extrabold text-2xl">Създай профил</h1>
@@ -43,6 +51,7 @@ export default async function AccountRegisterPage({
           </Link>
         </p>
       </div>
-    </div>
+    </div>,
+    locale
   );
 }

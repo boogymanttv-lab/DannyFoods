@@ -2,6 +2,8 @@ import Link from "next/link";
 import { promoCardStyle } from "@/lib/promo-card-style";
 import { AddComboButton } from "@/components/site/AddComboButton";
 import type { PromoCard } from "@/lib/types";
+import { getLocale } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/dict";
 
 function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
   return (
@@ -17,15 +19,17 @@ function CartBadge({ size = "h-9 w-9" }: { size?: string }) {
   );
 }
 
-export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
+export async function PromoShowcase({ cards }: { cards: PromoCard[] }) {
   if (cards.length === 0) return null;
+  const locale = await getLocale();
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
 
   return (
     <div className="pt-6 sm:pt-8">
       <div className="mx-auto max-w-6xl px-4 flex items-baseline justify-between mb-3">
-        <h2 className="font-display font-extrabold text-lg sm:text-xl">Оферти на деня</h2>
+        <h2 className="font-display font-extrabold text-lg sm:text-xl">{t("promo.today")}</h2>
         <Link href="/oferti" className="text-xs sm:text-sm font-bold text-brand">
-          Всички →
+          {t("promo.all")}
         </Link>
       </div>
 
@@ -231,7 +235,7 @@ export function PromoShowcase({ cards }: { cards: PromoCard[] }) {
                   </p>
                 )}
                 <span className="text-white/85 text-sm font-bold underline underline-offset-2 decoration-white/40 group-hover:text-gold group-hover:decoration-gold transition-colors">
-                  {orderable ? "Добави в количката" : "Поръчай сега →"}
+                  {orderable ? t("offers.addToCart") : t("promo.orderNow")}
                 </span>
               </div>
             </>

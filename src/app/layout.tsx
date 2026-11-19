@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
 import { getSettings } from "@/lib/repos/settings";
+import { getLocale } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/dict";
+import { translateOne } from "@/lib/i18n/auto";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
-  const title = `${settings.site_name} — Доставка на храна във Варна`;
-  const description = settings.tagline;
+  const locale = await getLocale();
+  const title = `${settings.site_name} — ${translate(locale, "meta.titleSuffix")}`;
+  const description = await translateOne(settings.tagline, locale);
   const domain = settings.site_domain;
   const base = domain ? new URL(`https://${domain}`) : undefined;
 
@@ -21,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       siteName: settings.site_name,
-      locale: "bg_BG",
+      locale: locale === "en" ? "en_GB" : "bg_BG",
       type: "website",
     },
     twitter: {
@@ -33,9 +37,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
-    <html lang="bg" className="h-full antialiased">
+    <html lang={locale} className="h-full antialiased">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

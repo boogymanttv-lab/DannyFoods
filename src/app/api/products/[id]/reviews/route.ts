@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson } from "@/lib/i18n/api";
 import { z } from "zod";
 import { getCustomerSession } from "@/lib/auth";
 import {
@@ -42,26 +43,23 @@ export async function POST(
 ) {
   const session = await getCustomerSession();
   if (!session) {
-    return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
+    return await errJson("Неоторизиран достъп", 401);
   }
   const { id } = await params;
   const productId = Number(id);
   if (!Number.isFinite(productId)) {
-    return NextResponse.json({ error: "Невалиден продукт" }, { status: 400 });
+    return await errJson("Невалиден продукт", 400);
   }
 
   const json = await req.json().catch(() => null);
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Невалидни данни за отзива" }, { status: 400 });
+    return await errJson("Невалидни данни за отзива", 400);
   }
 
   const { ordered, orderId } = await customerHasOrderedProduct(session.customerId, productId);
   if (!ordered) {
-    return NextResponse.json(
-      { error: "Можете да оставите отзив само за продукт, който сте поръчвали" },
-      { status: 403 }
-    );
+    return await errJson("Можете да оставите отзив само за продукт, който сте поръчвали", 403);
   }
 
   await upsertReview({

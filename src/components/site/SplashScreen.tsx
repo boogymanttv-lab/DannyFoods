@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n/LocaleProvider";
+import type { DictKey } from "@/lib/i18n/dict";
 
 const VISIBLE_MS = 2600;
 const FADE_MS = 450;
 
 const FOOD_STEPS = [
-  { emoji: "🍕", label: "Пица" },
-  { emoji: "🌯", label: "Дюнер" },
-  { emoji: "🍔", label: "Бургер" },
-  { emoji: "🥪", label: "Сандвич" },
+  { emoji: "🍕", label: "splash.pizza" as DictKey },
+  { emoji: "🌯", label: "splash.doner" as DictKey },
+  { emoji: "🍔", label: "splash.burger" as DictKey },
+  { emoji: "🥪", label: "splash.sandwich" as DictKey },
 ];
 const STEP_MS = VISIBLE_MS / FOOD_STEPS.length;
 
@@ -20,6 +22,7 @@ export function SplashScreen({
   logoUrl?: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const [phase, setPhase] = useState<"visible" | "fading" | "done">("visible");
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -86,12 +89,12 @@ export function SplashScreen({
             key={`label-${stepIndex}`}
             className="relative z-10 mt-4 text-white/70 text-sm font-bold tracking-wide animate-splash-food"
           >
-            {step.label}
+            {t(step.label)}
           </p>
 
           <div className="relative z-10 mt-6 flex items-center gap-1.5">
             <span className="bg-gradient-to-r from-gold via-white to-gold bg-clip-text text-transparent font-display font-extrabold text-base tracking-wide animate-shimmer">
-              Зареждане
+              {t("splash.loading")}
             </span>
             <span className="flex gap-1">
               <span

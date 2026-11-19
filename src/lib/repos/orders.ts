@@ -34,15 +34,16 @@ export async function createOrder(data: {
   notes?: string;
   customer_id?: number | null;
   requested_time?: string | null;
+  locale?: string;
 }): Promise<Order> {
   const db = await getDb();
   const order_number = generateOrderNumber();
   const info = await db
     .prepare(
       `INSERT INTO orders
-        (order_number, customer_name, phone, email, zone_id, quarter, order_type, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time)
+        (order_number, customer_name, phone, email, zone_id, quarter, order_type, address, street, house_number, intercom, address_notes, items_json, subtotal, delivery_fee, discount, total, promo_code, payment_method, notes, customer_id, requested_time, locale)
        VALUES
-        (@order_number, @customer_name, @phone, @email, @zone_id, @quarter, @order_type, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time)`
+        (@order_number, @customer_name, @phone, @email, @zone_id, @quarter, @order_type, @address, @street, @house_number, @intercom, @address_notes, @items_json, @subtotal, @delivery_fee, @discount, @total, @promo_code, @payment_method, @notes, @customer_id, @requested_time, @locale)`
     )
     .run({
       order_number,
@@ -67,6 +68,7 @@ export async function createOrder(data: {
       notes: data.notes ?? "",
       customer_id: data.customer_id ?? null,
       requested_time: data.requested_time ?? null,
+      locale: data.locale === "en" ? "en" : "bg",
     });
   return (await getOrder(info.lastInsertRowid as number))!;
 }

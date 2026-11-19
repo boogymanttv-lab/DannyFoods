@@ -69,6 +69,7 @@ export type ProductWithOptions = Product & {
   extras: Extra[];
   category?: Category;
   combo_items: ComboItem[];
+  description_bg?: string;
 };
 
 export type DeliveryZone = {
@@ -159,6 +160,7 @@ export type Order = {
   estimated_delivery: string | null;
   estimated_delivery_set_at: string | null;
   requested_time: string | null;
+  locale?: string;
   notes: string;
   pizza_transfer_id: string | null;
   pizza_transfer_amount: number | null;

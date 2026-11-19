@@ -217,6 +217,14 @@ CREATE TABLE IF NOT EXISTS combo_items (
   sort_order INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS translations (
+  id SERIAL PRIMARY KEY,
+  hash TEXT UNIQUE NOT NULL,
+  source TEXT NOT NULL,
+  en TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_extra_options_extra ON extra_options(extra_id);
 CREATE INDEX IF NOT EXISTS idx_combo_items_combo ON combo_items(combo_product_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);

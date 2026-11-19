@@ -9,6 +9,7 @@ import { OrderTracking } from "@/components/site/OrderTracking";
 import { OrderReviewPrompt } from "@/components/site/OrderReviewPrompt";
 import { getLocale } from "@/lib/i18n/locale";
 import { translate, type DictKey } from "@/lib/i18n/dict";
+import { applyTranslation, translateMany } from "@/lib/i18n/auto";
 import type { OrderItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,24 @@ export default async function OrderConfirmationPage({
   const locale = await getLocale();
   const t = (key: DictKey) => translate(locale, key);
 
-  const items: OrderItem[] = JSON.parse(order.items_json);
+  const rawItems: OrderItem[] = JSON.parse(order.items_json);
+  let tr = (s: string) => s;
+  if (locale === "en") {
+    const strings: string[] = [];
+    for (const i of rawItems) {
+      strings.push(i.name, i.sizeLabel ?? "");
+      for (const r of i.removed ?? []) strings.push(r);
+    }
+    if (order.order_type === "pickup") strings.push((await getSettings()).address);
+    const map = await translateMany(strings);
+    tr = (s: string) => applyTranslation(s, map);
+  }
+  const items: OrderItem[] = rawItems.map((i) => ({
+    ...i,
+    name: tr(i.name),
+    sizeLabel: i.sizeLabel ? tr(i.sizeLabel) : i.sizeLabel,
+    removed: i.removed?.map(tr),
+  }));
   const isPickup = order.order_type === "pickup";
   const settings = isPickup ? await getSettings() : null;
 
@@ -107,7 +125,7 @@ export default async function OrderConfirmationPage({
           <p>
             <span className="text-muted">{isPickup ? t("order.pickupFromColon") : t("order.deliveryToColon")}</span>
             {isPickup
-              ? settings?.address || t("order.onSitePickupFallback")
+              ? (settings?.address ? tr(settings.address) : "") || t("order.onSitePickupFallback")
               : `${order.address}${order.quarter ? ` — ${order.quarter}` : ""}`}
           </p>
           {!isPickup && order.address_notes && (
@@ -128,7 +146,7 @@ export default async function OrderConfirmationPage({
           </p>
           <p>
             <span className="text-muted">{t("order.deliveryTimeColon")}</span>
-            {order.requested_time ? formatRequestedTime(order.requested_time) : t("order.asap")}
+            {order.requested_time ? formatRequestedTime(order.requested_time, locale) : t("order.asap")}
           </p>
         </div>
       </div>

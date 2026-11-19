@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Script from "next/script";
+import { useT } from "@/lib/i18n/LocaleProvider";
 
 const CONSENT_KEY = "dd_cookie_consent";
 
@@ -12,6 +13,7 @@ export function CookieConsent({
   gaId?: string;
   metaPixelId?: string;
 }) {
+  const t = useT();
   const [consent, setConsent] = useState<"accepted" | "rejected" | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -71,10 +73,9 @@ export function CookieConsent({
         <div className="fixed bottom-0 inset-x-0 z-[998] p-4">
           <div className="mx-auto max-w-2xl bg-accent-dark text-white rounded-2xl shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-sm text-white/80 flex-1">
-              Използваме бисквитки за анализ на трафика и реклами. Приемате ли това? Можете да
-              прочетете повече в{" "}
+              {t("cookie.text")}{" "}
               <a href="/privacy" className="underline text-white font-semibold">
-                Политиката за защита на личните данни
+                {t("cookie.privacy")}
               </a>
               .
             </p>
@@ -83,13 +84,13 @@ export function CookieConsent({
                 onClick={() => decide("rejected")}
                 className="text-sm font-semibold px-4 py-2 rounded-xl border border-white/30 text-white/90"
               >
-                Отказвам
+                {t("cookie.decline")}
               </button>
               <button
                 onClick={() => decide("accepted")}
                 className="text-sm font-semibold px-4 py-2 rounded-xl bg-brand text-white"
               >
-                Приемам
+                {t("cookie.accept")}
               </button>
             </div>
           </div>

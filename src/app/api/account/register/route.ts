@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson } from "@/lib/i18n/api";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { createCustomer, getCustomerByEmail } from "@/lib/repos/customers";
@@ -19,16 +20,13 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Моля, попълнете коректно всички полета." }, { status: 400 });
+    return await errJson("Моля, попълнете коректно всички полета.", 400);
   }
   const data = parsed.data;
 
   const existing = await getCustomerByEmail(data.email);
   if (existing) {
-    return NextResponse.json(
-      { error: "Вече има регистрация с този имейл. Опитайте да влезете." },
-      { status: 400 }
-    );
+    return await errJson("Вече има регистрация с този имейл. Опитайте да влезете.", 400);
   }
 
   const password_hash = await bcrypt.hash(data.password, 10);

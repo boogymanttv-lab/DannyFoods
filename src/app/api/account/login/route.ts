@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson } from "@/lib/i18n/api";
 import bcrypt from "bcryptjs";
 import { getCustomerByEmail } from "@/lib/repos/customers";
 import {
@@ -12,19 +13,16 @@ export async function POST(req: NextRequest) {
   const email = body?.email;
   const password = body?.password;
   if (!email || !password) {
-    return NextResponse.json({ error: "Въведете имейл и парола" }, { status: 400 });
+    return await errJson("Въведете имейл и парола", 400);
   }
 
   const customer = await getCustomerByEmail(email);
   if (!customer || !customer.password_hash) {
-    return NextResponse.json(
-      { error: "Грешен имейл или парола, или акаунтът е създаден през Google." },
-      { status: 401 }
-    );
+    return await errJson("Грешен имейл или парола, или акаунтът е създаден през Google.", 401);
   }
   const valid = await bcrypt.compare(password, customer.password_hash);
   if (!valid) {
-    return NextResponse.json({ error: "Грешен имейл или парола" }, { status: 401 });
+    return await errJson("Грешен имейл или парола", 401);
   }
 
   const token = await createCustomerSessionToken({

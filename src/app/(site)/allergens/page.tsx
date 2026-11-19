@@ -1,4 +1,9 @@
-export const metadata = { title: "Алергени" };
+import { getLocale } from "@/lib/i18n/locale";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
+export async function generateMetadata() {
+  return localizedTitle("Алергени");
+}
 
 const ALLERGENS = [
   "Глутен (пшеница, ечемик и др.)",
@@ -11,7 +16,7 @@ const ALLERGENS = [
   "Целина",
 ];
 
-export default function AllergensPage() {
+async function AllergensPageBody() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 space-y-6">
       <h1 className="font-display font-extrabold text-3xl">Алергени</h1>
@@ -38,4 +43,9 @@ export default function AllergensPage() {
       </p>
     </div>
   );
+}
+
+export default async function AllergensPage() {
+  const locale = await getLocale();
+  return localizeTree(await AllergensPageBody(), locale);
 }

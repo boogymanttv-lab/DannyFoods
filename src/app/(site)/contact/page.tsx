@@ -1,10 +1,15 @@
+import { getLocale } from "@/lib/i18n/locale";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
 import { getSettings } from "@/lib/repos/settings";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Свържете се с нас" };
+export async function generateMetadata() {
+  return localizedTitle("Свържете се с нас");
+}
 
-export default async function ContactPage() {
+async function ContactPageBody() {
   const settings = await getSettings();
 
   return (
@@ -58,4 +63,9 @@ export default async function ContactPage() {
       )}
     </div>
   );
+}
+
+export default async function ContactPage() {
+  const locale = await getLocale();
+  return localizeTree(await ContactPageBody(), locale);
 }

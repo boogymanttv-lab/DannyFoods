@@ -9,11 +9,23 @@ import { MobileCartBar } from "@/components/site/MobileCartBar";
 import { SplashScreen } from "@/components/site/SplashScreen";
 import { CookieConsent } from "@/components/site/CookieConsent";
 import { PromoBanner } from "@/components/site/PromoBanner";
+import { localizeFields } from "@/lib/i18n/content";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettings();
+  const settingsRaw = await getSettings();
   const session = await getCustomerSession();
   const locale = await getLocale();
+  const settings = {
+    ...settingsRaw,
+    ...(await localizeFields(
+      {
+        banner_text: settingsRaw.banner_text,
+        address: settingsRaw.address,
+        working_hours: settingsRaw.working_hours,
+      },
+      locale
+    )),
+  };
 
   return (
     <LocaleProvider initialLocale={locale}>

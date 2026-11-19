@@ -1,11 +1,16 @@
+import { getLocale } from "@/lib/i18n/locale";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
 import { getSettings } from "@/lib/repos/settings";
 import { formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Зони за доставка" };
+export async function generateMetadata() {
+  return localizedTitle("Зони за доставка");
+}
 
-export default async function ZonesPage() {
+async function ZonesPageBody() {
   const settings = await getSettings();
   const deliveryFee = Number(settings.delivery_fee_flat || "0");
   const freeOver = Number(settings.free_delivery_over || "0");
@@ -42,4 +47,9 @@ export default async function ZonesPage() {
       </p>
     </div>
   );
+}
+
+export default async function ZonesPage() {
+  const locale = await getLocale();
+  return localizeTree(await ZonesPageBody(), locale);
 }

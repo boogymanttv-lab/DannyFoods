@@ -2,14 +2,22 @@ import Link from "next/link";
 import { getSettings } from "@/lib/repos/settings";
 import { AccountLoginForm } from "@/components/site/AccountLoginForm";
 import { GoogleButton } from "@/components/site/GoogleButton";
+import { getLocale } from "@/lib/i18n/locale";
+import { translate, type DictKey } from "@/lib/i18n/dict";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
 
 export const dynamic = "force-dynamic";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  google_not_configured: "Вход с Google все още не е настроен за този сайт.",
-  google_failed: "Възникна грешка при вход с Google. Опитайте отново.",
-  google_email: "Google акаунтът трябва да има потвърден имейл.",
+const ERROR_KEYS: Record<string, DictKey> = {
+  google_not_configured: "auth.error.google_not_configured",
+  google_failed: "auth.error.google_failed",
+  google_email: "auth.error.google_email",
 };
+
+export async function generateMetadata() {
+  return localizedTitle("Вход в профила");
+}
 
 export default async function AccountLoginPage({
   searchParams,
@@ -19,9 +27,11 @@ export default async function AccountLoginPage({
   const settings = await getSettings();
   const { error, redirect } = await searchParams;
   const redirectTo = redirect && redirect.startsWith("/") ? redirect : "/account";
-  const errorMessage = error ? ERROR_MESSAGES[error] ?? null : null;
+  const locale = await getLocale();
+  const errorKey = error ? ERROR_KEYS[error] : undefined;
+  const errorMessage = errorKey ? translate(locale, errorKey) : null;
 
-  return (
+  return localizeTree(
     <div className="mx-auto max-w-sm px-4 py-16">
       <div className="text-center mb-6">
         <h1 className="font-display font-extrabold text-2xl">Вход в профила</h1>
@@ -54,6 +64,7 @@ export default async function AccountLoginPage({
           </Link>
         </p>
       </div>
-    </div>
+    </div>,
+    locale
   );
 }

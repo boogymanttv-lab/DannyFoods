@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson } from "@/lib/i18n/api";
+import { getLocale } from "@/lib/i18n/locale";
+import { removedToBulgarian } from "@/lib/i18n/content";
 import { z } from "zod";
 import { getProduct } from "@/lib/repos/products";
 import { validatePromotion, incrementPromotionUsage, getPromotionByCode } from "@/lib/repos/promotions";
@@ -68,13 +71,11 @@ const checkoutSchema = z
   });
 
 export async function POST(req: NextRequest) {
+  const locale = await getLocale();
   const json = await req.json().catch(() => null);
   const parsed = checkoutSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Невалидни данни в заявката", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    return errJson("Невалидни данни в заявката", 400, { details: parsed.error.flatten() });
   }
   const data = parsed.data;
 
@@ -83,17 +84,14 @@ export async function POST(req: NextRequest) {
   for (const item of data.items) {
     const product = await getProduct(item.productId);
     if (!product || (!product.active && !product.is_combo)) {
-      return NextResponse.json(
-        { error: `Продукт с ID ${item.productId} не е наличен` },
-        { status: 400 }
-      );
+      return errJson(`Продукт с ID ${item.productId} не е наличен`, 400);
     }
     let unitPrice = product.base_price;
     let sizeLabel: string | undefined;
     if (item.sizeId) {
       const size = product.sizes.find((s) => s.id === item.sizeId);
       if (!size) {
-        return NextResponse.json({ error: "Невалиден размер" }, { status: 400 });
+        return errJson("Невалиден размер", 400);
       }
       unitPrice += size.price_delta;
       sizeLabel = size.label;
@@ -137,7 +135,10 @@ export async function POST(req: NextRequest) {
       unitPrice,
       quantity: item.quantity,
       extras,
-      removed: item.removed && item.removed.length > 0 ? item.removed : undefined,
+      removed:
+        item.removed && item.removed.length > 0
+          ? await removedToBulgarian(product, item.removed)
+          : undefined,
       lineTotal: Math.round(lineTotal * 100) / 100,
       components,
       is_pizza: Boolean(product.is_pizza),
@@ -149,19 +150,13 @@ export async function POST(req: NextRequest) {
 
   const minOrderGlobal = Number(settings.min_order_global || "0");
   if (minOrderGlobal > 0 && subtotal < minOrderGlobal) {
-    return NextResponse.json(
-      { error: `Минималната поръчка е ${minOrderGlobal.toFixed(2)} €` },
-      { status: 400 }
-    );
+    return errJson(`Минималната поръчка е ${minOrderGlobal.toFixed(2)} €`, 400);
   }
 
   if (data.requested_time) {
     const [reqDate, reqTime] = data.requested_time.split(" ");
     if (!isValidDeliverySlot(reqDate, reqTime, new Date(), settings.opening_time, settings.closing_time)) {
-      return NextResponse.json(
-        { error: "Невалиден или вече отминал час за доставка" },
-        { status: 400 }
-      );
+      return errJson("Невалиден или вече отминал час за доставка", 400);
     }
   }
 
@@ -178,7 +173,7 @@ export async function POST(req: NextRequest) {
   if (data.promo_code) {
     const result = await validatePromotion(data.promo_code, subtotal);
     if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return errJson(result.error, 400);
     }
     discount = result.discount;
     promoCode = result.promotion.code;
@@ -215,6 +210,7 @@ export async function POST(req: NextRequest) {
     notes: data.notes,
     customer_id: customerSession?.customerId ?? null,
     requested_time: data.requested_time ?? null,
+    locale,
     email: data.email ?? "",
   });
 
@@ -239,12 +235,9 @@ export async function POST(req: NextRequest) {
 
   if (data.payment_method === "stripe") {
     if (!settings.stripe_secret_key) {
-      return NextResponse.json(
-        {
-          error:
-            "Картовото плащане онлайн все още не е конфигурирано. Моля, изберете наложен платеж.",
-        },
-        { status: 400 }
+      return errJson(
+        "Картовото плащане онлайн все още не е конфигурирано. Моля, изберете наложен платеж.",
+        400
       );
     }
     try {
@@ -265,7 +258,9 @@ export async function POST(req: NextRequest) {
             price_data: {
               currency: "eur",
               unit_amount: Math.round(total * 100),
-              product_data: { name: `Поръчка ${order.order_number} — ${settings.site_name}` },
+              product_data: {
+                name: `${locale === "en" ? "Order" : "Поръчка"} ${order.order_number} — ${settings.site_name}`,
+              },
             },
             quantity: 1,
           },
@@ -278,10 +273,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ orderNumber: order.order_number, redirectUrl: session.url });
     } catch (err) {
       console.error("Stripe error", err);
-      return NextResponse.json(
-        { error: "Грешка при създаване на плащане. Опитайте отново." },
-        { status: 500 }
-      );
+      return errJson("Грешка при създаване на плащане. Опитайте отново.", 500);
     }
   }
 

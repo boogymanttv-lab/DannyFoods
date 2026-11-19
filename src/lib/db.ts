@@ -413,6 +413,10 @@ async function runMigrations() {
     `ALTER TABLE orders ADD COLUMN IF NOT EXISTS review_reminder_sent_at TEXT`,
     []
   );
+  await rawQuery(
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'bg'`,
+    []
+  );
 
   await rawQuery(
     `ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_en TEXT NOT NULL DEFAULT ''`,

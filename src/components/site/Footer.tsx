@@ -1,20 +1,24 @@
 import Link from "next/link";
+import { getLocale } from "@/lib/i18n/locale";
+import { translate, type DictKey } from "@/lib/i18n/dict";
 
-const HELP_LINKS = [
-  { label: "Свържете се с нас", href: "/contact" },
-  { label: "Условия за ползване", href: "/terms" },
+const HELP_LINKS: { key: DictKey; href: string }[] = [
+  { key: "footer.contact", href: "/contact" },
+  { key: "footer.terms", href: "/terms" },
 ];
 
-const INFO_LINKS = [
-  { label: "Оферти", href: "/oferti" },
-  { label: "Зони за доставка", href: "/zones" },
-  { label: "Алергени", href: "/allergens" },
-  { label: "Политика за защита на личните данни", href: "/privacy" },
+const INFO_LINKS: { key: DictKey; href: string }[] = [
+  { key: "footer.offers", href: "/oferti" },
+  { key: "footer.zones", href: "/zones" },
+  { key: "footer.allergens", href: "/allergens" },
+  { key: "footer.privacy", href: "/privacy" },
 ];
 
-const ABOUT_LINKS = [{ label: "Кандидатстване за работа", href: "/careers" }];
+const ABOUT_LINKS: { key: DictKey; href: string }[] = [
+  { key: "footer.careers", href: "/careers" },
+];
 
-export function Footer({
+export async function Footer({
   siteName,
   phone,
   address,
@@ -34,13 +38,15 @@ export function Footer({
   companyEik?: string;
 }) {
   const hasSocial = Boolean(facebookUrl || instagramUrl);
+  const locale = await getLocale();
+  const t = (key: DictKey) => translate(locale, key);
 
   return (
     <footer className="mt-16 bg-accent-dark text-white/90 pb-24 md:pb-8">
       <div className="mx-auto max-w-6xl px-4 pt-10">
         <h3 className="font-display font-extrabold text-lg text-white">{siteName}</h3>
         <p className="text-sm text-white/60 mt-1 max-w-md">
-          Пица, дюнери, бургери, сандвичи и джобове с доставка само в град Варна.
+          {t("footer.tagline")}
         </p>
         <p className="text-sm text-white/50 mt-1">
           📍 {address} &nbsp;·&nbsp; 🕒 {workingHours}
@@ -48,9 +54,9 @@ export function Footer({
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-10 grid gap-8 sm:grid-cols-3 border-t border-white/10 mt-8">
-        <FooterColumn title="Нека да помогнем" links={HELP_LINKS} />
-        <FooterColumn title="Полезна информация" links={INFO_LINKS} />
-        <FooterColumn title="Опознай ни" links={ABOUT_LINKS} />
+        <FooterColumn title={t("footer.help")} links={HELP_LINKS.map((l) => ({ label: t(l.key), href: l.href }))} />
+        <FooterColumn title={t("footer.info")} links={INFO_LINKS.map((l) => ({ label: t(l.key), href: l.href }))} />
+        <FooterColumn title={t("footer.about")} links={ABOUT_LINKS.map((l) => ({ label: t(l.key), href: l.href }))} />
       </div>
 
       <div className="border-t border-white/10 py-5">
@@ -81,7 +87,7 @@ export function Footer({
 
       <div className="border-t border-white/10 py-4 text-center text-xs text-white/40 space-y-0.5">
         <p>
-          © {new Date().getFullYear()} {siteName}. Всички права запазени. Created by:{" "}
+          © {new Date().getFullYear()} {siteName}. {t("footer.rights")} Created by:{" "}
           <a
             href="https://cfxwebstudio.xyz"
             target="_blank"
@@ -94,7 +100,7 @@ export function Footer({
         {(companyLegalName || companyEik) && (
           <p>
             {companyLegalName}
-            {companyEik && <> · ЕИК {companyEik}</>}
+            {companyEik && <> · {t("footer.eik")} {companyEik}</>}
           </p>
         )}
       </div>

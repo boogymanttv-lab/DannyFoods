@@ -14,11 +14,11 @@ function parseIngredients(description: string): string[] {
     .filter(Boolean);
 }
 
-const SAUCE_KEYWORDS = ["кетчуп", "майонеза"];
+const SAUCE_KEYWORDS = ["кетчуп", "майонеза", "ketchup", "mayonnaise", "mayo"];
 
 function isSauceName(name: string): boolean {
   const lower = name.toLowerCase();
-  return lower.includes("сос") || SAUCE_KEYWORDS.some((kw) => lower.includes(kw));
+  return lower.includes("сос") || lower.includes("sauce") || SAUCE_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 export function ProductModal({
@@ -130,7 +130,7 @@ export function ProductModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <button
-        aria-label="Затвори"
+        aria-label={t("modal.close")}
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
@@ -149,7 +149,7 @@ export function ProductModal({
           <button
             onClick={onClose}
             className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 grid place-items-center text-lg shadow"
-            aria-label="Затвори"
+            aria-label={t("modal.close")}
           >
             ✕
           </button>
@@ -339,7 +339,7 @@ export function ProductModal({
                     </span>
                     <button
                       onClick={() => handleAddSuggestion(s)}
-                      aria-label={`Добави ${s.name}`}
+                      aria-label={`${t("modal.add")} ${s.name}`}
                       className="h-7 w-7 rounded-full bg-brand text-white grid place-items-center font-bold text-sm shrink-0"
                     >
                       +

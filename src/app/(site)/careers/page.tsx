@@ -1,10 +1,15 @@
+import { getLocale } from "@/lib/i18n/locale";
+import { localizeTree } from "@/lib/i18n/tree";
+import { localizedTitle } from "@/lib/i18n/meta";
 import { getSettings } from "@/lib/repos/settings";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Кандидатстване за работа" };
+export async function generateMetadata() {
+  return localizedTitle("Кандидатстване за работа");
+}
 
-export default async function CareersPage() {
+async function CareersPageBody() {
   const settings = await getSettings();
   const phoneHref = settings.phone.replace(/\s/g, "");
 
@@ -53,4 +58,9 @@ export default async function CareersPage() {
       </div>
     </div>
   );
+}
+
+export default async function CareersPage() {
+  const locale = await getLocale();
+  return localizeTree(await CareersPageBody(), locale);
 }

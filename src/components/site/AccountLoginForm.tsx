@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/LocaleProvider";
 
 export function AccountLoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +23,7 @@ export function AccountLoginForm({ redirectTo }: { redirectTo: string }) {
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error ?? "Грешка при вход");
+      setError(data.error ?? t("auth.loginError"));
       setLoading(false);
       return;
     }
@@ -34,7 +36,7 @@ export function AccountLoginForm({ redirectTo }: { redirectTo: string }) {
       <input
         type="email"
         required
-        placeholder="Имейл"
+        placeholder={t("auth.emailPh")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
@@ -42,7 +44,7 @@ export function AccountLoginForm({ redirectTo }: { redirectTo: string }) {
       <input
         type="password"
         required
-        placeholder="Парола"
+        placeholder={t("auth.passwordPh")}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm"
@@ -52,7 +54,7 @@ export function AccountLoginForm({ redirectTo }: { redirectTo: string }) {
         disabled={loading}
         className="w-full bg-brand text-white rounded-xl py-3 font-bold hover:bg-brand-dark transition-colors disabled:opacity-60"
       >
-        {loading ? "Вход..." : "Вход"}
+        {loading ? t("auth.loggingIn") : t("auth.login")}
       </button>
     </form>
   );

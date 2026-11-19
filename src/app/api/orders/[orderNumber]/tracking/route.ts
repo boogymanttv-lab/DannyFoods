@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errJson } from "@/lib/i18n/api";
 import { getOrderByNumber } from "@/lib/repos/orders";
 import { getCourier } from "@/lib/repos/couriers";
 
@@ -9,7 +10,7 @@ export async function GET(
   const { orderNumber } = await params;
   const order = await getOrderByNumber(orderNumber);
   if (!order) {
-    return NextResponse.json({ error: "Поръчката не е намерена" }, { status: 404 });
+    return await errJson("Поръчката не е намерена", 404);
   }
 
   let courierLocation: { lat: number; lng: number; name: string } | null = null;

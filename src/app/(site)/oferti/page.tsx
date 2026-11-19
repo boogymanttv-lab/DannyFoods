@@ -5,17 +5,20 @@ import { AddComboButton } from "@/components/site/AddComboButton";
 import { formatPrice } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/locale";
 import { translate, type DictKey } from "@/lib/i18n/dict";
-import { localizePromoCard } from "@/lib/i18n/content";
+import { localizePromoCardsDeep } from "@/lib/i18n/content";
+import { localizedTitle } from "@/lib/i18n/meta";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Оферти" };
+export async function generateMetadata() {
+  return localizedTitle("Оферти");
+}
 
 export default async function OffersPage() {
   const locale = await getLocale();
   const t = (key: DictKey) => translate(locale, key);
   const cardsRaw = await listActivePromoCards();
-  const cards = cardsRaw.map((c) => localizePromoCard(c, locale));
+  const cards = await localizePromoCardsDeep(cardsRaw, locale);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">

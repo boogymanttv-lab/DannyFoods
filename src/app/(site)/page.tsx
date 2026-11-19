@@ -18,7 +18,12 @@ import {
 } from "@/lib/delivery-estimate";
 import { getLocale } from "@/lib/i18n/locale";
 import { translate, type DictKey } from "@/lib/i18n/dict";
-import { localizeCategory, localizeProduct, localizePromoCard } from "@/lib/i18n/content";
+import {
+  localizeCategoriesDeep,
+  localizeFields,
+  localizeProductsDeep,
+  localizePromoCardsDeep,
+} from "@/lib/i18n/content";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +32,19 @@ export default async function HomePage() {
   const t = (key: DictKey) => translate(locale, key);
   const categoriesRaw = await listCategories();
   const productsRaw = await listProducts();
-  const settings = await getSettings();
+  const settingsRaw = await getSettings();
+  const settings = {
+    ...settingsRaw,
+    ...(await localizeFields(
+      { tagline: settingsRaw.tagline, address: settingsRaw.address },
+      locale
+    )),
+  };
   const ratings = await getRatingSummaries();
   const promoCardsRaw = await listActivePromoCards();
-  const categories = categoriesRaw.map((c) => localizeCategory(c, locale));
-  const products = productsRaw.map((p) => localizeProduct(p, locale));
-  const promoCards = promoCardsRaw.map((c) => localizePromoCard(c, locale));
+  const categories = await localizeCategoriesDeep(categoriesRaw, locale);
+  const products = await localizeProductsDeep(productsRaw, locale);
+  const promoCards = await localizePromoCardsDeep(promoCardsRaw, locale);
 
   const openNow = isShopOpenNow(new Date(), settings.opening_time, settings.closing_time);
   const combinedEstimate = combineEstimates(
@@ -54,7 +66,7 @@ export default async function HomePage() {
     address: {
       "@type": "PostalAddress",
       streetAddress: settings.address,
-      addressLocality: "Варна",
+      addressLocality: locale === "en" ? "Varna" : "Варна",
       addressCountry: "BG",
     },
     servesCuisine: ["Pizza", "Fast Food", "Bulgarian"],

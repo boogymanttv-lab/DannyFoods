@@ -1,4 +1,9 @@
+"use client";
+
+import { useT } from "@/lib/i18n/LocaleProvider";
+
 export function GoogleButton({ redirectTo }: { redirectTo: string }) {
+  const t = useT();
   return (
     <a
       href={`/api/account/google/start?redirect=${encodeURIComponent(redirectTo)}`}
@@ -22,7 +27,7 @@ export function GoogleButton({ redirectTo }: { redirectTo: string }) {
           d="M12 4.75c2.25 0 3.77.97 4.64 1.79l3.38-3.3C17.94 1.2 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.6l3.86 3c.97-2.9 3.67-5 6.85-5z"
         />
       </svg>
-      Вход с Google
+      {t("google.login")}
     </a>
   );
 }

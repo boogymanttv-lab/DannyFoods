@@ -42,7 +42,8 @@ export function isShopOpenNow(now: Date, openingTime: string, closingTime: strin
 export function generateDeliverySlots(
   now: Date,
   openingTime: string,
-  closingTime: string
+  closingTime: string,
+  locale: "bg" | "en" = "bg"
 ): DeliverySlot[] {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const open = toMinutes(openingTime);
@@ -58,13 +59,14 @@ export function generateDeliverySlots(
   }
 
   const isToday = dateKey(targetDate) === dateKey(now);
-  const dayLabel = isToday ? "Днес" : "Утре";
+  const dayLabel =
+    locale === "en" ? (isToday ? "Today" : "Tomorrow") : isToday ? "Днес" : "Утре";
   const key = dateKey(targetDate);
 
   const slots: DeliverySlot[] = [];
   for (let t = start; t < close; t += 5) {
     const time = formatMinutes(t);
-    slots.push({ date: key, time, label: `${dayLabel}, ${time} ч.` });
+    slots.push({ date: key, time, label: locale === "en" ? `${dayLabel}, ${time}` : `${dayLabel}, ${time} ч.` });
   }
   return slots;
 }
@@ -81,9 +83,9 @@ export function isValidDeliverySlot(
   );
 }
 
-export function formatRequestedTime(value: string): string {
+export function formatRequestedTime(value: string, locale: "bg" | "en" = "bg"): string {
   const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(value);
   if (!match) return value;
   const [, y, m, d, time] = match;
-  return `${d}.${m}.${y}, ${time} ч.`;
+  return locale === "en" ? `${d}.${m}.${y}, ${time}` : `${d}.${m}.${y}, ${time} ч.`;
 }
