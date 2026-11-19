@@ -182,7 +182,7 @@ async function seedCompanyLegalInfo() {
     company_vat: "BG204914956",
     company_registered_address:
       "гр. Варна 9009, ж.к. Младост, ж.к. „Трошево“ бл. 51, вх. Б, ет. 2, ап. 25",
-    site_domain: "cfxwebstudio.xyz",
+    site_domain: "foodsdany.bg",
     contact_email: "info@dannyfoods.bg",
   };
   const existing = new Set(

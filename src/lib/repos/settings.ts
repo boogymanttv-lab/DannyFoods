@@ -42,7 +42,7 @@ export const DEFAULT_SETTINGS = {
   pizza_stripe_account_id: "",
 
   resend_api_key: "",
-  notification_from_email: "DannyFoods <поръчки@cfxwebstudio.xyz>",
+  notification_from_email: "DannyFoods <поръчки@foodsdany.bg>",
 
   deepl_api_key: "",
 };
