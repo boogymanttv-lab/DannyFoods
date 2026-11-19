@@ -253,11 +253,6 @@ export const DICT = {
   "acc.reorder": { bg: "🔁 Поръчай отново", en: "🔁 Order again" },
   "acc.skippedOne": { bg: "{names} вече не е наличен и не беше добавен в количката.", en: "{names} is no longer available and was not added to the cart." },
   "acc.skippedMany": { bg: "{names} вече не са налични и не бяха добавени в количката.", en: "{names} are no longer available and were not added to the cart." },
-  "splash.pizza": { bg: "Пица", en: "Pizza" },
-  "splash.doner": { bg: "Дюнер", en: "Doner" },
-  "splash.burger": { bg: "Бургер", en: "Burger" },
-  "splash.sandwich": { bg: "Сандвич", en: "Sandwich" },
-  "splash.loading": { bg: "Зареждане", en: "Loading" },
   "cookie.text": { bg: "Използваме бисквитки за анализ на трафика и реклами. Приемате ли това? Можете да прочетете повече в", en: "We use cookies for traffic analytics and advertising. Do you accept? You can read more in the" },
   "cookie.privacy": { bg: "Политиката за защита на личните данни", en: "Privacy Policy" },
   "cookie.decline": { bg: "Отказвам", en: "Decline" },
@@ -300,6 +295,10 @@ export const DICT = {
   "cart.added": { bg: "Вие добавихте", en: "You added" },
   "cart.viewCart": { bg: "Количка", en: "View cart" },
   "promo.add": { bg: "Добави", en: "Add" },
+  "splash.msg1": { bg: "Подготвяме менюто...", en: "Preparing the menu..." },
+  "splash.msg2": { bg: "Зареждаме най-вкусното...", en: "Loading the tastiest bites..." },
+  "splash.msg3": { bg: "Приготвяме всичко за теб...", en: "Getting everything ready for you..." },
+  "splash.msg4": { bg: "Почти сме готови!", en: "Almost ready!" },
 } as const satisfies Record<string, Record<Locale, string>>;
 
 export type DictKey = keyof typeof DICT;
