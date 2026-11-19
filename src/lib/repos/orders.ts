@@ -201,6 +201,16 @@ export async function countActiveOrders(): Promise<number> {
   return Number(row.c);
 }
 
+export async function deleteOrders(ids: number[]): Promise<number> {
+  const db = await getDb();
+  let deleted = 0;
+  for (const id of ids) {
+    const info = await db.prepare("DELETE FROM orders WHERE id = @id").run({ id });
+    deleted += Number(info.changes);
+  }
+  return deleted;
+}
+
 export async function updateOrderStatus(id: number, status: OrderStatus) {
   const db = await getDb();
   await db
