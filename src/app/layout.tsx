@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = await translateOne(settings.tagline, locale);
   const domain = settings.site_domain;
   const base = domain ? new URL(`https://${domain}`) : undefined;
+  const logo = settings.logo_url;
 
   return {
     ...(base && { metadataBase: base }),
@@ -21,7 +22,10 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s — ${settings.site_name}`,
     },
     description,
+    alternates: { canonical: "./" },
+    ...(logo && { icons: { icon: logo, shortcut: logo, apple: logo } }),
     openGraph: {
+      ...(logo && { images: [{ url: logo, alt: settings.site_name }] }),
       title,
       description,
       siteName: settings.site_name,
@@ -29,7 +33,8 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
     },
     twitter: {
-      card: "summary",
+      card: logo ? "summary_large_image" : "summary",
+      ...(logo && { images: [logo] }),
       title,
       description,
     },

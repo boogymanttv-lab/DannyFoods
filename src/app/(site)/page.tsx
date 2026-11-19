@@ -56,6 +56,7 @@ export default async function HomePage() {
   const kitchenStatus = { tier: kitchenTier, label: t(`kitchen.${kitchenTier}` as DictKey) };
 
   const domain = settings.site_domain;
+  const sameAs = [settings.facebook_url, settings.instagram_url].filter(Boolean);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
@@ -63,6 +64,8 @@ export default async function HomePage() {
     description: settings.tagline,
     telephone: settings.phone,
     ...(domain && { url: `https://${domain}` }),
+    ...(settings.logo_url && { image: settings.logo_url, logo: settings.logo_url }),
+    ...(sameAs.length > 0 && { sameAs }),
     address: {
       "@type": "PostalAddress",
       streetAddress: settings.address,
