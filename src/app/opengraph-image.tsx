@@ -13,7 +13,7 @@ async function loadLogo(url: string): Promise<string | null> {
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return null;
     const type = res.headers.get("content-type") ?? "image/png";
-    if (!type.startsWith("image/") || type.includes("svg")) return null;
+    if (!/^image\/(png|jpe?g|gif)/.test(type)) return null;
     const buf = Buffer.from(await res.arrayBuffer());
     return `data:${type};base64,${buf.toString("base64")}`;
   } catch {
@@ -21,11 +21,7 @@ async function loadLogo(url: string): Promise<string | null> {
   }
 }
 
-export default async function OpengraphImage() {
-  const settings = await getSettings();
-  const logo = await loadLogo(settings.logo_url);
-  const name = settings.site_name;
-
+function card(name: string, logo: string | null) {
   return new ImageResponse(
     (
       <div
@@ -63,4 +59,25 @@ export default async function OpengraphImage() {
     ),
     { ...size }
   );
+}
+
+async function toPng(name: string, logo: string | null): Promise<Response> {
+  const buf = await card(name, logo).arrayBuffer();
+  return new Response(buf, {
+    headers: {
+      "content-type": "image/png",
+      "cache-control": "public, max-age=3600, s-maxage=3600",
+    },
+  });
+}
+
+export default async function OpengraphImage() {
+  const settings = await getSettings();
+  const name = settings.site_name;
+  const logo = await loadLogo(settings.logo_url);
+  try {
+    return await toPng(name, logo);
+  } catch {
+    return await toPng(name, null);
+  }
 }
