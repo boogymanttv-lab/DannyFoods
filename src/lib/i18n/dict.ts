@@ -299,10 +299,11 @@ export const DICT = {
   "cart.added": { bg: "Вие добавихте", en: "You added" },
   "cart.viewCart": { bg: "Количка", en: "View cart" },
   "promo.add": { bg: "Добави", en: "Add" },
-  "splash.msg1": { bg: "Подготвяме менюто...", en: "Preparing the menu..." },
-  "splash.msg2": { bg: "Зареждаме най-вкусното...", en: "Loading the tastiest bites..." },
-  "splash.msg3": { bg: "Приготвяме всичко за теб...", en: "Getting everything ready for you..." },
-  "splash.msg4": { bg: "Почти сме готови!", en: "Almost ready!" },
+  "splash.pizza": { bg: "Пица", en: "Pizza" },
+  "splash.doner": { bg: "Дюнер", en: "Doner" },
+  "splash.burger": { bg: "Бургер", en: "Burger" },
+  "splash.sandwich": { bg: "Сандвич", en: "Sandwich" },
+  "splash.loading": { bg: "Зареждане", en: "Loading" },
 } as const satisfies Record<string, Record<Locale, string>>;
 
 export type DictKey = keyof typeof DICT;
