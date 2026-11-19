@@ -47,7 +47,7 @@ export function MenuBrowser({
 
   return (
     <div id="menu">
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+      <div className="sticky top-16 md:top-20 z-30 bg-background/95 backdrop-blur border-b border-border shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
         <div className="mx-auto max-w-6xl px-4 py-3 flex flex-nowrap gap-2 overflow-x-auto no-scrollbar">
           {categories.map((c) => (
             <button

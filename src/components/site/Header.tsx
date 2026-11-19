@@ -21,14 +21,14 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-b from-accent-dark to-[#141414] text-white border-b border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
-      <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+      <div className="mx-auto max-w-6xl px-4 h-16 md:h-20 flex items-center justify-between gap-4">
+        <Link href="/" className="flex items-center gap-3 shrink-0">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrl}
               alt={siteName}
-              className="h-10 w-auto max-w-[150px] rounded-md object-contain"
+              className="h-12 md:h-16 w-auto max-w-[220px] rounded-lg object-contain"
             />
           ) : (
             <span className="h-10 w-10 rounded-full bg-gradient-to-br from-brand to-brand-dark text-white grid place-items-center font-display font-extrabold text-lg ring-2 ring-gold/30 shadow-[0_0_14px_rgba(225,29,46,0.45)]">
