@@ -25,7 +25,6 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "./" },
     ...(logo && { icons: { icon: logo, shortcut: logo, apple: logo } }),
     openGraph: {
-      ...(logo && { images: [{ url: logo, alt: settings.site_name }] }),
       title,
       description,
       siteName: settings.site_name,
@@ -33,8 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
     },
     twitter: {
-      card: logo ? "summary_large_image" : "summary",
-      ...(logo && { images: [logo] }),
+      card: "summary_large_image",
       title,
       description,
     },
