@@ -28,7 +28,7 @@ export function Header({
             <img
               src={logoUrl}
               alt={siteName}
-              className="h-10 w-10 rounded-full object-cover ring-2 ring-gold/40 shadow-[0_0_14px_rgba(245,166,35,0.35)]"
+              className="h-10 w-auto max-w-[150px] rounded-md object-contain"
             />
           ) : (
             <span className="h-10 w-10 rounded-full bg-gradient-to-br from-brand to-brand-dark text-white grid place-items-center font-display font-extrabold text-lg ring-2 ring-gold/30 shadow-[0_0_14px_rgba(225,29,46,0.45)]">
