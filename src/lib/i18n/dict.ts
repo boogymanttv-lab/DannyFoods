@@ -148,6 +148,10 @@ export const DICT = {
     bg: "Възникна грешка при връзката със сървъра.",
     en: "Connection error. Please try again.",
   },
+  "checkout.paymentCancelled": {
+    bg: "Плащането не беше завършено. Поръчката не е платена и не е изпратена. Количката ти е запазена - можеш да опиташ отново.",
+    en: "The payment was not completed. Your order has not been paid or sent. Your cart is saved, so you can try again.",
+  },
   "checkout.invalidPromoCode": { bg: "Невалиден код", en: "Invalid code" },
   "checkout.cartEmptyHint": {
     bg: "Добавете продукти от менюто, за да продължите.",

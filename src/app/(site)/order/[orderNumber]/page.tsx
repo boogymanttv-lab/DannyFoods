@@ -6,6 +6,7 @@ import { getCustomerSession } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
 import { formatRequestedTime } from "@/lib/delivery-slots";
 import { OrderTracking } from "@/components/site/OrderTracking";
+import { ClearCartOnPaid } from "@/components/site/ClearCartOnPaid";
 import { OrderReviewPrompt } from "@/components/site/OrderReviewPrompt";
 import { getLocale } from "@/lib/i18n/locale";
 import { translate, type DictKey } from "@/lib/i18n/dict";
@@ -16,10 +17,13 @@ export const dynamic = "force-dynamic";
 
 export default async function OrderConfirmationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderNumber: string }>;
+  searchParams: Promise<{ paid?: string }>;
 }) {
   const { orderNumber } = await params;
+  const { paid } = await searchParams;
   const order = await getOrderByNumber(orderNumber);
   if (!order) notFound();
   const locale = await getLocale();
@@ -52,6 +56,7 @@ export default async function OrderConfirmationPage({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-14">
+      {paid === "1" && <ClearCartOnPaid />}
       <div className="text-center mb-8">
         <span className="text-5xl">✅</span>
         <h1 className="font-display font-extrabold text-2xl mt-3">{t("order.thankYou")}</h1>

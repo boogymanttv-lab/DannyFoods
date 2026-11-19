@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { CheckoutCancelledNotice } from "@/components/site/CheckoutCancelledNotice";
 import { formatPrice } from "@/lib/format";
 import { useT } from "@/lib/i18n/LocaleProvider";
 import type { DeliverySlot } from "@/lib/delivery-slots";
@@ -52,6 +53,14 @@ export default function CheckoutPage() {
   const [availableSlots, setAvailableSlots] = useState<DeliverySlot[]>([]);
   const [selectedSlotKey, setSelectedSlotKey] = useState("");
   const [shopOpenNow, setShopOpenNow] = useState(true);
+
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => {
+      if (e.persisted) setSubmitting(false);
+    };
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
 
   useEffect(() => {
     fetch("/api/delivery-slots")
@@ -203,6 +212,10 @@ export default function CheckoutPage() {
         setSubmitting(false);
         return;
       }
+      if (/^https?:\/\//.test(data.redirectUrl)) {
+        window.location.assign(data.redirectUrl);
+        return;
+      }
       clear();
       router.push(data.redirectUrl);
     } catch {
@@ -227,6 +240,9 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 grid lg:grid-cols-[1fr_360px] gap-8">
       <div className="space-y-6">
+        <Suspense fallback={null}>
+          <CheckoutCancelledNotice />
+        </Suspense>
         <h1 className="font-display font-extrabold text-2xl">{t("checkout.title")}</h1>
 
         <div className="bg-surface rounded-2xl border border-border p-2 grid grid-cols-2 gap-2">
