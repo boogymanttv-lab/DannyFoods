@@ -15,18 +15,37 @@ function formatMinutes(mins: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
+export const SHOP_TZ = "Europe/Sofia";
+
+const WEEKDAYS: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+const clockFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: SHOP_TZ,
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  weekday: "short",
+});
+
+// The server (Vercel) runs in UTC, so Date#getHours() would be 2-3 hours behind
+// Bulgaria. Always read the wall clock in the shop's timezone instead.
+export function shopClock(d: Date): { dateKey: string; minutes: number; weekday: number } {
+  const p: Record<string, string> = {};
+  for (const part of clockFormatter.formatToParts(d)) p[part.type] = part.value;
+  const hour = parseInt(p.hour, 10) % 24;
+  return {
+    dateKey: `${p.year}-${p.month}-${p.day}`,
+    minutes: hour * 60 + parseInt(p.minute, 10),
+    weekday: WEEKDAYS[p.weekday] ?? 0,
+  };
 }
 
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
+function addDaysToKey(key: string, n: number): string {
+  const [y, m, d] = key.split("-").map((x) => parseInt(x, 10));
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
 function closingMinutes(closingTime: string): number {
@@ -35,7 +54,7 @@ function closingMinutes(closingTime: string): number {
 }
 
 export function isShopOpenNow(now: Date, openingTime: string, closingTime: string): boolean {
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowMinutes = shopClock(now).minutes;
   return nowMinutes >= toMinutes(openingTime) && nowMinutes < closingMinutes(closingTime);
 }
 
@@ -45,23 +64,23 @@ export function generateDeliverySlots(
   closingTime: string,
   locale: "bg" | "en" = "bg"
 ): DeliverySlot[] {
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const clock = shopClock(now);
+  const nowMinutes = clock.minutes;
   const open = toMinutes(openingTime);
   const close = closingMinutes(closingTime);
 
   let start = Math.floor(nowMinutes / 5) * 5 + 5;
-  let targetDate = now;
+  let key = clock.dateKey;
   if (start >= close) {
-    targetDate = addDays(now, 1);
+    key = addDaysToKey(clock.dateKey, 1);
     start = open;
   } else if (start < open) {
     start = open;
   }
 
-  const isToday = dateKey(targetDate) === dateKey(now);
+  const isToday = key === clock.dateKey;
   const dayLabel =
     locale === "en" ? (isToday ? "Today" : "Tomorrow") : isToday ? "Днес" : "Утре";
-  const key = dateKey(targetDate);
 
   const slots: DeliverySlot[] = [];
   for (let t = start; t < close; t += 5) {
