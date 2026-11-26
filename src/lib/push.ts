@@ -1,4 +1,4 @@
-import webpush from "web-push";
+import { sendNotification, setVapidDetails } from "web-push";
 import { getOrder } from "@/lib/repos/orders";
 import { getSettings } from "@/lib/repos/settings";
 import { formatPrice } from "@/lib/format";
@@ -43,7 +43,7 @@ async function ensureConfigured(): Promise<boolean> {
     const settings = await getSettings();
     subject = settings.site_domain ? `https://${settings.site_domain}` : "https://foodsdany.bg";
   }
-  webpush.setVapidDetails(subject, pub, priv);
+  setVapidDetails(subject, pub, priv);
   configured = true;
   return true;
 }
@@ -59,7 +59,7 @@ export async function sendToSubscriptions(
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification(
+        await sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           body,
           { TTL: 15 * 60, urgency: "high", timeout: 8000 }
