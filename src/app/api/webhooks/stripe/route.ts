@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyCouriersForOrder } from "@/lib/push";
 import Stripe from "stripe";
 import { getSettings } from "@/lib/repos/settings";
 import { getOrderByNumber, updateOrderPayment } from "@/lib/repos/orders";
@@ -38,6 +39,9 @@ export async function POST(req: NextRequest) {
         const paidOrder = await getOrderByNumber(orderNumber);
         if (paidOrder) {
           await transferPizzaShareIfNeeded(paidOrder, settings);
+          // If the kitchen already accepted it while payment was pending,
+          // couriers are notified now that it's actually paid.
+          await notifyCouriersForOrder(paidOrder.id);
         }
       }
     }

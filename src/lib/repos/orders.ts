@@ -262,7 +262,8 @@ export async function claimOrder(orderId: number, courierId: number): Promise<bo
   const db = await getDb();
   const info = await db
     .prepare(
-      `UPDATE orders SET courier_id = @courierId, claimed_at = ${NOW_UTC}, updated_at = ${NOW_UTC}
+      `UPDATE orders SET courier_id = @courierId, claimed_at = ${NOW_UTC}, updated_at = ${NOW_UTC},
+         push_courier_id = @courierId
        WHERE id = @orderId AND courier_id IS NULL`
     )
     .run({ orderId, courierId });

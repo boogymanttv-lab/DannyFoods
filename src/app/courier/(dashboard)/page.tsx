@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { playNewOrderChime } from "@/lib/notify-sound";
+import { CourierPushSetup } from "@/components/courier/CourierPushSetup";
 import type { Order, DeliveryZone } from "@/lib/types";
 
 type OrderWithZone = Order & { zone?: DeliveryZone };
@@ -44,10 +45,22 @@ export default function CourierDashboardPage() {
   }
 
   useEffect(() => {
+    // Opened from a "Назначена ти е поръчка" notification → straight to "Моите".
+    if (new URLSearchParams(window.location.search).get("tab") === "mine") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTab("mine");
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const interval = setInterval(load, 10000);
-    return () => clearInterval(interval);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   async function claim(id: number) {
@@ -85,6 +98,7 @@ export default function CourierDashboardPage() {
 
   return (
     <div className="space-y-5">
+      <CourierPushSetup />
       <div className="flex gap-2">
         <TabButton active={tab === "available"} onClick={() => setTab("available")}>
           Свободни ({available.length})

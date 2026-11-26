@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { notifyCouriersForOrder } from "@/lib/push";
 import {
   getOrder,
   updateOrderStatus,
@@ -137,6 +138,13 @@ export async function PATCH(
     if (relevantEstimates.length > 0) {
       await updateOrderEstimate(order.id, combineEstimates(...relevantEstimates));
     }
+  }
+
+  // Kitchen accepted the order or a courier was (re)assigned → push
+  // notification to the courier(s). Runs after the response is sent, so
+  // the kitchen's button reacts instantly.
+  if (body?.status !== undefined || body?.courier_id !== undefined) {
+    after(() => notifyCouriersForOrder(order.id));
   }
 
   return NextResponse.json({ ok: true });

@@ -462,6 +462,33 @@ async function runMigrations() {
        ADD COLUMN IF NOT EXISTS station_other_prep_started_at TEXT`,
     []
   );
+
+  // Web Push for couriers: one row per phone/browser that allowed
+  // notifications, plus two markers on each order so the same order never
+  // triggers the same notification twice.
+  await rawQuery(
+    `CREATE TABLE IF NOT EXISTS push_subscriptions (
+       id SERIAL PRIMARY KEY,
+       courier_id INTEGER NOT NULL REFERENCES couriers(id) ON DELETE CASCADE,
+       endpoint TEXT UNIQUE NOT NULL,
+       p256dh TEXT NOT NULL,
+       auth TEXT NOT NULL,
+       user_agent TEXT NOT NULL DEFAULT '',
+       created_at TEXT NOT NULL DEFAULT (to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI:SS')),
+       last_success_at TEXT
+     )`,
+    []
+  );
+  await rawQuery(
+    `CREATE INDEX IF NOT EXISTS idx_push_subscriptions_courier ON push_subscriptions(courier_id)`,
+    []
+  );
+  await rawQuery(
+    `ALTER TABLE orders
+       ADD COLUMN IF NOT EXISTS push_broadcast_at TEXT,
+       ADD COLUMN IF NOT EXISTS push_courier_id INTEGER`,
+    []
+  );
 }
 
 async function ensureReady(): Promise<void> {

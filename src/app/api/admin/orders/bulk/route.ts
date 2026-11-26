@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { notifyCouriersForOrder } from "@/lib/push";
 import {
   assignCourierByAdmin,
   countActiveOrders,
@@ -83,6 +84,11 @@ export async function PATCH(req: NextRequest) {
     }
     updated += 1;
   }
+
+  // Same courier notifications as for a single order.
+  after(async () => {
+    for (const id of ids) await notifyCouriersForOrder(id);
+  });
 
   return NextResponse.json({ ok: true, updated });
 }

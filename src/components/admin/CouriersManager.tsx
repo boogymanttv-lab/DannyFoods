@@ -20,6 +20,8 @@ export function CouriersManager({ initialCouriers }: { initialCouriers: CourierP
   const [liveLocations, setLiveLocations] = useState<CourierPublic[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
+  const [pushCounts, setPushCounts] = useState<Record<number, number>>({});
+  const [pushConfigured, setPushConfigured] = useState(true);
 
   useEffect(() => {
     async function loadLocations() {
@@ -27,8 +29,23 @@ export function CouriersManager({ initialCouriers }: { initialCouriers: CourierP
       const data = await res.json();
       setLiveLocations(data.couriers ?? []);
     }
+    async function loadPush() {
+      try {
+        const res = await fetch("/api/admin/couriers/push-status", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setPushCounts(data.counts ?? {});
+        setPushConfigured(Boolean(data.configured));
+      } catch {
+        // keep the last known state
+      }
+    }
     loadLocations();
-    const interval = setInterval(loadLocations, 15000);
+    loadPush();
+    const interval = setInterval(() => {
+      loadLocations();
+      loadPush();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -108,6 +125,13 @@ export function CouriersManager({ initialCouriers }: { initialCouriers: CourierP
         </button>
       </div>
 
+      {!pushConfigured && (
+        <p className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+          ⚠️ Известията към куриерите не са активирани: липсват VAPID ключовете във Vercel
+          (Environment Variables).
+        </p>
+      )}
+
       <div>
         <h2 className="font-semibold text-sm text-muted mb-2">
           Живо местоположение ({markers.length} онлайн)
@@ -128,6 +152,15 @@ export function CouriersManager({ initialCouriers }: { initialCouriers: CourierP
                 {c.last_location_at
                   ? ` · последна позиция: ${new Date(c.last_location_at).toLocaleTimeString("bg-BG")}`
                   : " · няма данни за позиция"}
+              </p>
+              <p
+                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  pushCounts[c.id] ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"
+                }`}
+              >
+                {pushCounts[c.id]
+                  ? `🔔 Известия: включени${pushCounts[c.id] > 1 ? ` (${pushCounts[c.id]} устройства)` : ""}`
+                  : "🔕 Известия: изключени"}
               </p>
             </div>
             <div className="flex items-center gap-2">
