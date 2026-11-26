@@ -181,14 +181,31 @@ export function OrdersManager({
 
   // Keep the screen of the kitchen tablet/phone from going to sleep while
   // the orders page is open (where the browser supports it).
+  // Re-requested whenever the page becomes visible again and on every tap
+  // (Safari on iPad only grants it after a tap, and the system drops the
+  // lock whenever the tab is hidden or battery saver kicks in).
   useEffect(() => {
-    let lock: { release: () => Promise<void> } | null = null;
+    type Sentinel = {
+      released: boolean;
+      release: () => Promise<void>;
+      addEventListener: (t: "release", cb: () => void) => void;
+    };
+    let lock: Sentinel | null = null;
+    let pending = false;
     async function requestLock() {
+      if (pending || (lock && !lock.released)) return;
+      const wl = (navigator as unknown as { wakeLock?: { request: (t: "screen") => Promise<Sentinel> } }).wakeLock;
+      if (!wl || document.visibilityState !== "visible") return;
+      pending = true;
       try {
-        const wl = (navigator as unknown as { wakeLock?: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> } }).wakeLock;
-        if (wl && document.visibilityState === "visible") lock = await wl.request("screen");
+        lock = await wl.request("screen");
+        lock.addEventListener("release", () => {
+          lock = null;
+        });
       } catch {
-        // not supported / denied — nothing to do
+        // not supported / denied — the device's own screen timeout applies
+      } finally {
+        pending = false;
       }
     }
     requestLock();
@@ -196,8 +213,10 @@ export function OrdersManager({
       if (document.visibilityState === "visible") requestLock();
     };
     document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("pointerdown", onVisible);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("pointerdown", onVisible);
       lock?.release().catch(() => {});
     };
   }, []);
