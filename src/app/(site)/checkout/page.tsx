@@ -609,25 +609,52 @@ export default function CheckoutPage() {
 
       <aside className="bg-surface rounded-2xl border border-border p-5 h-fit space-y-4">
         <h2 className="font-semibold">{t("checkout.orderSummary")}</h2>
-        <ul className="space-y-2 text-sm max-h-64 overflow-y-auto">
-          {lines.map((l) => (
-            <li key={keyOf(l)} className="flex justify-between gap-2">
-              <span className="text-muted">
-                {l.quantity}× {l.name}
-                {l.sizeLabel ? ` (${l.sizeLabel})` : ""}
-                {l.removedIngredients && l.removedIngredients.length > 0 && (
-                  <span className="block text-brand text-xs">
-                    {t("cart.removedIngredients")}: {l.removedIngredients.join(", ")}
+        <ul className="space-y-3 text-sm max-h-80 overflow-y-auto">
+          {lines.map((l) => {
+            const key = keyOf(l);
+            return (
+              <li key={key} className="space-y-1.5">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted">
+                    {l.name}
+                    {l.sizeLabel ? ` (${l.sizeLabel})` : ""}
+                    {l.extras.length > 0 && (
+                      <span className="block text-xs">+ {l.extras.map((e) => e.name).join(", ")}</span>
+                    )}
+                    {l.removedIngredients && l.removedIngredients.length > 0 && (
+                      <span className="block text-brand text-xs">
+                        {t("cart.removedIngredients")}: {l.removedIngredients.join(", ")}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              <span className="font-semibold shrink-0">
-                {formatPrice(
-                  (l.unitPrice + l.extras.reduce((s, e) => s + e.price, 0)) * l.quantity
-                )}
-              </span>
-            </li>
-          ))}
+                  <span className="font-semibold shrink-0">
+                    {formatPrice(
+                      (l.unitPrice + l.extras.reduce((s, e) => s + e.price, 0)) * l.quantity
+                    )}
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full bg-black/5 px-1">
+                  <button
+                    type="button"
+                    className="h-8 w-8 grid place-items-center font-bold text-base"
+                    onClick={() => updateQuantity(key, l.quantity - 1)}
+                    aria-label="−1"
+                  >
+                    {l.quantity === 1 ? "🗑" : "−"}
+                  </button>
+                  <span className="min-w-6 text-center font-semibold tabular-nums">{l.quantity}</span>
+                  <button
+                    type="button"
+                    className="h-8 w-8 grid place-items-center font-bold text-base"
+                    onClick={() => updateQuantity(key, l.quantity + 1)}
+                    aria-label="+1"
+                  >
+                    +
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="flex gap-2">

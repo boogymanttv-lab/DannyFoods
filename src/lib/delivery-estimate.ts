@@ -1,4 +1,6 @@
-export const DELIVERY_ESTIMATE_OPTIONS = ["15-20", "20-30", "30-40", "40-60"] as const;
+import { shopClock } from "@/lib/delivery-slots";
+
+export const DELIVERY_ESTIMATE_OPTIONS =["15-20", "20-30", "30-40", "40-60"] as const;
 export type DeliveryEstimate = (typeof DELIVERY_ESTIMATE_OPTIONS)[number];
 
 export function estimateLabel(estimate: string, locale: "bg" | "en" = "bg"): string {
@@ -61,8 +63,7 @@ function toMinutes(hhmm: string): number {
 }
 
 export function isBusyAt(rules: BusyHourRule[], date: Date): boolean {
-  const day = date.getDay();
-  const minutes = date.getHours() * 60 + date.getMinutes();
+  const { weekday: day, minutes } = shopClock(date);
   return rules.some((r) => {
     if (!r.days.includes(day)) return false;
     return minutes >= toMinutes(r.start) && minutes < toMinutes(r.end);
