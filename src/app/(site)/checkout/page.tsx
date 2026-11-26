@@ -39,7 +39,7 @@ function slotKey(s: DeliverySlot): string {
 }
 
 export default function CheckoutPage() {
-  const { lines, subtotal, keyOf, clear } = useCart();
+  const { lines, subtotal, keyOf, clear, updateQuantity } = useCart();
   const router = useRouter();
   const t = useT();
 
@@ -197,6 +197,37 @@ export default function CheckoutPage() {
   const total = Math.max(0, subtotal + deliveryFee - discount);
   const meetsMinimum = minOrderGlobal > 0 ? subtotal >= minOrderGlobal : true;
 
+  // Quantities can now be changed right here in the summary, so an applied
+  // promo code is re-checked against the new subtotal (its discount or
+  // minimum may no longer match).
+  useEffect(() => {
+    if (!promoApplied) return;
+    let cancelled = false;
+    const code = promoApplied.code;
+    fetch("/api/promo/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, subtotal }),
+    })
+      .then((res) => res.json().then((data) => ({ res, data })))
+      .then(({ res, data }) => {
+        if (cancelled) return;
+        if (!res.ok || !data.ok) {
+          setPromoApplied(null);
+          setPromoError(data.error ?? t("checkout.invalidPromoCode"));
+          return;
+        }
+        if (data.discount !== promoApplied.discount) {
+          setPromoApplied({ code, discount: data.discount });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
+
   async function applyPromo() {
     setPromoError("");
     if (!promoInput.trim()) return;
@@ -225,7 +256,8 @@ export default function CheckoutPage() {
       return;
     }
     if (!meetsMinimum) {
-      setSubmitError(`${t("checkout.minOrderNotice")} ${minOrderGlobal.toFixed(2)} €`);
+      // The minimum-order notice is already shown above the button — no
+      // need to repeat the same sentence a second time.
       return;
     }
     setSubmitting(true);
