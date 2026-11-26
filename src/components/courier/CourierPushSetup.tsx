@@ -26,6 +26,12 @@ function isIos() {
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+// Chrome on iPhone/iPad ("CriOS" in the user agent) — its Share button sits
+// in the address bar, not in a bottom toolbar like Safari's.
+function isIosChrome() {
+  return typeof navigator !== "undefined" && /CriOS/i.test(navigator.userAgent);
+}
+
 function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -215,10 +221,17 @@ export function CourierPushSetup() {
       {state === "ios-install" && (
         <div className="text-sm text-red-900 space-y-1">
           <p className="font-bold">📲 На iPhone известията работят само от иконата на началния екран:</p>
-          <p>1. Отвори тази страница в Safari.</p>
-          <p>2. Натисни бутона „Сподели“ (квадратче със стрелка нагоре).</p>
-          <p>3. Избери „Добави към началния екран“ → „Добави“.</p>
-          <p>4. Отвори „Куриер“ от новата икона, влез и натисни „Включи известия“.</p>
+          {isIosChrome() ? (
+            <>
+              <p>1. Натисни бутона „Сподели“ (квадратче със стрелка нагоре) горе вдясно до адреса.</p>
+              <p className="text-xs">Ако не го виждаш: ⋯ (долу вдясно) → „Сподели“.</p>
+            </>
+          ) : (
+            <p>1. Натисни бутона „Сподели“ (квадратче със стрелка нагоре) в долната лента.</p>
+          )}
+          <p>2. Превърти надолу и избери „Добави към началния екран“ → „Добави“.</p>
+          <p>3. Отвори „Куриер“ от новата икона, влез и натисни „Включи известия“.</p>
+          <p className="text-xs">Нужен е iOS 16.4 или по-нов (Настройки → Общи → Информация).</p>
         </div>
       )}
       {state === "denied" && (
