@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { formatRequestedTime } from "@/lib/delivery-slots";
-import { playNewOrderChime } from "@/lib/notify-sound";
+import { SOS_PATTERN_MS, isAudioReady, playSosAlarm, unlockAudio } from "@/lib/notify-sound";
+import { shopClock } from "@/lib/delivery-slots";
 import {
   DELIVERY_ESTIMATE_OPTIONS,
   combineEstimates,
@@ -86,38 +87,222 @@ export function OrdersManager({
   const [timeSuggestion, setTimeSuggestion] = useState<DeliveryEstimate>("15-20");
   const [loadSuggestion, setLoadSuggestion] = useState<DeliveryEstimate>("15-20");
   const suggestedEstimate = combineEstimates(timeSuggestion, loadSuggestion);
-  // Tracks every order id already seen across polls (regardless of the
-  // current status filter) so a genuinely new order — not just a filter
-  // switch surfacing older ones — is what triggers the chime. Stays null
-  // until the very first load resolves, so opening the page never plays a
-  // sound for orders that were already sitting there.
-  const seenOrderIdsRef = useRef<Set<number> | null>(null);
+  // Which working day is shown. "" = always today (Bulgarian time), so at
+  // midnight the list switches to the new day on its own. Only the owner
+  // view can pick an older day; stations always see today.
+  const [day, setDay] = useState<string>("");
+  const [today, setToday] = useState<string>(() => shopClock(new Date()).dateKey);
+  // Today's orders are always fetched (even while the owner looks at an
+  // older day) so the alarm never misses a new order.
+  const [todayOrders, setTodayOrders] = useState<Order[]>([]);
+  const [connectionError, setConnectionError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [audioReady, setAudioReady] = useState(false);
+  // Orders someone already opened on this device — the alarm stops for them.
+  const [acked, setAcked] = useState<Set<number>>(() => readAcked());
+  // Bumped on every button press. A poll that started before the press is
+  // thrown away when it returns, so it can't overwrite what was just
+  // clicked with stale data (that used to make buttons look like they
+  // "didn't work" and orders briefly vanish or jump back).
+  const mutationVersionRef = useRef(0);
+  const loadingRef = useRef(false);
+  const dayRef = useRef(day);
+  useEffect(() => {
+    dayRef.current = day;
+  }, [day]);
+  const viewingDay = day || today;
+
+  async function fetchDay(d: string | null): Promise<{ orders: Order[]; today: string } | null> {
+    const url = d ? `/api/admin/orders?day=${d}` : "/api/admin/orders";
+    const res = await fetch(url, { cache: "no-store" });
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("auth");
+    }
+    if (!res.ok) throw new Error("http");
+    const data = await res.json();
+    if (!Array.isArray(data.orders)) throw new Error("bad");
+    return { orders: data.orders as Order[], today: String(data.today ?? "") };
+  }
 
   async function load() {
-    setLoading(true);
-    const url = filter ? `/api/admin/orders?status=${filter}` : "/api/admin/orders";
-    const res = await fetch(url);
-    const data = await res.json();
-    const fetched: Order[] = data.orders ?? [];
-    const seen = seenOrderIdsRef.current;
-    if (seen === null) {
-      seenOrderIdsRef.current = new Set(fetched.map((o) => o.id));
-    } else {
-      const hasNewOrder = fetched.some((o) => !seen.has(o.id));
-      if (hasNewOrder) playNewOrderChime();
-      for (const o of fetched) seen.add(o.id);
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    const versionAtStart = mutationVersionRef.current;
+    const requestedDay = dayRef.current;
+    try {
+      const todayData = await fetchDay(null);
+      const dayData =
+        requestedDay && requestedDay !== todayData?.today ? await fetchDay(requestedDay) : todayData;
+      // Something was clicked (or another day picked) while this request was
+      // in flight — its data is stale, so skip it and fetch again.
+      if (dayRef.current !== requestedDay) {
+        setTimeout(load, 0);
+        return;
+      }
+      if (mutationVersionRef.current !== versionAtStart) return;
+      if (todayData?.today) setToday(todayData.today);
+      setTodayOrders(todayData?.orders ?? []);
+      setOrders(dayData?.orders ?? []);
+      setConnectionError("");
+    } catch (e) {
+      // Keep the last good list on screen instead of wiping it — a failed
+      // request used to replace everything with an empty list.
+      setConnectionError(
+        e instanceof Error && e.message === "auth"
+          ? "Сесията изтече. Презареди страницата и влез отново, иначе няма да виждаш нови поръчки!"
+          : "Няма връзка със сървъра. Опитваме отново..."
+      );
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
     }
-    setOrders(fetched);
-    setLoading(false);
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: initial fetch + polling refresh
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
+    const interval = setInterval(load, 10000);
+    // Tablets/phones pause timers in the background or when the screen
+    // dims; refresh immediately when the page becomes visible again.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("online", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("online", onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [day]);
+
+  // Keep the screen of the kitchen tablet/phone from going to sleep while
+  // the orders page is open (where the browser supports it).
+  useEffect(() => {
+    let lock: { release: () => Promise<void> } | null = null;
+    async function requestLock() {
+      try {
+        const wl = (navigator as unknown as { wakeLock?: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> } }).wakeLock;
+        if (wl && document.visibilityState === "visible") lock = await wl.request("screen");
+      } catch {
+        // not supported / denied — nothing to do
+      }
+    }
+    requestLock();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") requestLock();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      lock?.release().catch(() => {});
+    };
+  }, []);
+
+  // Browsers block sound until the page is clicked once. Any click anywhere
+  // on the page unlocks it; until then a big red button asks for it.
+  useEffect(() => {
+    const check = () => setAudioReady(isAudioReady());
+    const onClick = () => {
+      unlockAudio().then(check);
+    };
+    unlockAudio().then(check);
+    document.addEventListener("pointerdown", onClick);
+    document.addEventListener("keydown", onClick);
+    const interval = setInterval(check, 3000);
+    return () => {
+      document.removeEventListener("pointerdown", onClick);
+      document.removeEventListener("keydown", onClick);
+      clearInterval(interval);
+    };
+  }, []);
+
+  function isForThisStation(order: Order) {
+    if (station === "all") return true;
+    const items: OrderItem[] = JSON.parse(order.items_json);
+    return station === "pizza" ? items.some((i) => i.is_pizza) : items.some((i) => !i.is_pizza);
+  }
+
+  // Orders that keep the SOS alarm going: brand new, not yet opened on this
+  // device, belonging to this station. Card payments that haven't been paid
+  // yet don't count — the customer may still be on the Stripe page.
+  const alarmOrders = todayOrders.filter(
+    (o) =>
+      o.status === "new" &&
+      !acked.has(o.id) &&
+      !(o.payment_method === "stripe" && o.payment_status !== "paid") &&
+      isForThisStation(o)
+  );
+  const alarmOn = alarmOrders.length > 0;
+
+  useEffect(() => {
+    if (!alarmOn) return;
+    playSosAlarm();
+    const interval = setInterval(playSosAlarm, SOS_PATTERN_MS);
+    const originalTitle = document.title;
+    let flip = false;
+    const titleInterval = setInterval(() => {
+      flip = !flip;
+      document.title = flip ? "🚨 НОВА ПОРЪЧКА!" : originalTitle;
+    }, 800);
+    return () => {
+      clearInterval(interval);
+      clearInterval(titleInterval);
+      document.title = originalTitle;
+    };
+  }, [alarmOn]);
+
+  function acknowledge(id: number) {
+    setAcked((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      writeAcked(next);
+      return next;
+    });
+  }
+
+  function openOrder(id: number) {
+    acknowledge(id);
+    setExpanded(id);
+    // If the order is on another filter tab, reset the filter so it shows.
+    setFilter("");
+    if (day && day !== today) setDay("");
+    setTimeout(() => {
+      document.getElementById(`order-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  }
+
+  async function patchOrder(id: number, body: Record<string, unknown>): Promise<boolean> {
+    mutationVersionRef.current++;
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setActionError(
+          res.status === 401
+            ? "Сесията изтече — презареди страницата и влез отново."
+            : (data.error ?? "Промяната не беше записана. Опитай пак.")
+        );
+        load();
+        return false;
+      }
+      return true;
+    } catch {
+      setActionError("Няма връзка — промяната не беше записана. Опитай пак.");
+      return false;
+    } finally {
+      mutationVersionRef.current++;
+    }
+  }
 
   useEffect(() => {
     fetch("/api/admin/couriers")
@@ -148,41 +333,32 @@ export function OrdersManager({
     return () => clearInterval(interval);
   }, []);
 
+  function updateLocal(id: number, fn: (o: Order) => Order) {
+    setOrders((prev) => prev.map((o) => (o.id === id ? fn(o) : o)));
+    setTodayOrders((prev) => prev.map((o) => (o.id === id ? fn(o) : o)));
+  }
+
   async function changeStatus(id: number, status: OrderStatus) {
-    await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    acknowledge(id);
+    if (!(await patchOrder(id, { status }))) return;
+    updateLocal(id, (o) => ({ ...o, status }));
   }
 
   async function assignCourier(id: number, courierId: number | null) {
-    await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courier_id: courierId }),
-    });
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, courier_id: courierId } : o)));
+    if (!(await patchOrder(id, { courier_id: courierId }))) return;
+    updateLocal(id, (o) => ({ ...o, courier_id: courierId }));
   }
 
   async function setEstimate(id: number, estimate: string) {
-    await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estimated_delivery: estimate }),
-    });
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, estimated_delivery: estimate } : o)));
+    if (!(await patchOrder(id, { estimated_delivery: estimate }))) return;
+    updateLocal(id, (o) => ({ ...o, estimated_delivery: estimate }));
   }
 
   async function toggleStationReady(id: number, target: "pizza" | "other", ready: boolean) {
     const field = target === "pizza" ? "station_pizza_ready" : "station_other_ready";
-    await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: ready }),
-    });
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: ready ? 1 : 0 } : o)));
+    acknowledge(id);
+    if (!(await patchOrder(id, { [field]: ready }))) return;
+    updateLocal(id, (o) => ({ ...o, [field]: ready ? 1 : 0 }));
   }
 
   // Each station picks its own rough prep time — the internal countdown is
@@ -195,16 +371,10 @@ export function OrdersManager({
   async function setStationPrepTime(id: number, target: "pizza" | "other", estimate: DeliveryEstimate) {
     const field = target === "pizza" ? "station_pizza_prep_estimate" : "station_other_prep_estimate";
     const startedField = target === "pizza" ? "station_pizza_prep_started_at" : "station_other_prep_started_at";
-    const res = await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: estimate }),
-    });
-    if (!res.ok) return;
+    acknowledge(id);
+    if (!(await patchOrder(id, { [field]: estimate }))) return;
     const now = new Date().toISOString();
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id !== id) return o;
+    updateLocal(id, (o) => {
         const pizzaEstimate = target === "pizza" ? estimate : o.station_pizza_prep_estimate;
         const otherEstimate = target === "other" ? estimate : o.station_other_prep_estimate;
         const relevant = [pizzaEstimate, otherEstimate].filter(
@@ -219,23 +389,18 @@ export function OrdersManager({
           estimated_delivery: syncedEstimate,
           estimated_delivery_set_at: now,
         };
-      })
-    );
+      });
   }
 
   // A station-restricted employee only ever sees orders that actually have
   // something for them to prep — an all-pizza order has nothing in it for
   // the "Всичко без пици" station, and vice versa, so there's no reason to
   // clutter their list with it.
-  const visibleOrders =
-    station === "all"
-      ? orders
-      : orders.filter((order) => {
-          const items: OrderItem[] = JSON.parse(order.items_json);
-          return station === "pizza"
-            ? items.some((i) => i.is_pizza)
-            : items.some((i) => !i.is_pizza);
-        });
+  // The status filter is applied here (not on the server) so the alarm and
+  // the "new order" detection always see every order of the day.
+  const visibleOrders = orders.filter(
+    (order) => isForThisStation(order) && (!filter || order.status === filter)
+  );
 
   const canBulk = station === "all";
   const selectedIds = visibleOrders.filter((o) => selected.has(o.id)).map((o) => o.id);
@@ -274,6 +439,7 @@ export function OrdersManager({
     }
     setBulkBusy(true);
     setBulkMessage("");
+    mutationVersionRef.current++;
     const res = await fetch("/api/admin/orders/bulk", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -295,6 +461,7 @@ export function OrdersManager({
     if (selectedIds.length === 0) return;
     setBulkBusy(true);
     setBulkMessage("");
+    mutationVersionRef.current++;
     const res = await fetch("/api/admin/orders/bulk", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -315,20 +482,97 @@ export function OrdersManager({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="font-display font-extrabold text-2xl">Поръчки</h1>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as OrderStatus | "")}
-          className="rounded-xl border border-border px-3 py-2 text-sm"
+      {alarmOn && (
+        <div className="sticky top-0 z-30 rounded-2xl border-4 border-red-700 bg-red-600 p-4 text-white shadow-xl animate-pulse">
+          <p className="font-display text-xl sm:text-2xl font-extrabold">
+            🚨 НОВА ПОРЪЧКА{alarmOrders.length > 1 ? ` (${alarmOrders.length})` : ""}! Натисни я, за да спре звукът.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {alarmOrders.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => openOrder(o.id)}
+                className="rounded-xl bg-white px-4 py-3 text-base font-extrabold text-red-700 shadow"
+              >
+                {o.order_number} · {o.customer_name} · {formatPrice(o.total)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!audioReady && (
+        <button
+          type="button"
+          onClick={() => unlockAudio().then(() => setAudioReady(isAudioReady()))}
+          className="w-full rounded-2xl border-2 border-red-500 bg-red-50 p-4 text-left font-bold text-red-700"
         >
-          <option value="">Всички статуси</option>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
-          ))}
-        </select>
+          🔇 Звукът за нови поръчки е изключен от браузъра. Натисни тук, за да го включиш.
+        </button>
+      )}
+
+      {connectionError && (
+        <p className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-3 text-sm font-bold text-amber-800">
+          ⚠️ {connectionError}
+        </p>
+      )}
+      {actionError && (
+        <p className="rounded-2xl border-2 border-red-300 bg-red-50 p-3 text-sm font-bold text-red-700">
+          ⚠️ {actionError}
+        </p>
+      )}
+
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="font-display font-extrabold text-2xl">
+          Поръчки{" "}
+          <span className="text-base font-semibold text-muted">
+            · {viewingDay === today ? "днес" : formatDay(viewingDay)}
+          </span>
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {station === "all" && (
+            <>
+              <input
+                type="date"
+                value={viewingDay}
+                max={today}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSelected(new Set());
+                  setLoading(true);
+                  setDay(!v || v === today ? "" : v);
+                }}
+                className="rounded-xl border border-border px-3 py-2 text-sm"
+                aria-label="Ден"
+              />
+              {viewingDay !== today && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelected(new Set());
+                    setDay("");
+                  }}
+                  className="rounded-xl bg-brand px-3 py-2 text-sm font-bold text-white"
+                >
+                  Към днес
+                </button>
+              )}
+            </>
+          )}
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as OrderStatus | "")}
+            className="rounded-xl border border-border px-3 py-2 text-sm"
+          >
+            <option value="">Всички статуси</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {canBulk && visibleOrders.length > 0 && (
@@ -437,10 +681,14 @@ export function OrdersManager({
         {visibleOrders.map((order) => {
           const items: OrderItem[] = JSON.parse(order.items_json);
           const isOpen = expanded === order.id;
+          const isAlarming = alarmOrders.some((o) => o.id === order.id);
           return (
             <div
               key={order.id}
-              className={`rounded-2xl border overflow-hidden ${STATUS_ROW_STYLES[order.status]}`}
+              id={`order-${order.id}`}
+              className={`rounded-2xl border overflow-hidden ${STATUS_ROW_STYLES[order.status]} ${
+                isAlarming ? "ring-4 ring-red-500 animate-pulse" : ""
+              }`}
             >
               <div className="flex items-stretch">
               {canBulk && (
@@ -455,7 +703,10 @@ export function OrdersManager({
                 </label>
               )}
               <button
-                onClick={() => setExpanded(isOpen ? null : order.id)}
+                onClick={() => {
+                  acknowledge(order.id);
+                  setExpanded(isOpen ? null : order.id);
+                }}
                 className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-4 text-left"
               >
                 <div className="min-w-0">
@@ -840,7 +1091,9 @@ export function OrdersManager({
           );
         })}
         {!loading && visibleOrders.length === 0 && (
-          <p className="text-muted text-sm text-center py-10">Няма поръчки в тази категория.</p>
+          <p className="text-muted text-sm text-center py-10">
+            {viewingDay === today ? "Още няма поръчки за днес." : "Няма поръчки за този ден."}
+          </p>
         )}
       </div>
     </div>
@@ -880,6 +1133,34 @@ function PrepTimer({ estimate, startedAt }: { estimate: string; startedAt: strin
       {mm}:{ss.toString().padStart(2, "0")}
     </span>
   );
+}
+
+const ACK_KEY = "dd_acked_orders";
+
+function readAcked(): Set<number> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(ACK_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(arr) ? arr.filter((n): n is number => typeof n === "number") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeAcked(ids: Set<number>) {
+  try {
+    // Only the most recent ones matter; keep the stored list small.
+    const arr = Array.from(ids).slice(-500);
+    window.localStorage.setItem(ACK_KEY, JSON.stringify(arr));
+  } catch {
+    // storage unavailable — the alarm still stops for this session
+  }
+}
+
+function formatDay(key: string) {
+  const [y, m, d] = key.split("-");
+  return `${d}.${m}.${y}`;
 }
 
 function paymentStatusLabel(status: string) {

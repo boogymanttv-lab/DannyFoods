@@ -168,6 +168,10 @@ export async function listOrders(opts?: {
   limit?: number;
   dateFrom?: string;
   dateTo?: string;
+  // A calendar day in Bulgarian time (YYYY-MM-DD). created_at is stored in
+  // UTC, so it is converted to Europe/Sofia before comparing — otherwise
+  // orders placed after midnight would land on the previous day.
+  shopDay?: string;
 }): Promise<Order[]> {
   const db = await getDb();
   const clauses: string[] = [];
@@ -175,6 +179,12 @@ export async function listOrders(opts?: {
   if (opts?.status) {
     clauses.push("status = @status");
     params.status = opts.status;
+  }
+  if (opts?.shopDay) {
+    clauses.push(
+      "to_char((created_at::timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Sofia', 'YYYY-MM-DD') = @shopDay"
+    );
+    params.shopDay = opts.shopDay;
   }
   if (opts?.dateFrom) {
     clauses.push("left(created_at, 10) >= @dateFrom");
